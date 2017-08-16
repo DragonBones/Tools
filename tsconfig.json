@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"watch": false,
+		"sourceMap": false,
+		"alwaysStrict": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"strictNullChecks": true,
+		"experimentalDecorators": true,
+		"allowSyntheticDefaultImports": true,
+		"target": "es5",
+		"module": "commonjs",
+		"baseUrl": "./src",
+		"outDir": "./out"
+	},
+	"exclude": [
+		"node_modules",
+		"out",
+		"backup"
+	]
+}
