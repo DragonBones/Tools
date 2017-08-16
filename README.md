@@ -24,3 +24,10 @@ $ db2 -t binary -f hero
 ```
 $ db2 -t binary -i d:/input -o d:/output -d
 ```
+
+## Build
+```
+$ npm install
+$ npm install typescript --global
+$ tsc
+```
