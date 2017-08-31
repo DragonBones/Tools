@@ -63,18 +63,18 @@ function execute(): void {
             );
         }
 
-        // Movie
-        const movieFile = dragonBonesFile.replace(".json", ".dbmv");
-        if (fs.existsSync(movieFile)) {
-            console.log(movieFile);
+        // // Movie
+        // const movieFile = dragonBonesFile.replace(".json", ".dbmv");
+        // if (fs.existsSync(movieFile)) {
+        //     console.log(movieFile);
 
-            resourcesJSON.addResource(
-                dataName + "_mov",
-                resft.ResourceType.BIN,
-                modifyResourcesPath(movieFile),
-                PRELOAD_NAME
-            );
-        }
+        //     resourcesJSON.addResource(
+        //         dataName + "_mov",
+        //         resft.ResourceType.BIN,
+        //         modifyResourcesPath(movieFile),
+        //         PRELOAD_NAME
+        //     );
+        // }
 
         const textureAtlases = dbUtils.getTextureAtlases(dragonBonesFile); // TextureAtlas config and TextureAtlas.
         if (textureAtlases.length > 0) {
@@ -121,9 +121,6 @@ function execute(): void {
         const file = path.join(root, RESOURCE_NAME);
         fs.writeFileSync(file, new Buffer(JSON.stringify(resourcesJSON)));
         console.log(file);
-    }
-    else {
-        console.log("Do not have any DragonBones files.");
     }
 
     console.log("Complete.");

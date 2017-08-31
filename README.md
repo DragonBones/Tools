@@ -25,6 +25,9 @@ $ db2 -t binary -f hero
 $ db2 -t binary -i d:/input -o d:/output -d
 ```
 
+## Notice
+* Make sure backup your raw resources before convert.
+
 ## Build
 ```
 $ npm install

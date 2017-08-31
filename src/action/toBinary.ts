@@ -34,17 +34,13 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
         delete colors[k];
     }
 
-    const binaryDatas = new Array<dbft.MeshDisplay | dbft.PolygonBoundingBoxDisplay>();
+    const binaryDatas = new Array<dbft.MeshDisplay>();
     for (currentArmature of data.armature) {
         for (const skin of currentArmature.skin) {
             for (const slot of skin.slot) {
                 for (const display of slot.display) {
                     if (display instanceof dbft.MeshDisplay) {
                         display.offset = createMesh(display);
-                        binaryDatas.push(display);
-                    }
-                    else if (display instanceof dbft.PolygonBoundingBoxDisplay) {
-                        display.offset = createPolygonBoundingBox(display);
                         binaryDatas.push(display);
                     }
                 }
@@ -280,16 +276,6 @@ function createMesh(value: dbft.MeshDisplay): number {
     return offset;
 }
 
-function createPolygonBoundingBox(value: dbft.PolygonBoundingBoxDisplay): number {
-    const offset = floatArray.length;
-    floatArray.length += value.vertices.length;
-    for (let i = 0, l = value.vertices.length; i < l; ++i) {
-        floatArray[offset + i] = value.vertices[i];
-    }
-
-    return offset;
-}
-
 function createTimeline<T extends dbft.Frame>(
     value: dbft.Timeline | dbft.Animation, frames: T[],
     addIntOffset: boolean, addFloatOffset: boolean, frameValueCount: number,
@@ -420,6 +406,10 @@ function createZOrderFrame(frame: dbft.ZOrderFrame, frameStart: number): number 
         const unchanged = new Array<number>(slotCount - frame.zOrder.length / 2);
         const zOrders = new Array<number>(slotCount);
 
+        for (let i = 0; i < unchanged.length; ++i) {
+            unchanged[i] = 0;
+        }
+
         for (let i = 0; i < slotCount; ++i) {
             zOrders[i] = -1;
         }
@@ -501,7 +491,7 @@ function createBoneTimeline(value: dbft.BoneTimeline): number[] {
     }
 
     if (value.translateFrame.length > 0) {
-        timelines.push(dbft.TimelineType.BoneT);
+        timelines.push(dbft.TimelineType.BoneTranslate);
         timelines.push(createTimeline(value, value.translateFrame, false, true, 2, (frame, frameStart): number => {
             const offset = createTweenFrame(frame, frameStart);
             frameFloatArray.push(frame.x);
@@ -514,7 +504,7 @@ function createBoneTimeline(value: dbft.BoneTimeline): number[] {
     if (value.rotateFrame.length > 0) {
         let clockwise = 0;
         let prevRotate = 0.0;
-        timelines.push(dbft.TimelineType.BoneR);
+        timelines.push(dbft.TimelineType.BoneRotate);
         timelines.push(createTimeline(value, value.rotateFrame, false, true, 2, (frame, frameStart): number => {
             const offset = createTweenFrame(frame, frameStart);
 
@@ -543,7 +533,7 @@ function createBoneTimeline(value: dbft.BoneTimeline): number[] {
     }
 
     if (value.scaleFrame.length > 0) {
-        timelines.push(dbft.TimelineType.BoneR);
+        timelines.push(dbft.TimelineType.BoneRotate);
         timelines.push(createTimeline(value, value.scaleFrame, false, true, 2, (frame, frameStart): number => {
             const offset = createTweenFrame(frame, frameStart);
             frameFloatArray.push(frame.x);
@@ -571,7 +561,7 @@ function createSlotTimeline(value: dbft.SlotTimeline): number[] {
 
     if (value.colorFrame.length > 0) {
         timelines.push(dbft.TimelineType.SlotColor);
-        timelines.push(createTimeline(value, value.colorFrame, false, false, 0, (frame, frameStart) => {
+        timelines.push(createTimeline(value, value.colorFrame, true, false, 1, (frame, frameStart) => {
             const offset = createTweenFrame(frame, frameStart);
 
             // Color.

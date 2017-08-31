@@ -2,8 +2,8 @@ import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
 export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.DragonBones {
-    data.version = dbft.DATA_VERSION_5_5;
-    data.compatibleVersion = dbft.DATA_VERSION_5_5;
+    data.version = dbft.DATA_VERSION_5_1;
+    data.compatibleVersion = dbft.DATA_VERSION_5_1;
 
     for (const armature of data.armature) {
         if (forRuntime) { // Old action to new action.
@@ -113,13 +113,6 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                     scaleFrame.x = frame.transform.scX;
                     scaleFrame.y = frame.transform.scY;
 
-                    translateFrame.x = Number(translateFrame.x.toFixed(2));
-                    translateFrame.y = Number(translateFrame.y.toFixed(2));
-                    rotateFrame.rotate = Number(rotateFrame.rotate.toFixed(2));
-                    rotateFrame.skew = Number(rotateFrame.skew.toFixed(2));
-                    scaleFrame.x = Number(scaleFrame.x.toFixed(2));
-                    scaleFrame.y = Number(scaleFrame.y.toFixed(2));
-
                     if (frame.action && !slot) {
                         frame.action = "";
                     }
@@ -178,8 +171,6 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
             }
         }
     }
-
-    data.format();
 
     return data;
 }

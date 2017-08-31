@@ -4,9 +4,6 @@ import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 import * as spft from "../format/spineFormat";
 
-const helpMatrixA = new geom.Matrix();
-const helpMatrixB = new geom.Matrix();
-const helpPoint = new geom.Point();
 type ResultType = { spines: spft.Spine[], textureAtlas: string };
 
 export default function (data: dbft.DragonBones, version: string): ResultType {
@@ -18,7 +15,6 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
         spine.skeleton.width = armature.aabb.width;
         spine.skeleton.height = armature.aabb.height;
         spine.skeleton.fps = frameRate;
-        spine.skeleton.version = version;
         spine.skeleton.spine = version;
         spine.skeleton.name = armature.name;
         result.spines.push(spine);
@@ -37,7 +33,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
             spBone.scaleY = bone.transform.scY;
             spBone.name = bone.name;
             spBone.parent = bone.parent;
-            // spBone.transform;
+            // spBone.transform; // TODO
             spine.bones.push(spBone);
         }
 
@@ -55,8 +51,20 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
             ).toUpperCase();
 
             switch (utils.getEnumFormString(dbft.BlendMode, slot.blendMode)) {
+                case dbft.BlendMode.Normal:
+                    spSlot.blend = "normal";
+                    break;
+
                 case dbft.BlendMode.Add:
                     spSlot.blend = "additive";
+                    break;
+
+                case dbft.BlendMode.Multiply:
+                    spSlot.blend = "multiply";
+                    break;
+
+                case dbft.BlendMode.Screen:
+                    spSlot.blend = "screen";
                     break;
             }
 
@@ -74,7 +82,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
 
         for (const ikConstraint of armature.ik) {
             const spIKConstraint = new spft.IKConstraint();
-            spIKConstraint.bendPositive = ikConstraint.bendPositive;
+            spIKConstraint.bendPositive = !ikConstraint.bendPositive;
             spIKConstraint.mix = ikConstraint.weight;
             spIKConstraint.name = ikConstraint.name;
             spIKConstraint.target = ikConstraint.target;
@@ -136,7 +144,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                         }
 
                         if (display.weights.length > 0) {
-                            helpMatrixA.copyFromArray(display.slotPose);
+                            geom.helpMatrixA.copyFromArray(display.slotPose);
 
                             for (let i = 0, iW = 0, l = display.vertices.length;
                                 i < l;
@@ -144,27 +152,27 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                             ) {
                                 let x = display.vertices[i];
                                 let y = display.vertices[i + 1];
-                                helpMatrixA.transformPoint(x, y, helpPoint);
-                                x = helpPoint.x;
-                                y = helpPoint.y;
+                                geom.helpMatrixA.transformPoint(x, y, geom.helpPoint);
+                                x = geom.helpPoint.x;
+                                y = geom.helpPoint.y;
                                 const boneCount = display.weights[iW++];
                                 spAttachment.vertices.push(boneCount);
                                 for (let j = 0; j < boneCount; ++j) {
                                     const boneIndex = display.weights[iW++];
                                     const boneWeight = display.weights[iW++];
-                                    helpMatrixB.copyFromArray(display.bonePose, display.getBonePoseOffset(boneIndex) + 1);
-                                    helpMatrixB.invert();
-                                    helpMatrixB.transformPoint(x, y, helpPoint);
+                                    geom.helpMatrixB.copyFromArray(display.bonePose, display.getBonePoseOffset(boneIndex) + 1);
+                                    geom.helpMatrixB.invert();
+                                    geom.helpMatrixB.transformPoint(x, y, geom.helpPoint);
 
-                                    spAttachment.vertices.push(boneIndex, Number(helpPoint.x.toFixed(2)), -Number((helpPoint.y).toFixed(2)), boneWeight);
+                                    spAttachment.vertices.push(boneIndex, Number(geom.helpPoint.x.toFixed(2)), -Number((geom.helpPoint.y).toFixed(2)), boneWeight);
                                 }
                             }
                         }
                         else {
-                            display.transform.toMatrix(helpMatrixA);
+                            display.transform.toMatrix(geom.helpMatrixA);
                             for (let i = 0, l = display.vertices.length; i < l; i += 2) {
-                                helpMatrixA.transformPoint(display.vertices[i], display.vertices[i + 1], helpPoint);
-                                spAttachment.vertices.push(Number(helpPoint.x.toFixed(2)), -Number((helpPoint.y).toFixed(2)));
+                                geom.helpMatrixA.transformPoint(display.vertices[i], display.vertices[i + 1], geom.helpPoint);
+                                spAttachment.vertices.push(Number(geom.helpPoint.x.toFixed(2)), -Number((geom.helpPoint.y).toFixed(2)));
                             }
                         }
 
@@ -313,53 +321,53 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                 const spTimelines = new spft.BoneTimelines();
                 spAnimation.bones[timeline.name] = spTimelines;
 
-                let i = 0;
+                let iF = 0;
                 let position = 0.0;
                 for (const frame of timeline.translateFrame) {
                     const spFrame = new spft.TranslateFrame();
                     spFrame.time = position;
                     spFrame.x = frame.x;
                     spFrame.y = -frame.y;
-                    setCurveFormDB(spFrame, frame, i === timeline.translateFrame.length - 1);
+                    setCurveFormDB(spFrame, frame, iF === timeline.translateFrame.length - 1);
                     spTimelines.translate.push(spFrame);
 
-                    i++;
+                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
 
-                i = 0;
+                iF = 0;
                 position = 0.0;
                 for (const frame of timeline.rotateFrame) {
                     const spRotateFrame = new spft.RotateFrame();
                     spRotateFrame.time = position;
                     spRotateFrame.angle = -frame.rotate;
-                    setCurveFormDB(spRotateFrame, frame, i === timeline.rotateFrame.length - 1);
+                    setCurveFormDB(spRotateFrame, frame, iF === timeline.rotateFrame.length - 1);
                     spTimelines.rotate.push(spRotateFrame);
 
                     const spShearFrame = new spft.ShearFrame();
                     spShearFrame.time = position;
                     spShearFrame.x = 0.0;
                     spShearFrame.y = -frame.skew;
-                    setCurveFormDB(spShearFrame, frame, i === timeline.rotateFrame.length - 1);
+                    setCurveFormDB(spShearFrame, frame, iF === timeline.rotateFrame.length - 1);
                     spTimelines.shear.push(spShearFrame);
 
-                    i++;
+                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
 
-                i = 0;
+                iF = 0;
                 position = 0.0;
                 for (const frame of timeline.scaleFrame) {
                     const spFrame = new spft.ScaleFrame();
                     spFrame.time = position;
                     spFrame.x = frame.x;
                     spFrame.y = frame.y;
-                    setCurveFormDB(spFrame, frame, i === timeline.scaleFrame.length - 1);
+                    setCurveFormDB(spFrame, frame, iF === timeline.scaleFrame.length - 1);
                     spTimelines.scale.push(spFrame);
 
-                    i++;
+                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
@@ -370,7 +378,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                 const spTimelines = new spft.SlotTimelines();
                 spAnimation.slots[timeline.name] = spTimelines;
 
-                let i = 0;
+                let iF = 0;
                 let position = 0.0;
                 for (const frame of timeline.displayFrame) {
                     const spFrame = new spft.AttachmentFrame();
@@ -384,17 +392,17 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                         spFrame.name = skinSlot.display[frame.value].name;
                     }
 
-                    i++;
+                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
 
-                i = 0;
+                iF = 0;
                 position = 0.0;
                 for (const frame of timeline.colorFrame) {
                     const spFrame = new spft.ColorFrame();
                     spFrame.time = position;
-                    setCurveFormDB(spFrame, frame, i === timeline.colorFrame.length - 1);
+                    setCurveFormDB(spFrame, frame, iF === timeline.colorFrame.length - 1);
                     spTimelines.color.push(spFrame);
 
                     spFrame.color = (
@@ -404,7 +412,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                         Math.round(frame.value.aM * 2.55).toString(16)
                     ).toUpperCase();
 
-                    i++;
+                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
@@ -420,15 +428,15 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                 }
 
                 slots[timeline.name] = deformFrames;
-                meshDisplay.transform.toMatrix(helpMatrixA);
+                meshDisplay.transform.toMatrix(geom.helpMatrixA);
 
-                let i = 0;
+                let iF = 0;
                 let position = 0.0;
                 for (const frame of timeline.frame) {
                     const spFrame = new spft.DeformFrame();
                     deformFrames.push(spFrame);
                     spFrame.time = position;
-                    setCurveFormDB(spFrame, frame, i === timeline.frame.length - 1);
+                    setCurveFormDB(spFrame, frame, iF === timeline.frame.length - 1);
 
                     for (let j = 0; j < frame.offset; ++j) {
                         spFrame.vertices.push(0.0);
@@ -442,15 +450,20 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                         spFrame.vertices.push(0.0);
                     }
 
-                    for (let j = 0, lJ = spFrame.vertices.length; j < lJ; j += 2) {
-                        const x = meshDisplay.vertices[j];
-                        const y = meshDisplay.vertices[j + 1];
-                        helpMatrixA.transformPoint(x, y, helpPoint);
-                        const xP = helpPoint.x;
-                        const yP = helpPoint.y;
-                        helpMatrixA.transformPoint(x + spFrame.vertices[j], y + spFrame.vertices[j + 1], helpPoint);
-                        spFrame.vertices[j] = Number((helpPoint.x - xP).toFixed(2));
-                        spFrame.vertices[j + 1] = -Number((helpPoint.y - yP).toFixed(2));
+                    if (meshDisplay.weights.length > 0) {
+                        //TODO
+                    }
+                    else {
+                        for (let j = 0, lJ = spFrame.vertices.length; j < lJ; j += 2) {
+                            const x = meshDisplay.vertices[j];
+                            const y = meshDisplay.vertices[j + 1];
+                            geom.helpMatrixA.transformPoint(x, y, geom.helpPoint);
+                            const xP = geom.helpPoint.x;
+                            const yP = geom.helpPoint.y;
+                            geom.helpMatrixA.transformPoint(x + spFrame.vertices[j], y + spFrame.vertices[j + 1], geom.helpPoint);
+                            spFrame.vertices[j] = Number((geom.helpPoint.x - xP).toFixed(2));
+                            spFrame.vertices[j + 1] = -Number((geom.helpPoint.y - yP).toFixed(2));
+                        }
                     }
 
                     let begin = 0;
@@ -474,7 +487,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                     spFrame.offset = begin;
                     spFrame.vertices.length = end - begin + 1;
 
-                    i++;
+                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
@@ -482,8 +495,6 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
 
             spine.animations[animation.name] = spAnimation;
         }
-
-        utils.compress(spine, spft.compressConfig);
     }
 
     let index = data.textureAtlas.length > 1 ? 0 : -1;
@@ -500,8 +511,12 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
             result.textureAtlas += ` rotate: ${texture.rotated}\n`;
             result.textureAtlas += ` xy: ${texture.x}, ${texture.y}\n`;
             result.textureAtlas += ` size: ${texture.width}, ${texture.height}\n`;
-            result.textureAtlas += ` orig: ${texture.frameWidth || texture.width}, ${texture.frameHeight || texture.height}\n`;
-            result.textureAtlas += ` offset: ${texture.frameX}, ${texture.frameY}\n`;
+
+            if (texture.frameX || texture.frameY || texture.frameWidth || texture.frameHeight) {
+                result.textureAtlas += ` orig: ${texture.frameWidth || texture.width}, ${texture.frameHeight || texture.height}\n`;
+                result.textureAtlas += ` offset: ${texture.frameX}, ${texture.frameY}\n`;
+            }
+
             result.textureAtlas += ` index: ${index}\n`;
         }
 

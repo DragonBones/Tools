@@ -1,20 +1,23 @@
 {
   "name": "dragonbones-tools",
-  "version": "0.0.7",
+  "version": "0.0.12",
   "author": "dragonbones",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "DragonBones",
+    "dragonbones",
     "convert"
   ],
   "bin": {
-    "db2": "./out/convert.js",
-    "dbtest-demos": "./out/test/testDemos.js"
+    "db2": "./out/convertTo.js",
+    "2db": "./out/convertFrom.js",
+    "db-test-demos": "./out/test/testDemos.js"
   },
   "dependencies": {
     "@types/commander": "^2.9.1",
-    "commander": "^2.11.0"
+    "@types/fs-extra": "^4.0.0",
+    "commander": "^2.11.0",
+    "fs-extra": "^4.0.1"
   }
 }

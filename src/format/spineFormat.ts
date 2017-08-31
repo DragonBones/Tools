@@ -3,14 +3,21 @@ import { Map } from "../common/types";
  * Spine format.
  */
 export type TransformType = "normal" | "onlyTranslation" | "noRotationOrReflection" | "noScale" | "noScaleOrReflection";
-export type AttachmentType = "region" | "mesh" | "linkedmesh" | "boundingbox" | "path" | "point" | "clipping";
+export type AttachmentType = "region" | "mesh" | "linkedmesh" | "boundingbox" | "path" | "point" | "clipping" | "skinnedmesh";
 export type BlendMode = "normal" | "additive" | "multiply" | "screen";
+
+export function isSpineString(string: string): boolean {
+    const testString = string.substr(0, Math.min(200, string.length));
+    return testString.indexOf('"spine"') > 0;
+}
 
 export class Spine {
     readonly skeleton: Skeleton = new Skeleton();
     readonly bones: Bone[] = [];
     readonly slots: Slot[] = [];
     readonly ik: IKConstraint[] = [];
+    readonly transform: TransformConstraint[] = [];
+    readonly path: PathConstraint[] = [];
     readonly skins: Map<Map<Map<Attachment>>> = {};
     readonly animations: Map<Animation> = {};
     readonly events: Map<Event> = {};
@@ -20,11 +27,10 @@ export class Skeleton {
     width: number = 0.00;
     height: number = 0.00;
     fps: number = 30; // Nonessential.
-    name: string = ""; // Keep armature name.
-    version: string = "";
     spine: string = "";
     hash: string = ""; // Nonessential.
     images: string = "./images/"; // Nonessential.
+    name: string = ""; // Keep DragonBones armature name.
 }
 
 export class Bone {
@@ -54,9 +60,44 @@ export class Slot {
 }
 
 export class IKConstraint {
-    bendPositive: boolean = false;
+    bendPositive: boolean = true;
     order: number = 0;
     mix: number = 1.00;
+    name: string = "";
+    target: string = "";
+    readonly bones: string[] = [];
+}
+
+export class TransformConstraint {
+    local: boolean = false;
+    relative: boolean = false;
+    order: number = 0;
+    x: number = 0.00;
+    y: number = 0.00;
+    rotation: number = 0.00;
+    shearX: number = 0.00;
+    shearY: number = 0.00;
+    scaleX: number = 0.00;
+    scaleY: number = 0.00;
+    translateMix: number = 1.00;
+    rotateMix: number = 1.00;
+    scaleMix: number = 1.00;
+    shearMix: number = 1.00;
+    name: string = "";
+    bone: string = "";
+    target: string = "";
+}
+
+export class PathConstraint {
+    positionMode: "fixed" | "percent" = "percent";
+    spacingMode: "length" | "fixed" | "percent" = "length";
+    rotateMode: "tangent" | "chain" | "chain scale" = "tangent";
+    order: number = 0;
+    rotation: number = 0.00;
+    position: number = 0.00;
+    spacing: number = 0.00;
+    translateMix: number = 1.00;
+    rotateMix: number = 1.00;
     name: string = "";
     target: string = "";
     readonly bones: string[] = [];
@@ -109,6 +150,7 @@ export class LinkedMeshAttachment extends Attachment {
     deform: boolean = true;
     width: number = 0; // Nonessential.
     height: number = 0; // Nonessential.
+    path: string = "";
     skin: string = "";
     parent: string = "";
 
@@ -194,13 +236,14 @@ export class Animation {
     readonly ik: Map<IKConstraintFrame[]> = {};
     readonly transform: Map<TransformConstraintFrame[]> = {};
     readonly deform: Map<Map<Map<DeformFrame[]>>> = {};
+    readonly ffd: Map<Map<Map<DeformFrame[]>>> = {}; // Deprecated.
     readonly events: EventFrame[] = [];
     readonly draworder: DrawOrderFrame[] = [];
 }
 
 export class BoneTimelines {
-    readonly rotate: RotateFrame[] = [];
     readonly translate: TranslateFrame[] = [];
+    readonly rotate: RotateFrame[] = [];
     readonly scale: ScaleFrame[] = [];
     readonly shear: ShearFrame[] = [];
 }
@@ -287,12 +330,90 @@ export class DrawOrderFrame extends Frame {
     offsets: { slot: string, offset: number }[] = [];
 }
 
+export const copyConfig = [
+    Spine, {
+        bones: Bone,
+        slots: Slot,
+        ik: IKConstraint,
+        transform: TransformConstraint,
+        path: PathConstraint,
+        skins: [[[[
+            function (attachment: any): { new (): Attachment } | null {
+                const type: AttachmentType = attachment.type || "region";
+                switch (type) {
+                    case "region":
+                        return RegionAttachment;
+
+                    case "mesh":
+                    case "skinnedmesh":
+                        return MeshAttachment;
+
+                    case "linkedmesh":
+                        return LinkedMeshAttachment;
+
+                    case "boundingbox":
+                        return BoundingBoxAttachment;
+
+                    case "path":
+                        return PathAttachment;
+
+                    case "point":
+                        return PointAttachment;
+
+                    case "clipping":
+                        return ClippingAttachment;
+
+                    default:
+                        return null;
+                }
+            },
+            Function
+        ]]]],
+        animations: [Animation],
+        events: [Event],
+    },
+    Animation, {
+        bones: [BoneTimelines],
+        slots: [SlotTimelines],
+        ik: [
+            IKConstraintFrame,
+            Array
+        ],
+        transform: [
+            TransformConstraintFrame,
+            Array
+        ],
+        deform: [[[
+            DeformFrame,
+            Array
+        ]]],
+        ffd: [[[
+            DeformFrame,
+            Array
+        ]]],
+        events: EventFrame,
+        draworder: DrawOrderFrame,
+    },
+    BoneTimelines, {
+        rotate: RotateFrame,
+        translate: TranslateFrame,
+        scale: ScaleFrame,
+        shear: ShearFrame
+    },
+    SlotTimelines, {
+        attachment: AttachmentFrame,
+        color: ColorFrame
+    }
+];
+
 export const compressConfig = [
     new Spine(),
     new Skeleton(),
     new Bone(),
     new Slot(),
     new IKConstraint(),
+    new TransformConstraint(),
+    new PathConstraint(),
 
     new RegionAttachment(true),
     new MeshAttachment(true),

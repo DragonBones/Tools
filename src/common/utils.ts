@@ -22,6 +22,10 @@ export function filterFileList(folderPath: string, filter?: RegExp, maxDepth: nu
     return fileFilteredList;
 }
 
+export function writeFile(): void {
+
+}
+
 export function getEnumFormString(enumerator: any, type: string | number, defaultType: number = -1): number {
     if (typeof type === "number") {
         return type;
@@ -52,11 +56,11 @@ export function copyFromObject(data: any, object: any, config: any[] | null): vo
             continue;
         }
 
-        _copyFromObject(data, k, data[k], object[k], k, dataConfig, config);
+        _copyFromObject(data, k, data[k], object[k], dataConfig ? dataConfig[k] : null, config);
     }
 }
 
-function _copyFromObject(parent: any, key: string | number, data: any, object: any, configKey: string, dataConfig: any, config: any[] | null): any {
+function _copyFromObject(parent: any, key: string | number, data: any, object: any, creater: any, config: any[] | null): any {
     const dataType = typeof data;
     const objectType = typeof object;
     if (objectType as any === "function") { //
@@ -107,48 +111,46 @@ function _copyFromObject(parent: any, key: string | number, data: any, object: a
         }
     }
     else if (object instanceof Array) {
+        if (!(data instanceof Array)) {
+            // console.warn(`${key}: ${dataType} is not an array.`);
+            parent[key] = data = [];
+        }
+
         if (data instanceof Array) {
             data.length = object.length;
             for (let i = 0, l = data.length; i < l; ++i) {
-                _copyFromObject(data, i, data[i], object[i], configKey, dataConfig, config);
+                _copyFromObject(data, i, data[i], object[i], creater, config);
             }
-        }
-        else {
-            // console.warn(`${key}: ${dataType} is not an array.`);
-            parent[key] = object.concat();
         }
     }
     else {
         if (data !== null && data !== undefined && dataType === "object") {
-            const creater = dataConfig ? dataConfig[configKey] : null;
             if (creater instanceof Array) {
                 for (let k in object) {
-                    _copyFromObject(data, k, data[k], object[k], configKey, creater[0], config);
+                    _copyFromObject(data, k, data[k], object[k], creater[0], config);
                 }
             }
             else {
                 copyFromObject(data, object, config);
             }
         }
-        else if (dataConfig !== null) {
-            const creater = dataConfig[configKey];
-            if (creater instanceof Function && creater.length === 1) {
-                const clazz = creater(object);
-                const data = new clazz();
-                copyFromObject(data, object, config);
-
-                parent[key] = data;
-            }
-            else if (creater instanceof Array) {
-                for (let k of object) {
-                    _copyFromObject(data, k, data[k], object[k], configKey, dataConfig, config);
+        else if (creater) {
+            if (creater instanceof Array) {
+                if (creater[1] === Function) {
+                    const clazz = creater[0](object);
+                    parent[key] = data = new clazz();
+                    copyFromObject(data, object, config);
+                }
+                else {
+                    parent[key] = data = creater[1] === Array ? [] : {};
+                    for (let k in object) {
+                        _copyFromObject(data, k, data[k], object[k], creater[0], config);
+                    }
                 }
             }
             else if (creater) {
-                const data = new creater();
+                parent[key] = data = new creater();
                 copyFromObject(data, object, config);
-
-                parent[key] = data;
             }
             else {
                 // console.warn(`${key}: shallow copy.`);

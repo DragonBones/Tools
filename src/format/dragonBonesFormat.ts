@@ -1,6 +1,6 @@
 import { Map } from "../common/types";
 import * as utils from "../common/utils";
-import { normalizeDegree, Transform, ColorTransform, Point, Rectangle, helpPoint } from "./geom";
+import { Matrix, Transform, ColorTransform, Point, Rectangle, helpPoint } from "./geom";
 import * as dbftV23 from "./dragonBonesFormatV23";
 /**
  * DragonBones format.
@@ -10,15 +10,15 @@ export const DATA_VERSION_3_0: string = "3.0";
 export const DATA_VERSION_4_0: string = "4.0";
 export const DATA_VERSION_4_5: string = "4.5";
 export const DATA_VERSION_5_0: string = "5.0";
-export const DATA_VERSION_5_5: string = "5.5";
-export const DATA_VERSION: string = DATA_VERSION_5_5;
+export const DATA_VERSION_5_1: string = "5.5";
+export const DATA_VERSION: string = DATA_VERSION_5_1;
 export const DATA_VERSIONS: Array<string> = [
     DATA_VERSION_2_3,
     DATA_VERSION_3_0,
     DATA_VERSION_4_0,
     DATA_VERSION_4_5,
     DATA_VERSION_5_0,
-    DATA_VERSION_5_5
+    DATA_VERSION_5_1
 ];
 
 export enum OffsetOrder {
@@ -108,15 +108,9 @@ export enum TimelineType {
     ZOrder = 1,
 
     BoneAll = 10,
-    BoneT = 11,
-    BoneR = 12,
-    BoneS = 13,
-    BoneX = 14,
-    BoneY = 15,
-    BoneRotate = 16,
-    BoneSkew = 17,
-    BoneScaleX = 18,
-    BoneScaleY = 19,
+    BoneTranslate = 11,
+    BoneRotate = 12,
+    BoneScale = 13,
 
     SlotDisplay = 20,
     SlotColor = 21,
@@ -137,7 +131,7 @@ export enum TweenType {
 
 export function isDragonBonesString(string: string): boolean {
     const testString = string.substr(0, Math.min(200, string.length));
-    return testString.indexOf("armature") > 0;
+    return testString.indexOf('"armature"') > 0;
 }
 
 export function getTextureFormTextureAtlases(name: string, textureAtlases: TextureAtlas[]): Texture | null {
@@ -310,40 +304,6 @@ export function getEdgeFormTriangles(triangles: number[]): number[] {
     return result;
 }
 
-export function cleanTimeline(timelines: Timeline[], armature: Armature): void {
-    for (let i = 0, l = timelines.length; i < l; ++i) {
-        const timeline = timelines[i];
-        if (!timeline.format(armature)) {
-            timelines.splice(i, 1);
-            i--;
-            l--;
-        }
-    }
-}
-
-export function cleanFrame(frames: Frame[]): void {
-    let prevFrame: Frame | null = null;
-    for (let i = 0, l = frames.length; i < l; ++i) {
-        const frame = frames[i];
-        if (
-            prevFrame && frame.equal(prevFrame) &&
-            (i === l - 1 || frame.equal(frames[i + 1]))
-        ) {
-            prevFrame.duration += frame.duration;
-            if (i === l - 1 && prevFrame instanceof TweenFrame) {
-                prevFrame.removeTween();
-            }
-
-            frames.splice(i, 1);
-            i--;
-            l--;
-        }
-        else {
-            prevFrame = frame;
-        }
-    }
-}
-
 export function oldActionToNewAction(oldAction: OldAction): Action {
     const newAction = new Action();
     newAction.type = ActionType.Play;
@@ -445,24 +405,18 @@ export class DragonBones {
     compatibleVersion: string = "";
     readonly armature: Armature[] = [];
     readonly offset: number[] = []; // Binary.
-    textureAtlas: TextureAtlas[] = [];
+    readonly textureAtlas: TextureAtlas[] = [];
     userData: UserData | null = null;
-
-    format(): void {
-        for (const armature of this.armature) {
-            armature.format(this);
-        }
-
-        for (const textureAtlas of this.textureAtlas) {
-            textureAtlas.format(this);
-        }
-    }
 }
 
 export class UserData {
     readonly ints: number[] = [];
     readonly floats: number[] = [];
     readonly strings: string[] = [];
+}
+
+export class OldAction {
+    gotoAndPlay: string = "";
 }
 
 export class Action extends UserData {
@@ -485,52 +439,6 @@ export class Armature {
     readonly defaultActions: (OldAction | Action)[] = [];
     readonly actions: Action[] = [];
     userData: UserData | null = null;
-
-    format(dragonBones: DragonBones): void {
-        dragonBones;
-        // if (typeof this.type === "string") { // LowerCase bug. (If fix the bug, some third-party plugins may go wrong)
-        //     this.type = this.type.toLowerCase();
-        // }
-        this.aabb.toFixed();
-
-        for (const bone of this.bone) {
-            bone.transform.skX = normalizeDegree(bone.transform.skX);
-            bone.transform.skY = normalizeDegree(bone.transform.skY);
-            if (bone.transform.scX === 0.0) {
-                bone.transform.scX = 0.0001;
-            }
-
-            if (bone.transform.scY === 0.0) {
-                bone.transform.scY = 0.0001;
-            }
-
-            bone.transform.toFixed();
-        }
-
-        for (const skin of this.skin) {
-            skin.name = skin.name || "default";
-
-            for (const skinSlot of skin.slot) {
-                for (const display of skinSlot.display) {
-                    display.transform.skX = normalizeDegree(display.transform.skX);
-                    display.transform.skY = normalizeDegree(display.transform.skY);
-                    display.transform.toFixed();
-
-                    if (display instanceof ImageDisplay || display instanceof MeshDisplay || display instanceof SharedMeshDisplay) {
-                        if (display.path === display.name) {
-                            display.path = "";
-                        }
-                    }
-                }
-            }
-        }
-
-        for (const animation of this.animation) {
-            if (animation instanceof Animation) {
-                animation.format(this);
-            }
-        }
-    }
 
     sortBones(): void {
         const total = this.bone.length;
@@ -555,7 +463,7 @@ export class Armature {
             // TODO constraint.
 
             if (bone.parent) {
-                const parent = this.getBone(bone.parent); // Parent 一定不能非法。
+                const parent = this.getBone(bone.parent);
                 if (!parent || this.bone.indexOf(parent) < 0) {
                     continue;
                 }
@@ -607,6 +515,65 @@ export class Armature {
 
         return null;
     }
+
+    localToGlobal(): void {
+        this.sortBones();
+
+        const helpMatrixA = new Matrix();
+        const helpMatrixB = new Matrix();
+
+        for (const bone of this.bone) {
+            if (!bone._global) {
+                bone._global = new Transform();
+            }
+
+            bone._global.copyFrom(bone.transform);
+
+            if (bone.parent) {
+                const parent = this.getBone(bone.parent);
+                if (parent && parent._global) {
+                    parent._global.toMatrix(helpMatrixA);
+                    if (bone.inheritScale) {
+                        if (!bone.inheritRotation) {
+                            bone._global.skX -= parent._global.skY;
+                            bone._global.skY -= parent._global.skY;
+                        }
+
+                        bone._global.toMatrix(helpMatrixB);
+                        helpMatrixB.concat(helpMatrixA);
+                        bone._global.fromMatrix(helpMatrixB);
+
+                        if (!bone.inheritTranslation) {
+                            bone._global.x = bone.transform.x;
+                            bone._global.y = bone.transform.y;
+                        }
+                    }
+                    else {
+                        if (bone.inheritTranslation) {
+                            helpMatrixA.transformPoint(bone._global.x, bone._global.y, bone._global, true);
+                        }
+
+                        if (bone.inheritRotation) {
+                            let dR = parent._global.skY;
+                            if (parent._global.scX < 0.0) {
+                                dR += Math.PI;
+                            }
+
+                            if (helpMatrixA.a * helpMatrixA.d - helpMatrixA.b * helpMatrixA.c < 0.0) {
+                                dR -= bone._global.skY * 2.0;
+                                if (bone.inheritReflection) {
+                                    bone._global.skX += Math.PI;
+                                }
+                            }
+
+                            bone._global.skX += dR;
+                            bone._global.skY += dR;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 export class Bone {
@@ -619,6 +586,8 @@ export class Bone {
     parent: string = "";
     readonly transform: Transform = new Transform();
     userData: UserData | null = null;
+
+    _global: Transform | null = null;
 }
 
 export class Slot {
@@ -718,8 +687,8 @@ export class MeshDisplay extends Display {
     readonly slotPose: number[] = [];
     readonly bonePose: number[] = [];
 
-    readonly edges: number[] = []; // Nonessential.
-    readonly userEdges: number[] = []; // Nonessential.
+    edges: number[] = []; // Nonessential.
+    userEdges: number[] = []; // Nonessential.
 
     _boneCount: number = 0;
     _weightCount: number = 0;
@@ -732,7 +701,7 @@ export class MeshDisplay extends Display {
         }
     }
 
-    public clearToBinary(): void {
+    clearToBinary(): void {
         this.vertices.length = 0;
         this.uvs.length = 0;
         this.triangles.length = 0;
@@ -743,7 +712,7 @@ export class MeshDisplay extends Display {
         this.userEdges.length = 0;
     }
 
-    public getBonePoseOffset(boneIndex: number): number {
+    getBonePoseOffset(boneIndex: number): number {
         for (let i = 0, l = this.bonePose.length; i < l; i += 7) {
             if (boneIndex === this.bonePose[i]) {
                 return i;
@@ -795,8 +764,7 @@ export class EllipseBoundingBoxDisplay extends BoundingBoxDisplay {
 }
 
 export class PolygonBoundingBoxDisplay extends BoundingBoxDisplay {
-    offset: number = -1;
-    readonly vertices: number[] = [];
+    vertices: number[] = [];
 
     constructor(isDefault: boolean = false) {
         super();
@@ -804,10 +772,6 @@ export class PolygonBoundingBoxDisplay extends BoundingBoxDisplay {
             this.type = DisplayType[DisplayType.BoundingBox].toLowerCase();
             this.subType = BoundingBoxType[BoundingBoxType.Polygon].toLowerCase();
         }
-    }
-
-    public clearToBinary(): void {
-        this.vertices.length = 0;
     }
 }
 
@@ -842,18 +806,6 @@ export class Animation {
 
         return null;
     }
-
-    format(armature: Armature): boolean {
-        cleanTimeline(this.bone, armature);
-        cleanTimeline(this.slot, armature);
-        cleanTimeline(this.ffd, armature);
-
-        if (this.zOrder && !this.zOrder.format(armature)) {
-            this.zOrder = null;
-        }
-
-        return false;
-    }
 }
 
 export class AnimationBinary {
@@ -874,19 +826,10 @@ export abstract class Timeline {
     scale: number = 1.0;
     offset: number = 0.0;
     name: string = "";
-
-    abstract format(armature: Armature): boolean;
 }
 
 export class ZOrderTimeline extends Timeline {
     readonly frame: ZOrderFrame[] = [];
-
-    format(armature: Armature): boolean {
-        armature;
-        cleanFrame(this.frame);
-
-        return this.frame.length > 0;
-    }
 }
 
 export class BoneTimeline extends Timeline {
@@ -894,140 +837,24 @@ export class BoneTimeline extends Timeline {
     readonly translateFrame: BoneTranslateFrame[] = [];
     readonly rotateFrame: BoneRotateFrame[] = [];
     readonly scaleFrame: BoneScaleFrame[] = [];
-
-    format(armature: Armature): boolean {
-        const bone = armature.getBone(this.name);
-        if (!bone) {
-            this.frame.length = 0;
-            this.translateFrame.length = 0;
-            this.rotateFrame.length = 0;
-            this.scaleFrame.length = 0;
-
-            return false;
-        }
-
-        cleanFrame(this.frame);
-        cleanFrame(this.translateFrame);
-        cleanFrame(this.rotateFrame);
-        cleanFrame(this.scaleFrame);
-
-        if (this.frame.length === 1) {
-            const frame = this.frame[0];
-            if (
-                frame.transform.x === 0.0 &&
-                frame.transform.y === 0.0 &&
-                frame.transform.skX === 0.0 &&
-                frame.transform.skY === 0.0 &&
-                frame.transform.scX === 1.0 &&
-                frame.transform.scY === 1.0
-            ) {
-                this.frame.length = 0;
-            }
-        }
-
-        if (this.translateFrame.length === 1) {
-            const frame = this.translateFrame[0];
-            if (frame.x === 0.0 && frame.y === 0.0) {
-                this.translateFrame.length = 0;
-            }
-        }
-
-        if (this.rotateFrame.length === 1) {
-            const frame = this.rotateFrame[0];
-            if (frame.rotate === 0.0 && frame.skew === 0.0) {
-                this.rotateFrame.length = 0;
-            }
-        }
-
-        if (this.scaleFrame.length === 1) {
-            const frame = this.scaleFrame[0];
-            if (frame.x === 1.0 && frame.y === 1.0) {
-                this.scaleFrame.length = 0;
-            }
-        }
-
-        return this.frame.length > 0 || this.translateFrame.length > 0 || this.rotateFrame.length > 0 || this.scaleFrame.length > 0;
-    }
 }
 
 export class SlotTimeline extends Timeline {
     readonly frame: SlotAllFrame[] = []; // Deprecated.
     readonly displayFrame: SlotDisplayFrame[] = [];
     readonly colorFrame: SlotColorFrame[] = [];
-
-    format(armature: Armature): boolean {
-        const slot = armature.getSlot(this.name);
-        if (!slot) {
-            this.frame.length = 0;
-            this.displayFrame.length = 0;
-            this.colorFrame.length = 0;
-
-            return false;
-        }
-
-        cleanFrame(this.frame);
-        cleanFrame(this.displayFrame);
-        cleanFrame(this.colorFrame);
-
-        if (this.frame.length === 1) {
-            const frame = this.frame[0];
-            if (
-                frame.displayIndex === slot.displayIndex &&
-                frame.color.equal(slot.color)
-            ) {
-                this.frame.length = 0;
-            }
-        }
-
-        if (this.displayFrame.length === 1) {
-            const frame = this.displayFrame[0];
-            if (frame.value === slot.displayIndex) {
-                this.displayFrame.length = 0;
-            }
-        }
-
-        if (this.colorFrame.length === 1) {
-            const frame = this.colorFrame[0];
-            if (frame.value.equal(slot.color)) {
-                this.colorFrame.length = 0;
-            }
-        }
-
-        return this.frame.length > 0 || this.displayFrame.length > 0 || this.colorFrame.length > 0;
-    }
 }
 
 export class FFDTimeline extends Timeline {
     skin: string = "";
     slot: string = "";
     readonly frame: FFDFrame[] = [];
-
-    format(armature: Armature): boolean {
-        this.skin = this.skin || "default";
-
-        const slot = armature.getSlot(this.slot);
-        const mesh = armature.getMesh(this.skin, this.slot, this.name);
-        if (!slot || !mesh) {
-            this.frame.length = 0;
-
-            return false;
-        }
-
-        cleanFrame(this.frame);
-
-        if (this.frame.length === 1) {
-            const frame = this.frame[0];
-            if (frame.vertices.length === 0) {
-                this.frame.length = 0;
-            }
-        }
-
-        return this.frame.length > 0;
-    }
 }
 
 export abstract class Frame {
     duration: number = 1;
+    _position: number = 0;
+
     abstract equal(value: this): boolean;
 }
 
@@ -1035,19 +862,13 @@ export abstract class TweenFrame extends Frame {
     tweenEasing: number = NaN;
     curve: number[] = [];
 
+    getTweenEnabled(): boolean {
+        return this.curve.length > 0 || !isNaN(this.tweenEasing);
+    }
+
     removeTween(): void {
         this.tweenEasing = NaN;
         this.curve.length = 0;
-    }
-
-    formatTween(): void {
-        if (this.curve.length > 0) {
-            this.tweenEasing = NaN;
-        }
-    }
-
-    getTweenEnabled(): boolean {
-        return !isNaN(this.tweenEasing) || this.curve.length > 0;
     }
 }
 
@@ -1060,7 +881,7 @@ export class ActionFrame extends Frame {
 
     equal(value: this): boolean {
         value;
-        return false;
+        return !value;
     }
 }
 
@@ -1114,8 +935,8 @@ export class BoneRotateFrame extends TweenFrame {
 }
 
 export class BoneScaleFrame extends TweenFrame {
-    x: number = 0.0;
-    y: number = 0.0;
+    x: number = 1.0;
+    y: number = 1.0;
 
     equal(value: this): boolean {
         return this.x === value.x && this.y === value.y;
@@ -1176,13 +997,6 @@ export class TextureAtlas {
     imagePath: string = "";
     readonly SubTexture: Texture[] = [];
 
-    format(dragonBones: DragonBones): void {
-        dragonBones;
-        for (const subTexture of this.SubTexture) {
-            subTexture.format(this);
-        }
-    }
-
     getTexture(name: string): Texture | null {
         for (const texture of this.SubTexture) {
             if (texture.name === name) {
@@ -1205,13 +1019,6 @@ export class Texture {
     frameWidth: number = 0;
     frameHeight: number = 0;
     name: string = "";
-    format(textureAtlas: TextureAtlas): void {
-        textureAtlas;
-    }
-}
-
-export class OldAction {
-    gotoAndPlay: string = "";
 }
 
 export const copyConfig = [
@@ -1241,61 +1048,64 @@ export const copyConfig = [
         userData: UserData
     },
     SkinSlot, {
-        display: function (display: any): { new (): Display } | null {
-            let type = display.type;
-            if (type !== undefined) {
-                if (typeof type === "string") {
-                    type = utils.getEnumFormString(DisplayType, type, DisplayType.Image);
+        display: [
+            function (display: any): { new (): Display } | null {
+                let type = display.type;
+                if (type !== undefined) {
+                    if (typeof type === "string") {
+                        type = utils.getEnumFormString(DisplayType, type, DisplayType.Image);
+                    }
                 }
-            }
-            else {
-                type = DisplayType.Image;
-            }
+                else {
+                    type = DisplayType.Image;
+                }
 
-            switch (type) {
-                case DisplayType.Image:
-                    return ImageDisplay;
+                switch (type) {
+                    case DisplayType.Image:
+                        return ImageDisplay;
 
-                case DisplayType.Armature:
-                    return ArmatureDisplay;
+                    case DisplayType.Armature:
+                        return ArmatureDisplay;
 
-                case DisplayType.Mesh:
-                    if (display.share) {
-                        return SharedMeshDisplay;
-                    }
-                    else {
-                        return MeshDisplay;
-                    }
-
-                case DisplayType.BoundingBox:
-                    {
-                        let subType = display.subType;
-                        if (subType !== undefined) {
-                            if (typeof subType === "string") {
-                                subType = utils.getEnumFormString(BoundingBoxType, subType, BoundingBoxType.Rectangle);
-                            }
+                    case DisplayType.Mesh:
+                        if (display.share) {
+                            return SharedMeshDisplay;
                         }
                         else {
-                            subType = BoundingBoxType.Rectangle;
+                            return MeshDisplay;
                         }
 
-                        switch (subType) {
-                            case BoundingBoxType.Rectangle:
-                                return RectangleBoundingBoxDisplay;
+                    case DisplayType.BoundingBox:
+                        {
+                            let subType = display.subType;
+                            if (subType !== undefined) {
+                                if (typeof subType === "string") {
+                                    subType = utils.getEnumFormString(BoundingBoxType, subType, BoundingBoxType.Rectangle);
+                                }
+                            }
+                            else {
+                                subType = BoundingBoxType.Rectangle;
+                            }
 
-                            case BoundingBoxType.Ellipse:
-                                return EllipseBoundingBoxDisplay;
+                            switch (subType) {
+                                case BoundingBoxType.Rectangle:
+                                    return RectangleBoundingBoxDisplay;
 
-                            case BoundingBoxType.Polygon:
-                                return PolygonBoundingBoxDisplay;
+                                case BoundingBoxType.Ellipse:
+                                    return EllipseBoundingBoxDisplay;
+
+                                case BoundingBoxType.Polygon:
+                                    return PolygonBoundingBoxDisplay;
+                            }
                         }
-                    }
-                    break;
+                        break;
 
-            }
+                }
 
-            return null;
-        }
+                return null;
+            },
+            Function
+        ]
     },
     ArmatureDisplay, {
         actions: Action

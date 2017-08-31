@@ -262,6 +262,17 @@ export class ColorTransform {
         return `${this.aM}_${this.rM}_${this.gM}_${this.bM}_${this.aO}_${this.rO}_${this.gO}_${this.bO}`;
     }
 
+    public toFixed(): void {
+        this.aM = Math.round(this.aM);
+        this.rM = Math.round(this.rM);
+        this.gM = Math.round(this.gM);
+        this.bM = Math.round(this.bM);
+        this.aO = Math.round(this.aO);
+        this.rO = Math.round(this.rO);
+        this.gO = Math.round(this.gO);
+        this.bO = Math.round(this.bO);
+    }
+
     public copyFrom(value: ColorTransform): void {
         this.aM = value.aM;
         this.rM = value.rM;
@@ -271,6 +282,13 @@ export class ColorTransform {
         this.rO = value.rO;
         this.gO = value.gO;
         this.bO = value.bO;
+    }
+
+    public copyFromRGBA(value: number): void {
+        this.rM = Math.round(((0xFF000000 & value) >>> 24) / 255 * 100);
+        this.gM = Math.round(((0x00FF0000 & value) >>> 16) / 255 * 100);
+        this.bM = Math.round(((0x0000FF00 & value) >>> 8) / 255 * 100);
+        this.aM = Math.round((0x000000FF & value) / 255 * 100);
     }
 
     public identity(): void {
@@ -334,15 +352,15 @@ export class Rectangle implements Position {
         return "[object Rectangle x: " + this.x + " y: " + this.y + " width: " + this.width + " height: " + this.height + " ]";
     }
 
-    public clear(): void {
-        this.x = this.y = this.width = this.height = 0.0;
-    }
-
     public toFixed(): void {
         this.x = Number(this.x.toFixed(2));
         this.y = Number(this.y.toFixed(2));
         this.width = Number(this.width.toFixed(2));
         this.height = Number(this.height.toFixed(2));
+    }
+
+    public clear(): void {
+        this.x = this.y = this.width = this.height = 0.0;
     }
 
     public copyFrom(value: this): this {
@@ -364,4 +382,7 @@ export class Rectangle implements Position {
     }
 }
 
+export const helpMatrixA: Matrix = new Matrix();
+export const helpMatrixB: Matrix = new Matrix();
+export const helpTransformA: Transform = new Transform();
 export const helpPoint: Point = new Point();

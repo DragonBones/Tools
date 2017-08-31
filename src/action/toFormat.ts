@@ -55,7 +55,6 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
             bone.name = boneV23.name;
             bone.parent = boneV23.parent;
             bone.transform.copyFrom(boneV23.transform);
-            bone.transform.toFixed();
             armature.bone.push(bone);
         }
 
@@ -63,8 +62,8 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
             const skin = new dbft.Skin();
             skin.name = skinV23.name;
             armature.skin.push(skin);
-
             skinV23.slot.sort(sortSkinSlot);
+            
             for (const slotV23 of skinV23.slot) {
                 let slot = armature.getSlot(slotV23.name);
                 if (!slot) {
@@ -95,14 +94,12 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
                             display.transform.y += 0.5 * texture.height - displayV23.transform.pY;
                         }
 
-                        display.transform.toFixed();
                         skinSlot.display.push(display);
                     }
                     else {
                         const display = new dbft.ArmatureDisplay();
                         display.name = displayV23.name;
                         display.transform.copyFrom(displayV23.transform);
-                        display.transform.toFixed();
                         skinSlot.display.push(display);
                     }
                 }
@@ -185,7 +182,6 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
                     helpMatrix.transformPoint(frameV23.transform.pX, frameV23.transform.pY, helpPoint, true);
                     boneAllFrame.transform.x += helpPoint.x;
                     boneAllFrame.transform.y += helpPoint.y;
-                    boneAllFrame.transform.toFixed();
 
                     if (frameV23.hide) {
                         slotAllFrame.displayIndex = -1;
@@ -278,7 +274,6 @@ function globalToLocal(armature: dbft.Armature): void {
                 frame.transform.skY = geom.normalizeDegree(frame.transform.skY - bone.transform.skY);
                 frame.transform.scX /= bone.transform.scX;
                 frame.transform.scY /= bone.transform.scY;
-                frame.transform.toFixed();
 
                 position += frame.duration;
             }

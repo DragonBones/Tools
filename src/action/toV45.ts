@@ -125,7 +125,7 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                         colorFrame.duration = frame.duration;
 
                         colorFrame.tweenEasing = frame.tweenEasing;
-                        colorFrame.curve = frame.curve;
+                        colorFrame.curve = frame.curve.concat();
 
                         displayFrame.value = frame.displayIndex;
                         colorFrame.value.copyFrom(frame.color);
@@ -149,8 +149,6 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
             }
         }
     }
-
-    data.format();
 
     return data;
 }
