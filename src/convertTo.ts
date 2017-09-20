@@ -16,19 +16,19 @@ import format from "./action/formatFormat";
 
 function execute(): void {
     const commands = commander
-        .version("0.0.12")
+        .version("0.0.14")
         .option("-i, --input [path]", "Input path")
         .option("-o, --output [path]", "Output path")
         .option("-t, --type [type]", "Convert to type [binary, web, v45, new, spine]", /^(binary|new|v45|web|spine|none)$/i, "none")
         .option("-f, --filter [keyword]", "Filter")
-        .option("-d, --delete-raw", "Delete raw files after convert complete")
+        .option("-d, --delete", "Delete raw files after convert complete")
         .parse(process.argv);
 
     const input = commands["input"] as string || process.cwd();
     const output = commands["output"] as string || "";
     const type = commands["type"] as string || "";
     const filter = commands["filter"] as string || "";
-    const deleteRaw = commands["delete-raw"] as boolean || false;
+    const deleteRaw = commands["delete"] as boolean || false;
     let loadTextureAtlasToData = false;
     let megreTextureAtlasToData = false;
 
@@ -76,6 +76,7 @@ function execute(): void {
             textureAtlases = textureAtlasFiles.map((v) => {
                 return getTextureAtlas(v);
             });
+            
             return textureAtlases;
         });
 
@@ -118,8 +119,10 @@ function execute(): void {
                 {
                     toNew(dragonBonesData, true);
                     format(dragonBonesData);
+
                     const result = toBinary(dragonBonesData);
                     const outputFile = (output ? file.replace(input, output) : file).replace(".json", ".dbbin");
+
                     if (!fs.existsSync(path.dirname(outputFile))) {
                         fs.mkdirsSync(path.dirname(outputFile));
                     }
@@ -183,8 +186,10 @@ function execute(): void {
                     toNew(dragonBonesData, false);
                     format(dragonBonesData);
                     utils.compress(dragonBonesData, dbft.compressConfig);
+
                     const result = JSON.stringify(dragonBonesData);
                     const outputFile = output ? file.replace(input, output) : file;
+
                     if (!fs.existsSync(path.dirname(outputFile))) {
                         fs.mkdirsSync(path.dirname(outputFile));
                     }
@@ -246,8 +251,10 @@ function execute(): void {
                     toV45(dragonBonesData, false);
                     format(dragonBonesData);
                     utils.compress(dragonBonesData, dbft.compressConfig);
+
                     const result = JSON.stringify(dragonBonesData);
                     const outputFile = output ? file.replace(input, output) : file;
+
                     if (!fs.existsSync(path.dirname(outputFile))) {
                         fs.mkdirsSync(path.dirname(outputFile));
                     }
@@ -308,6 +315,7 @@ function execute(): void {
                 {
                     toV45(dragonBonesData, true);
                     format(dragonBonesData);
+
                     const result = toWeb({
                         config: {
                             compress: "zlip"
@@ -322,6 +330,7 @@ function execute(): void {
                         })
                     });
                     const outputFile = (output ? file.replace(input, output) : file).replace(".json", ".html");
+
                     if (!fs.existsSync(path.dirname(outputFile))) {
                         fs.mkdirsSync(path.dirname(outputFile));
                     }
@@ -349,10 +358,11 @@ function execute(): void {
                 {
                     toNew(dragonBonesData, true);
                     format(dragonBonesData);
-                    const result = toSpine(dragonBonesData, "3.6");
 
+                    const result = toSpine(dragonBonesData, "3.6");
                     let base = file.replace("_ske.json", ".json");
                     base = (output ? base.replace(input, output) : base).replace(".json", "");
+
                     for (const spine of result.spines) {
                         utils.compress(spine, spft.compressConfig);
                         const outputFile = (result.spines.length > 1 ? base + "_" + spine.skeleton.name : base) + "_spine.json";
@@ -364,6 +374,7 @@ function execute(): void {
                     }
 
                     const outputFile = base + "_spine.atlas";
+
                     if (!fs.existsSync(path.dirname(outputFile))) {
                         fs.mkdirsSync(path.dirname(outputFile));
                     }
@@ -395,7 +406,6 @@ function execute(): void {
                             }
                         }
                     }
-
                     break;
                 }
 

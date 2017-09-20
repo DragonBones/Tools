@@ -1,6 +1,6 @@
 {
   "name": "dragonbones-tools",
-  "version": "0.0.12",
+  "version": "0.0.18",
   "author": "dragonbones",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

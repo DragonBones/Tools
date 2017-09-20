@@ -10,17 +10,9 @@ type Input = {
     textureAtlas: string;
 };
 
-type Output = {
-    data: dbft.DragonBones;
-    textureAtlases: dbft.TextureAtlas[];
-};
-
-export default function (data: Input): Output {
+export default function (data: Input): dbft.DragonBones {
     let textureAtlasScale = -1.0;
-    const result: Output = {
-        data: new dbft.DragonBones(),
-        textureAtlases: []
-    };
+    const result: dbft.DragonBones = new dbft.DragonBones();
 
     {
         const lines = data.textureAtlas.split(/\r\n|\r|\n/);
@@ -49,7 +41,7 @@ export default function (data: Input): Output {
                 readTuple(tuple, lines.shift());
                 readValue(lines.shift());
 
-                result.textureAtlases.push(textureAtlas);
+                result.textureAtlas.push(textureAtlas);
             }
             else {
                 const texture = new dbft.Texture();
@@ -61,8 +53,14 @@ export default function (data: Input): Output {
                 texture.y = parseInt(tuple[1]);
 
                 readTuple(tuple, lines.shift());
-                texture.width = parseInt(tuple[0]);
-                texture.height = parseInt(tuple[1]);
+                if (texture.rotated) {
+                    texture.height = parseInt(tuple[0]);
+                    texture.width = parseInt(tuple[1]);
+                }
+                else {
+                    texture.width = parseInt(tuple[0]);
+                    texture.height = parseInt(tuple[1]);
+                }
 
                 if (readTuple(tuple, lines.shift()) === 4) {
                     if (readTuple(tuple, lines.shift()) === 4) {
@@ -83,11 +81,11 @@ export default function (data: Input): Output {
 
     const armature = new dbft.Armature();
     armature.name = data.name;
-    result.data.frameRate = data.data.skeleton.fps;
-    result.data.name = data.name;
-    result.data.version = dbft.DATA_VERSION_5_1;
-    result.data.compatibleVersion = dbft.DATA_VERSION_5_1;
-    result.data.armature.push(armature);
+    result.frameRate = data.data.skeleton.fps;
+    result.name = data.name;
+    result.version = dbft.DATA_VERSION_5_1;
+    result.compatibleVersion = dbft.DATA_VERSION_5_1;
+    result.armature.push(armature);
 
     for (const sfBone of data.data.bones) {
         const bone = new dbft.Bone();
@@ -171,7 +169,7 @@ export default function (data: Input): Output {
                     slot.display.push(display);
 
                     if (textureAtlasScale < 0.0) {
-                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlases);
+                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
                     }
                 }
                 else if (attachment instanceof spft.MeshAttachment) {
@@ -240,7 +238,7 @@ export default function (data: Input): Output {
                     slot.display.push(display);
 
                     if (textureAtlasScale < 0.0) {
-                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlases);
+                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
                     }
                 }
                 else if (attachment instanceof spft.LinkedMeshAttachment) {
@@ -253,7 +251,7 @@ export default function (data: Input): Output {
                     slot.display.push(display);
 
                     if (textureAtlasScale < 0.0) {
-                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlases);
+                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
                     }
                 }
                 else if (attachment instanceof spft.BoundingBoxAttachment) {
@@ -368,7 +366,7 @@ export default function (data: Input): Output {
             let iF = 0;
             for (const spFrame of spTimeline.translate) {
                 const frame = new dbft.BoneTranslateFrame();
-                frame._position = Math.round(spFrame.time * result.data.frameRate);
+                frame._position = Math.round(spFrame.time * result.frameRate);
                 frame.x = spFrame.x;
                 frame.y = -spFrame.y;
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.translate.length - 1);
@@ -380,7 +378,7 @@ export default function (data: Input): Output {
             iF = 0;
             for (const spFrame of spTimeline.rotate) {
                 const frame = new dbft.BoneRotateFrame();
-                frame._position = Math.round(spFrame.time * result.data.frameRate);
+                frame._position = Math.round(spFrame.time * result.frameRate);
                 frame.rotate = -spFrame.angle;
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.rotate.length - 1);
                 timeline.rotateFrame.push(frame);
@@ -390,7 +388,7 @@ export default function (data: Input): Output {
 
             iF = 0;
             for (const spFrame of spTimeline.shear) {
-                const position = Math.round(spFrame.time * result.data.frameRate);
+                const position = Math.round(spFrame.time * result.frameRate);
                 let frame: dbft.BoneRotateFrame | null = null;
                 let index = 0;
 
@@ -431,7 +429,7 @@ export default function (data: Input): Output {
             iF = 0;
             for (const spFrame of spTimeline.scale) {
                 const frame = new dbft.BoneScaleFrame();
-                frame._position = Math.round(spFrame.time * result.data.frameRate);
+                frame._position = Math.round(spFrame.time * result.frameRate);
                 frame.x = spFrame.x;
                 frame.y = spFrame.y;
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.scale.length - 1);
@@ -454,7 +452,7 @@ export default function (data: Input): Output {
             for (const spFrame of spTimeline.attachment) {
                 const frame = new dbft.SlotDisplayFrame();
                 const displays = slotDisplays[timelineName];
-                frame._position = Math.round(spFrame.time * result.data.frameRate);
+                frame._position = Math.round(spFrame.time * result.frameRate);
                 frame.value = displays ? displays.indexOf(spFrame.name) : -1;
                 timeline.displayFrame.push(frame);
 
@@ -464,7 +462,7 @@ export default function (data: Input): Output {
             let iF = 0;
             for (const spFrame of spTimeline.color) {
                 const frame = new dbft.SlotColorFrame();
-                frame._position = Math.round(spFrame.time * result.data.frameRate);
+                frame._position = Math.round(spFrame.time * result.frameRate);
                 frame.value.copyFromRGBA(Number("0x" + spFrame.color));
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.color.length - 1);
                 timeline.colorFrame.push(frame);
@@ -481,7 +479,7 @@ export default function (data: Input): Output {
         for (deformKey in spAnimation.deform) {
             break;
         }
-        
+
         const spTimelines = deformKey ? spAnimation.deform : spAnimation.ffd;
         for (const skinName in spTimelines) {
             const slots = spTimelines[skinName];
@@ -502,7 +500,7 @@ export default function (data: Input): Output {
 
                     for (const spFrame of spFrames) {
                         const frame = new dbft.FFDFrame();
-                        frame._position = Math.round(spFrame.time * result.data.frameRate);
+                        frame._position = Math.round(spFrame.time * result.frameRate);
                         setTweenFormSP(frame, spFrame, iF++ === spFrames.length - 1);
                         timeline.frame.push(frame);
 
@@ -574,7 +572,7 @@ export default function (data: Input): Output {
 
             let prevFrame: dbft.Frame | null = null;
             for (const spFrame of spAnimation.events) {
-                const position = Math.round(spFrame.time * result.data.frameRate);
+                const position = Math.round(spFrame.time * result.frameRate);
 
                 let frame: dbft.ActionFrame;
                 if (prevFrame && prevFrame._position === position) {
@@ -615,7 +613,7 @@ export default function (data: Input): Output {
 
             for (const spFrame of spAnimation.draworder) {
                 const frame = new dbft.ZOrderFrame();
-                frame._position = Math.round(spFrame.time * result.data.frameRate);
+                frame._position = Math.round(spFrame.time * result.frameRate);
 
                 for (const v of spFrame.offsets) {
                     const slot = armature.getSlot(v.slot);
@@ -635,7 +633,7 @@ export default function (data: Input): Output {
     }
 
     if (textureAtlasScale > 0.0) {
-        for (const textureAtlas of result.textureAtlases) {
+        for (const textureAtlas of result.textureAtlas) {
             textureAtlas.scale = textureAtlasScale;
         }
     }

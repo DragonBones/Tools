@@ -1,5 +1,4 @@
 import * as http from "http";
-import * as os from "os";
 import * as utils from "./common/utils";
 import { Code, Gate } from "./common/server";
 import * as dbft from "./format/dragonBonesFormat";
@@ -13,7 +12,7 @@ import toWeb from "./action/toWeb";
 import toSpine from "./action/toSpine";
 import format from "./action/formatFormat";
 
-type ConvertInput = {
+type Input = {
     from: "spine" | "cocos";
     to: "binary" | "web" | "new" | "v45" | "spine";
     data: string; // DragonBones JSON string | spine JSON string { data: string, textureAtlas: string }
@@ -23,25 +22,7 @@ type ConvertInput = {
 
 type FormatType = "string" | "base64" | "binary";
 
-function findIP() {
-    const ipConfig = os.networkInterfaces();
-    let ip = "localhost";
-    for (const k in ipConfig) {
-        const arr = ipConfig[k];
-        for (let i = 0; i < arr.length; ++i) {
-            const ipData = arr[i];
-            if (!ipData.internal && ipData.family === "IPv4") {
-                ip = ipData.address;
-
-                return ip;
-            }
-        }
-    }
-
-    return ip;
-}
-
-class ToOutput {
+class Output {
     public format: FormatType;
     public name: string;
     public suffix: string;
@@ -57,8 +38,8 @@ class ToOutput {
 
 const gate = new Gate();
 gate.actions["/convert"] = (request, response) => {
-
     let jsonString = "";
+
     request.addListener("data", (data: any) => {
         jsonString += data;
     });
@@ -66,7 +47,7 @@ gate.actions["/convert"] = (request, response) => {
     request.addListener("end", () => {
         request.removeAllListeners();
 
-        let input: ConvertInput;
+        let input: Input;
         try {
             input = JSON.parse(jsonString);
         }
@@ -99,9 +80,11 @@ gate.actions["/convert"] = (request, response) => {
                             const spine = new spft.Spine();
                             utils.copyFromObject(spine, JSON.parse(spineInput.data), spft.copyConfig);
                             const result = fromSpine({ name: spineInput.name, data: spine, textureAtlas: spineInput.textureAtlas });
-                            format(result.data);
+                            format(result);
                             utils.compress(result, dbft.compressConfig);
-                            gate.responseEnd(response, Code.Success, "", result);
+                            gate.responseEnd(response, Code.Success, Code[Code.Success], result);
+
+                            // TODO
                             break;
                         }
                 }
@@ -124,7 +107,7 @@ gate.actions["/convert"] = (request, response) => {
                     return;
                 }
 
-                const toOutput: ToOutput[] = [];
+                const toOutput: Output[] = [];
 
                 switch (input.to) {
                     case "binary":
@@ -134,7 +117,7 @@ gate.actions["/convert"] = (request, response) => {
                             const result = new Buffer(toBinary(dragonBonesData)).toString("base64");
 
                             toOutput.push(
-                                new ToOutput(
+                                new Output(
                                     result,
                                     dragonBonesData.name,
                                     "_ske.dbbin",
@@ -152,7 +135,7 @@ gate.actions["/convert"] = (request, response) => {
                             const result = JSON.stringify(dragonBonesData);
 
                             toOutput.push(
-                                new ToOutput(
+                                new Output(
                                     result,
                                     dragonBonesData.name,
                                     "_ske.json",
@@ -170,7 +153,7 @@ gate.actions["/convert"] = (request, response) => {
                             const result = JSON.stringify(dragonBonesData);
 
                             toOutput.push(
-                                new ToOutput(
+                                new Output(
                                     result,
                                     dragonBonesData.name,
                                     "_ske.json",
@@ -192,7 +175,7 @@ gate.actions["/convert"] = (request, response) => {
                             });
 
                             toOutput.push(
-                                new ToOutput(
+                                new Output(
                                     result,
                                     dragonBonesData.name,
                                     ".html",
@@ -210,7 +193,7 @@ gate.actions["/convert"] = (request, response) => {
                             for (const spine of result.spines) {
                                 utils.compress(spine, spft.compressConfig);
                                 toOutput.push(
-                                    new ToOutput(
+                                    new Output(
                                         JSON.stringify(spine),
                                         result.spines.length > 0 ? `${dragonBonesData.name}_${spine.skeleton.name}` : dragonBonesData.name,
                                         ".json",
@@ -220,7 +203,7 @@ gate.actions["/convert"] = (request, response) => {
                             }
 
                             toOutput.push(
-                                new ToOutput(
+                                new Output(
                                     JSON.stringify(result.textureAtlas),
                                     dragonBonesData.name,
                                     ".atlas",
@@ -235,7 +218,7 @@ gate.actions["/convert"] = (request, response) => {
                         return;
                 }
 
-                gate.responseEnd(response, Code.Success, "", toOutput);
+                gate.responseEnd(response, Code.Success, Code[Code.Success], toOutput);
             }
         }
         catch (error) {
@@ -250,5 +233,5 @@ portServer.listen(0, () => {
     const port = portServer.address().port;
     portServer.close();
     gate.start("dragonbones", port, "/dragonbones");
-    console.log(`http://${findIP()}:${port}/dragonbones`);
+    console.log(`http://${utils.findIP()}:${port}/dragonbones`);
 });

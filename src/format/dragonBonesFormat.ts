@@ -889,7 +889,7 @@ export class ZOrderFrame extends Frame {
     readonly zOrder: number[] = [];
 
     equal(value: this): boolean {
-        if (this.zOrder.length === this.zOrder.length) {
+        if (this.zOrder.length === value.zOrder.length) {
             for (let i = 0, l = this.zOrder.length; i < l; ++i) {
                 if (this.zOrder[i] !== value.zOrder[i]) {
                     return false;

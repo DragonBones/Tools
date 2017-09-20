@@ -437,10 +437,10 @@ function createZOrderFrame(frame: dbft.ZOrderFrame, frameStart: number): number 
         let i = slotCount;
         while (i--) {
             if (zOrders[i] === -1) {
-                frameArray[frameOffset + 2 + i] = unchanged[--unchangedIndex];
+                frameArray[frameOffset + 2 + i] = unchanged[--unchangedIndex] || 0;
             }
             else {
-                frameArray[frameOffset + 2 + i] = zOrders[i];
+                frameArray[frameOffset + 2 + i] = zOrders[i] || 0;
             }
         }
     }
@@ -533,7 +533,7 @@ function createBoneTimeline(value: dbft.BoneTimeline): number[] {
     }
 
     if (value.scaleFrame.length > 0) {
-        timelines.push(dbft.TimelineType.BoneRotate);
+        timelines.push(dbft.TimelineType.BoneScale);
         timelines.push(createTimeline(value, value.scaleFrame, false, true, 2, (frame, frameStart): number => {
             const offset = createTweenFrame(frame, frameStart);
             frameFloatArray.push(frame.x);

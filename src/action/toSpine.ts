@@ -508,7 +508,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
 
         for (const texture of textureAtlas.SubTexture) {
             result.textureAtlas += `${texture.name}\n`;
-            result.textureAtlas += ` rotate: ${texture.rotated}\n`;
+            result.textureAtlas += ` rotate: ${texture.rotated}\n`; // TODO
             result.textureAtlas += ` xy: ${texture.x}, ${texture.y}\n`;
             result.textureAtlas += ` size: ${texture.width}, ${texture.height}\n`;
 

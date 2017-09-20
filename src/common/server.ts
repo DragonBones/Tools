@@ -1,5 +1,8 @@
+import * as fs from "fs";
+import * as path from "path";
 import * as url from "url";
 import * as http from "http";
+import * as types from "./types";
 
 export abstract class Server {
     public port: number;
@@ -32,7 +35,7 @@ export abstract class Server {
         // });
     }
 
-    public stopServer(): void {
+    public stop(): void {
         process.exit(0);
     }
 }
@@ -45,37 +48,44 @@ export enum Code {
     ActionError,
 }
 
-export type Result = { code: Code, message: string, data: any };
+export interface Result { code: Code; message: string; data: any; }
 
 export class Gate extends Server {
     public readonly actions: { [k: string]: (request: http.IncomingMessage, response: http.ServerResponse) => void } = {};
-
-    protected _onClear(): void {
-    }
 
     protected _requestHandler(request: http.IncomingMessage, response: http.ServerResponse): boolean {
         if (!super._requestHandler(request, response)) {
             return false;
         }
 
-        const pathname = (url.parse(request.url as string).pathname as string).replace(this.local, "");
-        const action = this.actions[pathname as any];
-        if (action) {
+        const pathName = (url.parse(request.url as string).pathname as string).replace(this.local, "");
+
+        if (pathName in this.actions) {
+            const action = this.actions[pathName as any];
             action(request, response);
         }
         else {
-            this.responseEnd(response, Code.UnknownAction, Code[Code.UnknownAction]);
+            const localPath = path.join("./", pathName);
+            let extName = path.extname(pathName);
+            extName = extName ? extName.slice(1) : "unknown";
+
+            if (fs.existsSync(localPath)) {
+                const fileResult = fs.readFileSync(localPath, "binary");
+                response.writeHead(200, { "Content-Type": types.MineContentTypes[extName] || "text/plain" });
+                response.write(fileResult, "binary");
+                response.end();
+            }
+            else {
+                this.responseEnd(response, Code.UnknownAction, Code[Code.UnknownAction]);
+            }
         }
 
         return true;
     }
 
     public responseEnd(response: http.ServerResponse, code: Code, message: string, data: any = null): void {
-        response.writeHead(200, {
-            "Content-Type": "application/json"
-        });
-
         const result: Result = { code: code, message: message, data: data };
+        response.writeHead(200, { "Content-Type": "application/json" });
         response.write(JSON.stringify(result));
         response.end();
     }
