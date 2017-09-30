@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="full-screen" content="true"/>
+    <meta name="screen-orientation" content="portrait"/>
+    <meta name="x5-fullscreen" content="true"/>
+    <meta name="360-fullscreen" content="true"/>
+	<meta name="renderer" content="webkit"/>
+    <style>html, body {    padding: 0;    border: 0;    margin: 0;    height: 100%;    background: #333333;    -ms-touch-action: none;}
+    </style>
+	<!--script_begin-->
+	<script egret="lib" src="libs/gunzip.min.js"></script>
+    <!--modules_files_start-->
+	<script egret="lib" src="libs/modules/egret/egret.js"></script>
+	<script egret="lib" src="libs/modules/egret/egret.web.js"></script>
+	<script egret="lib" src="libs/modules/dragonBones/dragonBones.js"></script>
+	<script egret="lib" src="libs/promise/bin/promise.js"></script>
+	<!--modules_files_end-->
+    <!--game_files_start-->
+	<script egret="lib" src="bin-debug/common/types.js"></script>
+	<script egret="lib" src="bin-debug/common/object.js"></script>
+	<script egret="lib" src="bin-debug/common/event.js"></script>
+	<script egret="lib" src="bin-debug/common/mvc.js"></script>
+	<script egret="lib" src="bin-debug/player/types.js"></script>
+	<script egret="lib" src="bin-debug/player/utli.js"></script>
+	<script egret="lib" src="bin-debug/player/base.js"></script>
+	<script egret="lib" src="bin-debug/Main.js"></script>
+	<!--game_files_end-->
+	<!--script_end-->
+</head>
+<body>
+	<div style="display: none">
+		<!--data_begin-->
+        <!--data_end-->
+	</div>
+
+    <div id="dragonBonesPlayer" style="position:absolute; top: 0; left: 0; float: left; width: 100%; height: 100%;">
+        <div style="margin: auto;width: 100%;height: 100%;" class="egret-player"
+            data-entry-class="Main"
+            data-orientation="auto"
+            data-scale-mode="fixedNarrow"
+            data-frame-rate="60"
+            data-content-width="1136"
+            data-content-height="640"
+            data-show-paint-rect="false"
+            data-multi-fingered="2"
+            data-show-fps="false" data-show-log="false"
+            data-show-fps-style="x:0,y:0,size:10,textColor:0xffffff,bgAlpha:0.9">
+        </div>
+    </div>
+    
+    <script>
+        egret.runEgret({ renderMode: "webgl", audioType: 0 });
+    </script>
+</body>
+</html>

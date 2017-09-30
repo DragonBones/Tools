@@ -38,6 +38,7 @@ gate.actions["/modify_spine_textureatlas"] = (request, response) => {
         fs.writeFileSync(input.data.file, textureData);
         gate.responseEnd(response, Code.Success, Code[Code.Success], false);
 
+        console.log("Modify texture atlas.", input.data.file);
         if (inputs.length === 0 && inputeds.length === 0) {
             stop();
         }
@@ -82,7 +83,7 @@ export function start(): void {
         const port = portServer.address().port;
         portServer.close();
         gate.start("dragonbones", port, "/dragonbones_helper");
-        utils.open(`http://${utils.findIP()}:${port}/out/resource/helper.html`);
+        utils.open(`http://${utils.findIP()}:${port}/dragonbones_helper/resource/helper.html`);
     });
 }
 
@@ -91,7 +92,7 @@ export function stop(): void {
     gate.stop();
 }
 
-export function isRunning(): boolean {
+export function hasInput(): boolean {
     return inputs.length > 0 || inputeds.length > 0;
 }
 

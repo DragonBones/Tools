@@ -16,6 +16,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
         spine.skeleton.height = armature.aabb.height;
         spine.skeleton.fps = frameRate;
         spine.skeleton.spine = version;
+        spine.skeleton.hash = " ";
         spine.skeleton.name = armature.name;
         result.spines.push(spine);
 
@@ -500,7 +501,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
     let index = data.textureAtlas.length > 1 ? 0 : -1;
     for (const textureAtlas of data.textureAtlas) {
         result.textureAtlas += `\n`;
-        result.textureAtlas += `${textureAtlas.imagePath}\n`;
+        result.textureAtlas += `${data.name}_spine${data.textureAtlas.length > 1 ? "_" + index : ""}.png\n`;
         result.textureAtlas += `size: ${textureAtlas.width},${textureAtlas.height}\n`;
         result.textureAtlas += `format: RGBA8888\n`;
         result.textureAtlas += `filter: Linear,Linear\n`;
@@ -508,16 +509,16 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
 
         for (const texture of textureAtlas.SubTexture) {
             result.textureAtlas += `${texture.name}\n`;
-            result.textureAtlas += ` rotate: ${texture.rotated}\n`; // TODO
-            result.textureAtlas += ` xy: ${texture.x}, ${texture.y}\n`;
-            result.textureAtlas += ` size: ${texture.width}, ${texture.height}\n`;
+            result.textureAtlas += `  rotate: ${texture.rotated}\n`; // TODO
+            result.textureAtlas += `  xy: ${texture.x}, ${texture.y}\n`;
+            result.textureAtlas += `  size: ${texture.width}, ${texture.height}\n`;
 
             if (texture.frameX || texture.frameY || texture.frameWidth || texture.frameHeight) {
-                result.textureAtlas += ` orig: ${texture.frameWidth || texture.width}, ${texture.frameHeight || texture.height}\n`;
-                result.textureAtlas += ` offset: ${texture.frameX}, ${texture.frameY}\n`;
+                result.textureAtlas += `  orig: ${texture.frameWidth || texture.width}, ${texture.frameHeight || texture.height}\n`;
+                result.textureAtlas += `  offset: ${texture.frameX}, ${texture.frameY}\n`;
             }
 
-            result.textureAtlas += ` index: ${index}\n`;
+            result.textureAtlas += `  index: ${index}\n`;
         }
 
         index++;

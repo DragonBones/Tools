@@ -65,11 +65,11 @@ export class Gate extends Server {
             action(request, response);
         }
         else {
-            const localPath = path.join("./", pathName);
+            const localPath = path.join(__dirname, "../", pathName);
             let extName = path.extname(pathName);
             extName = extName ? extName.slice(1) : "unknown";
 
-            if (fs.existsSync(localPath)) {
+            if (fs.existsSync(localPath) && !fs.statSync(localPath).isDirectory()) {
                 const fileResult = fs.readFileSync(localPath, "binary");
                 response.writeHead(200, { "Content-Type": types.MineContentTypes[extName] || "text/plain" });
                 response.write(fileResult, "binary");

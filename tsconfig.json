@@ -1,7 +1,8 @@
 {
 	"compilerOptions": {
 		"watch": false,
-		"sourceMap": false,
+		"sourceMap": true,
+		"declaration": false,
 		"alwaysStrict": true,
 		"noImplicitAny": true,
 		"noImplicitThis": true,
@@ -15,11 +16,11 @@
 		"newLine": "LF",
 		"baseUrl": "./src",
 		"outDir": "./out",
-        "lib": [
-            "es5",
-            "dom",
-            "es2015.promise"
-        ]
+		"lib": [
+			"es5",
+			"dom",
+			"es2015.promise"
+		]
 	},
 	"exclude": [
 		"node_modules",

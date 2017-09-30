@@ -122,7 +122,7 @@ export class RegionAttachment extends Attachment {
     constructor(isDefault: boolean = false) {
         super();
         if (!isDefault) {
-            this.type = "region";
+            // this.type = "region";
         }
     }
 }
@@ -285,6 +285,14 @@ export class ShearFrame extends TweenFrame {
 export class ScaleFrame extends TweenFrame {
     x: number = 1.0;
     y: number = 1.0;
+
+    constructor(isDefault: boolean = false) {
+        super();
+        if (isDefault) {
+            this.x = NaN; // spine import data bug
+            this.y = NaN; // spine import data bug
+        }
+    }
 }
 
 export class AttachmentFrame extends Frame {
@@ -300,6 +308,13 @@ export class AttachmentFrame extends Frame {
 
 export class ColorFrame extends TweenFrame {
     color: string = "FFFFFFFF";
+
+    constructor(isDefault: boolean = false) {
+        super();
+        if (isDefault) {
+            this.color = ""; // Spine import data bug.
+        }
+    }
 }
 
 export class IKConstraintFrame extends TweenFrame {
@@ -338,7 +353,7 @@ export const copyConfig = [
         transform: TransformConstraint,
         path: PathConstraint,
         skins: [[[[
-            function (attachment: any): { new (): Attachment } | null {
+            function (attachment: any): { new(): Attachment } | null {
                 const type: AttachmentType = attachment.type || "region";
                 switch (type) {
                     case "region":
@@ -431,9 +446,9 @@ export const compressConfig = [
     new TranslateFrame(),
     new RotateFrame(true),
     new ShearFrame(),
-    new ScaleFrame(),
+    new ScaleFrame(true),
     new AttachmentFrame(true),
-    new ColorFrame(),
+    new ColorFrame(true),
     new IKConstraintFrame(),
     new TransformConstraintFrame(),
     new DeformFrame(),

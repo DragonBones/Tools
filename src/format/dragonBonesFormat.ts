@@ -131,7 +131,7 @@ export enum TweenType {
 
 export function isDragonBonesString(string: string): boolean {
     const testString = string.substr(0, Math.min(200, string.length));
-    return testString.indexOf('"armature"') > 0;
+    return testString.indexOf("armature") > 0 || testString.indexOf("textureAtlas") > 0;
 }
 
 export function getTextureFormTextureAtlases(name: string, textureAtlases: TextureAtlas[]): Texture | null {
@@ -401,6 +401,7 @@ export function mergeActionToAnimation(animation: Animation, frame: dbftV23.AllF
 export class DragonBones {
     frameRate: number = 0;
     name: string = "";
+    stage: string = "";
     version: string = "";
     compatibleVersion: string = "";
     readonly armature: Armature[] = [];
@@ -964,6 +965,7 @@ export class SlotDisplayFrame extends Frame {
 
 export class SlotColorFrame extends TweenFrame {
     readonly value: ColorTransform = new ColorTransform();
+    readonly color: ColorTransform = new ColorTransform(); // Deprecated.
 
     equal(value: this): boolean {
         return this.value.equal(value.value);
@@ -1049,7 +1051,7 @@ export const copyConfig = [
     },
     SkinSlot, {
         display: [
-            function (display: any): { new (): Display } | null {
+            function (display: any): { new(): Display } | null {
                 let type = display.type;
                 if (type !== undefined) {
                     if (typeof type === "string") {

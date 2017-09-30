@@ -63,7 +63,7 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
             skin.name = skinV23.name;
             armature.skin.push(skin);
             skinV23.slot.sort(sortSkinSlot);
-            
+
             for (const slotV23 of skinV23.slot) {
                 let slot = armature.getSlot(slotV23.name);
                 if (!slot) {

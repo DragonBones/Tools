@@ -27,7 +27,8 @@ function load(url: string, data: any = null, callback: ((json: any) => void) | n
 }
 
 function startHelper(): void {
-    actions["modify_spine_textureatlas"] = function (input: any) { // modify_spine_textureatlas
+    const actionKey = "modify_spine_textureatlas";
+    actions[actionKey] = function (input: any) {
         const image = document.createElement("img");
         image.src = "data:image/png;base64," + input.data.texture;
         image.onload = function (): void {
@@ -40,6 +41,10 @@ function startHelper(): void {
                     continue;
                 }
 
+                subTexture.x = subTexture.x || 0.0;
+                subTexture.y = subTexture.y || 0.0;
+                subTexture.width = subTexture.width || 0.0;
+                subTexture.height = subTexture.height || 0.0;
                 canvasB.width = subTexture.width;
                 canvasB.height = subTexture.height;
                 contextB.save();
@@ -53,13 +58,13 @@ function startHelper(): void {
             }
 
             input.data.texture = canvasA.toDataURL("image/png").replace("data:image/png;base64,", "");
-            load("../../modify_spine_textureatlas", input);
+            load("../" + actionKey, input);
         };
     };
 
     internalID = setInterval(
         function () {
-            load("../../get_input", null, (result: any): void => {
+            load("../get_input", null, (result: any): void => {
                 const input = result.data;
 
                 if (input) {

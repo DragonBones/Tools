@@ -1,18 +1,20 @@
 import * as fs from "fs";
 import * as path from "path";
-import * as zlib from "zlib";
+// import * as zlib from "zlib";
 
 const DATA_TAG = "data";
-// const REMOTE = "http://www.dragonbones.com/player/v2/";
-// const PUBLISH_PATH = "../bin-release/web/publish";
-// const INDEX_FILE = PUBLISH_PATH + "/index.html";
-// const PUBLISH_FILE = PUBLISH_PATH + "/dragonbones_player.html";
-// const PUBLISH_ALONE_FILE = PUBLISH_PATH + "/dragonbones_player_alone.html";
 
 type Input = {
-    config: any;
-    data: Buffer;
+    data: Buffer | any;
     textureAtlases: (Buffer | null)[];
+    config?: {
+        isLocal?: boolean;
+        showFPS?: boolean;
+        frameRate?: number;
+        backgroundColor?: number;
+        orientation?: string;
+        scaleMode?: string;
+    };
 };
 
 type ZipData = {
@@ -20,26 +22,43 @@ type ZipData = {
     textureAtlases: string[];
 };
 
-type WebData = {
-    config: any;
-    data: string;
-};
-
-export default function (data: Input): string {
+export default function (data: Input, isPlayer: boolean): string {
+    const isLocal = data.config ? data.config.isLocal : false;
     const zipData = {
-        data: data.data.toString("base64"),
+        data: data.data instanceof Buffer ? data.data.toString("base64") : data.data,
         textureAtlases: data.textureAtlases.map((v) => {
             return v ? v.toString("base64") : "";
         })
     } as ZipData;
+    // const compressed = zlib.gzipSync(new Buffer(JSON.stringify(zipData))).toString("base64");
+    // let htmlString = fs.readFileSync(path.join(__dirname, isPlayer ? "../resource/player.html" : "../resource/viewer.html"), "utf-8");
+    // htmlString = replaceHTMLCommentTag(htmlString, DATA_TAG, `<b id="data">${compressed}</b>`, false);
 
-    const webData: WebData = {
-        config: data.config,
-        data: zlib.gzipSync(new Buffer(JSON.stringify(zipData))).toString("base64")
-    };
+    let htmlString = fs.readFileSync(path.join(__dirname, `../resource/${isPlayer ? "player" : "viewer"}/${isLocal ? "local" : "index"}.html`), "utf-8");
+    htmlString = replaceHTMLCommentTag(htmlString, DATA_TAG, `<b id="data">${JSON.stringify(zipData)}</b>`, false);
 
-    let htmlString = fs.readFileSync(path.join(__dirname, "../resource/preview_b.html"), "utf-8");
-    htmlString = replaceHTMLCommentTag(htmlString, DATA_TAG, `<b id="data">${JSON.stringify(webData)}</b>`, false);
+
+    if (data.config) {
+        if (data.config.showFPS) {
+            htmlString = htmlString.replace(`data-show-fps="false"`, `data-show-fps="${data.config.showFPS}"`);
+        }
+
+        if (data.config.frameRate) {
+            htmlString = htmlString.replace(`data-frame-rate="60"`, `data-frame-rate="${data.config.frameRate}"`);
+        }
+
+        if (data.config.backgroundColor || data.config.backgroundColor === 0) {
+            htmlString = htmlString.replace(`background: #333333;`, `background: #${data.config.backgroundColor.toString(16)};`);
+        }
+
+        if (data.config.orientation) {
+            htmlString = htmlString.replace(`data-orientation="auto"`, `data-orientation="${data.config.orientation}"`);
+        }
+
+        if (data.config.scaleMode) {
+            htmlString = htmlString.replace(`data-scale-mode="showAll"`, `data-scale-mode="${data.config.scaleMode}"`);
+        }
+    }
 
     return htmlString;
 }

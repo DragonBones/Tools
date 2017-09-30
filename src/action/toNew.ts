@@ -5,6 +5,8 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
     data.version = dbft.DATA_VERSION_5_1;
     data.compatibleVersion = dbft.DATA_VERSION_5_1;
 
+    const normalColor = new geom.ColorTransform();
+
     for (const armature of data.armature) {
         if (forRuntime) { // Old action to new action.
             if (armature.defaultActions.length > 0) {
@@ -85,8 +87,8 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
 
                 let position = 0;
                 const slot = armature.getSlot(timeline.name);
-                for (let j = 0, lJ = timeline.frame.length; j < lJ; ++j) {
-                    const frame = timeline.frame[j];
+                for (let i = 0, l = timeline.frame.length; i < l; ++i) {
+                    const frame = timeline.frame[i];
                     const translateFrame = new dbft.BoneTranslateFrame();
                     const rotateFrame = new dbft.BoneRotateFrame();
                     const scaleFrame = new dbft.BoneScaleFrame();
@@ -137,8 +139,8 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                 }
 
                 let position = 0;
-                for (let j = 0, lJ = timeline.frame.length; j < lJ; ++j) {
-                    const frame = timeline.frame[j];
+                for (let i = 0, l = timeline.frame.length; i < l; ++i) {
+                    const frame = timeline.frame[i];
                     const displayFrame = new dbft.SlotDisplayFrame();
                     const colorFrame = new dbft.SlotColorFrame();
                     timeline.displayFrame.push(displayFrame);
@@ -167,7 +169,15 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                     position += frame.duration;
                 }
 
-                timeline.frame.length = 0;
+                for (let i = 0, l = timeline.colorFrame.length; i < l; ++i) {
+                    const colorFrame = timeline.colorFrame[i];
+
+                    if (!colorFrame.color.equal(normalColor) && colorFrame.value.equal(normalColor)) {
+                        colorFrame.value.copyFrom(colorFrame.color);
+                    }
+
+                    colorFrame.color.identity();
+                }
             }
         }
     }

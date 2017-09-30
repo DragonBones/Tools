@@ -66,7 +66,7 @@ export function open(target: string, appName: string | null = null, callback: ((
 
     command = `${command} "${escape(target)}"`;
 
-    return exec(command, callback);
+    return exec(command, callback || undefined);
 }
 
 export function findIP(): string {

@@ -19,8 +19,8 @@ function execute(): void {
         .option("-d, --delete", "Delete raw files after convert complete.")
         .parse(process.argv);
 
-    const input = commands["input"] as string || process.cwd();
-    const output = commands["output"] as string || "";
+    const input = path.resolve(commands["input"] as string || process.cwd());
+    const output = path.resolve(commands["output"] as string || "");
     const type = commands["type"] as string || "";
     const filter = commands["filter"] as string || "";
     const deleteRaw = commands["delete"] as boolean || false;
@@ -30,8 +30,6 @@ function execute(): void {
     switch (type) {
         case "spine":
             {
-                helper.start();
-
                 const files = utils.filterFileList(input, /\.(json)$/i);
 
                 for (const file of files) {
@@ -144,7 +142,8 @@ function execute(): void {
 
     console.log("Convert complete.");
 
-    if (helper.isRunning()) {
+    if (helper.hasInput()) {
+        helper.start();
         console.log("Waitting for helper.");
     }
 }

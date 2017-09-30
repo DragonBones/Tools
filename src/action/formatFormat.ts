@@ -3,7 +3,6 @@ import * as dbft from "../format/dragonBonesFormat";
 
 export default function (data: dbft.DragonBones | null, textureAtlases: dbft.TextureAtlas[] | null = null): void {
     if (data) {
-
         for (const armature of data.armature) {
             if (armature.bone.length === 0) {
                 armature.slot.length = 0;
@@ -244,6 +243,9 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     const timeline = animation.slot[i];
                     const slot = armature.getSlot(timeline.name);
                     if (slot) {
+                        if (animation.name === "dead" && slot.name === "backLight") {
+                            debugger;
+                        }
                         cleanFrame(timeline.frame);
                         cleanFrame(timeline.displayFrame);
                         cleanFrame(timeline.colorFrame);
@@ -284,8 +286,9 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
                 for (let i = 0, l = animation.ffd.length; i < l; ++i) {
                     const timeline = animation.ffd[i];
-                    const slot = armature.getSlot(timeline.name);
+                    const slot = armature.getSlot(timeline.slot);
                     const mesh = armature.getMesh(timeline.skin = timeline.skin || "default", timeline.slot, timeline.name);
+
                     if (slot && mesh) {
                         cleanFrame(timeline.frame);
 

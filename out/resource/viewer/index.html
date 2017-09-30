@@ -1,0 +1,142 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>DragonBones Viewer</title>
+	<meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no"/>
+	<meta name="apple-mobile-web-app-capable" content="yes"/>
+	<meta name="full-screen" content="true"/>
+	<meta name="screen-orientation" content="portrait"/>
+	<meta name="x5-fullscreen" content="true"/>
+	<meta name="360-fullscreen" content="true"/>
+	<meta name="renderer" content="webkit"/>
+	<!--css_begin-->
+	<link href="resource/css.css" rel="stylesheet"/>
+	<!--css_end-->
+	<!--script_begin-->
+	<!--modules_files_start-->
+	<script egret="lib" src="libs/modules/egret/egret.min.js"></script>
+	<script egret="lib" src="libs/modules/egret/egret.web.min.js"></script>
+	<script egret="lib" src="libs/modules/tween/tween.min.js"></script>
+	<script egret="lib" src="libs/modules/dragonBones/dragonBones.min.js"></script>
+	<script egret="lib" src="libs/promise/bin/promise.min.js"></script>
+	<script egret="lib" src="libs/qrcode.min.js"></script>
+	<!--modules_files_end-->
+	<!--game_files_start-->
+	<script egret="lib" src="main.min.js"></script>
+	<!--game_files_end-->
+	<!--script_end-->
+	<!--ta-->
+	<script type="text/javascript" src="http://tajs.qq.com/stats?sId=62452554" charset="UTF-8"></script>
+</head>
+<body>
+	<div style="display: none">
+		<!--data_begin--><!--data_end-->
+		<!--resource-->
+		<img id="background" width="512" height="512" src="data:image/png;base64,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" />
+	</div>
+
+	<div id="dragonBonesPlayer" class="dragonbones_player">
+		<div style="margin: auto;width: 100%;height: 100%;" class="egret-player"
+			data-entry-class="Main"
+			data-orientation="auto"
+			data-scale-mode="noScale"
+			data-frame-rate="60"
+			data-content-width="1136"
+			data-content-height="640"
+			data-show-paint-rect="false"
+			data-multi-fingered="2"
+			data-show-fps="false" data-show-log="false"
+			data-show-fps-style="x:0,y:0,size:10,textColor:0xffffff,bgAlpha:0.9">
+		</div>
+	</div>
+
+	<div id="skin" class="skin">
+		<a href="http://www.dragonbones.com/" target="dragonbones_index">
+			<img src="resource/logo.png" alt="" style="width: 100%;"/>
+		</a>
+
+		<div class="group data">
+			<div class="h_group">
+				<img src="resource/data.png" alt=""/>
+				<select id="dataList" class="item" >  
+					<option value="0">DragonBones Name</option>
+				</select>
+			</div>
+			<div class="h_group">
+				<img src="resource/armature.png" alt=""/>
+				<select id="armatureList" class="item" >  
+					<option value="0">Armature Name</option>
+				</select>
+			</div>
+			<div class="h_group">
+				<img src="resource/animation.png" alt=""/>
+				<select id="animationList" class="item"> 
+					<option value="0">Animation Name</option>
+				</select>
+			</div>
+		</div>
+		
+		<div class="group animation">
+			<div id="animationControlLabel" class="title">Animation Control</div>
+			<div class="h_group play">
+				<div id="prevAnimationButton" class="item halo prev_button ">
+					<div></div>
+				</div>
+				<div id="playAnimationButton" class="item halo play_button">
+					<div></div>
+				</div>
+				<div id="stopAnimationButton" class="item halo stop_button" style="display: none">
+					<div>
+						<div></div>
+					</div>
+				</div>
+				<div id="nextAnimationButton" class="item halo next_button">
+					<div></div>
+				</div>
+				<div class="item speed">
+					<div id="animationSpeedLabel" class="number">100 %</div>
+					<div id="reduceAnimationSpeedButton" class="reduce_button"></div>
+					<div id="increaseAnimationSpeedButton" class="increase_button"></div>
+				</div>
+			</div>
+		</div>
+
+		<div class="group view">
+			<div id="backgroundColorLabel" class="title">Background Color</div>
+			<div id="backgroundColor" class="h_group color">
+				<div class="item column_1" style="background-color: #fefefe"></div>
+				<div class="item column_2" style="background-color: #b6b6b6"></div>
+				<div class="item column_3" style="background-color: #757575"></div>
+				<div class="item column_4" style="background-color: #3c3c3c"></div>
+				<div class="item column_5" style="background-color: #000"></div>
+			</div>
+			<div class="h_group grid">
+				<div id="gridLabel" class="item label_l">Show Grid</div>
+				<div id="gridEnabledButton" class="item selected">
+					<div></div>
+				</div>
+			</div>
+		</div>
+
+		<div id="infoLabel" class="group information">
+			<p>Info</p>
+			<p>Total Time: 0 s</p>
+			<div>Infomation.</div>
+		</div>
+
+		<div id="qrCodeGroup" class="group qrcode">
+			<div id="qrCode"></div>
+		</div>
+	</div>
+
+	<div id="skinButton" class="skin_button">
+		<div></div>
+		<div></div>
+	</div>
+
+	<script>
+		egret.runEgret({ renderMode: "webgl", audioType: 0 });
+	</script>
+</body>
+</html>
