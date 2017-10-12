@@ -10,35 +10,34 @@
     <meta name="x5-fullscreen" content="true"/>
     <meta name="360-fullscreen" content="true"/>
 	<meta name="renderer" content="webkit"/>
-    <style>html, body {    padding: 0;    border: 0;    margin: 0;    height: 100%;    background: #333333;    -ms-touch-action: none;}
+    <style>
+        html, body {
+            padding: 0;
+            border: 0;
+            margin: 0;
+            height: 100%;
+            background: #333333;
+            -ms-touch-action: none;
+        }
     </style>
 	
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/gunzip.min.js"></script>
     <!--modules_files_start-->
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/modules/egret/egret.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/modules/egret/egret.web.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/modules/dragonBones/dragonBones.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/promise/bin/promise.js"></script>
+	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/modules/egret/egret.min.js"></script>
+	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/modules/egret/egret.web.min.js"></script>
+	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/modules/dragonBones/dragonBones.min.js"></script>
+	<script egret="lib" src="http://www.dragonbones.com/player/v3/libs/promise/bin/promise.min.js"></script>
 	<!--modules_files_end-->
     <!--game_files_start-->
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/bin-debug/common/types.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/bin-debug/common/object.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/bin-debug/common/event.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/bin-debug/common/mvc.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/bin-debug/player/types.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/bin-debug/player/utli.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/bin-debug/player/base.js"></script>
-	<script egret="lib" src="http://www.dragonbones.com/player/v3/bin-debug/Main.js"></script>
+	<script egret="lib" src="http://www.dragonbones.com/player/v3/main.min.js"></script>
 	<!--game_files_end-->
 	
 </head>
 <body>
 	<div style="display: none">
-		<!--data_begin-->
-        <!--data_end-->
+		<!--data_begin--><!--data_end-->
 	</div>
 
-    <div id="dragonBonesPlayer" style="position:absolute; top: 0; left: 0; float: left; width: 100%; height: 100%;">
+    <div id="dragonBonesPlayer" style="margin: auto;width: 100%;height: 100%;">
         <div style="margin: auto;width: 100%;height: 100%;" class="egret-player"
             data-entry-class="Main"
             data-orientation="auto"

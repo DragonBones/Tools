@@ -679,6 +679,8 @@ export class ArmatureDisplay extends Display {
 
 export class MeshDisplay extends Display {
     offset: number = -1; // Binary.
+    width: number = 0;
+    height: number = 0;
     path: string = "";
 
     readonly vertices: number[] = [];
@@ -703,6 +705,8 @@ export class MeshDisplay extends Display {
     }
 
     clearToBinary(): void {
+        this.width = 0;
+        this.height = 0;
         this.vertices.length = 0;
         this.uvs.length = 0;
         this.triangles.length = 0;
@@ -729,6 +733,7 @@ export class SharedMeshDisplay extends Display {
     inheritFFD: boolean = true;
     path: string = "";
     share: string = "";
+    skin: string = "";
 
     constructor(isDefault: boolean = false) {
         super();

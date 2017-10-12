@@ -238,7 +238,7 @@ export class Animation {
     readonly deform: Map<Map<Map<DeformFrame[]>>> = {};
     readonly ffd: Map<Map<Map<DeformFrame[]>>> = {}; // Deprecated.
     readonly events: EventFrame[] = [];
-    readonly draworder: DrawOrderFrame[] = [];
+    readonly drawOrder: DrawOrderFrame[] = [];
 }
 
 export class BoneTimelines {
@@ -407,7 +407,7 @@ export const copyConfig = [
             Array
         ]]],
         events: EventFrame,
-        draworder: DrawOrderFrame,
+        drawOrder: DrawOrderFrame,
     },
     BoneTimelines, {
         rotate: RotateFrame,

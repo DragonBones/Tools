@@ -11,7 +11,7 @@ type Input = {
 };
 
 export default function (data: Input): dbft.DragonBones {
-    // let textureAtlasScale = -1.0;
+    let textureAtlasScale = -1.0;
     const result: dbft.DragonBones = new dbft.DragonBones();
 
     {
@@ -168,14 +168,15 @@ export default function (data: Input): dbft.DragonBones {
                     display.transform.scY = attachment.scaleY;
                     slot.display.push(display);
 
-                    // if (textureAtlasScale < 0.0) {
-                    //     textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
-                    // }
+                    if (textureAtlasScale < 0.0) {
+                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
+                    }
                 }
                 else if (attachment instanceof spft.MeshAttachment) {
                     const display = new dbft.MeshDisplay();
                     display.name = attachment.name || attachmentName;
-                    display.name = skinName + "_" + slotName + "_" + (attachment.name || attachmentName);
+                    display.width = attachment.width;
+                    display.height = attachment.height;
                     display.path = attachment.path || (attachment.name || attachmentName);
 
                     for (const v of attachment.uvs) {
@@ -236,25 +237,31 @@ export default function (data: Input): dbft.DragonBones {
                         display.slotPose.push(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
                     }
 
+                    display.edges = dbft.getEdgeFormTriangles(display.triangles);
+                    if (attachment.edges.length !== attachment.hull * 2) {
+                        for (let i = attachment.hull * 2; i < attachment.edges.length; ++i) {
+                            display.userEdges.push(attachment.edges[i] / 2);
+                        }
+                    }
+
                     slot.display.push(display);
 
-                    // if (textureAtlasScale < 0.0) {
-                    //     textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
-                    // }
+                    if (textureAtlasScale < 0.0) {
+                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
+                    }
                 }
                 else if (attachment instanceof spft.LinkedMeshAttachment) {
                     const display = new dbft.SharedMeshDisplay();
                     display.inheritFFD = attachment.deform;
                     display.name = attachment.name || attachmentName;
                     display.share = attachment.parent;
-                    display.name = skinName + "_" + slotName + "_" + (attachment.name || attachmentName);
-                    display.share = (attachment.skin || skinName) + "_" + slotName + "_" + attachment.parent;
+                    display.skin = attachment.skin;
                     display.path = attachment.path || (attachment.name || attachmentName);
                     slot.display.push(display);
 
-                    // if (textureAtlasScale < 0.0) {
-                    //     textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
-                    // }
+                    if (textureAtlasScale < 0.0) {
+                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
+                    }
                 }
                 else if (attachment instanceof spft.BoundingBoxAttachment) {
                     const display = new dbft.PolygonBoundingBoxDisplay();
@@ -419,7 +426,7 @@ export default function (data: Input): dbft.DragonBones {
                 }
 
                 frame.rotate += -spFrame.x;
-                frame.skew = frame.rotate - spFrame.y;
+                frame.skew = spFrame.x - spFrame.y;
 
                 animationDuration = Math.max(frame._position, animationDuration);
             }
@@ -488,8 +495,7 @@ export default function (data: Input): dbft.DragonBones {
             for (const slotName in slots) {
                 const timelines = slots[slotName];
                 for (const timelineName in timelines) {
-                    // const meshName = timelineName;
-                    const meshName = skinName + "_" + slotName + "_" + timelineName;
+                    const meshName = timelineName;
                     const meshDisplay = armature.getMesh(skinName, slotName, meshName);
                     if (!meshDisplay) {
                         continue;
@@ -612,10 +618,10 @@ export default function (data: Input): dbft.DragonBones {
             modifyFrames(animation.frame);
         }
 
-        if (spAnimation.draworder.length > 0) {
+        if (spAnimation.drawOrder.length > 0) {
             animation.zOrder = new dbft.ZOrderTimeline();
 
-            for (const spFrame of spAnimation.draworder) {
+            for (const spFrame of spAnimation.drawOrder) {
                 const frame = new dbft.ZOrderFrame();
                 frame._position = Math.round(spFrame.time * result.frameRate);
 
@@ -636,28 +642,32 @@ export default function (data: Input): dbft.DragonBones {
         armature.animation.push(animation);
     }
 
-    // if (textureAtlasScale > 0.0) {
-    //     for (const textureAtlas of result.textureAtlas) {
-    //         textureAtlas.scale = textureAtlasScale;
-    //     }
-    // }
+    if (textureAtlasScale > 0.0) {
+        for (const textureAtlas of result.textureAtlas) {
+            textureAtlas.scale = textureAtlasScale;
+        }
+    }
 
     return result;
 }
 
-// function modifyTextureAtlasScale(textureName: string, attachment: { width: number, height: number }, textureAtlases: dbft.TextureAtlas[]): number {
-//     const texture = dbft.getTextureFormTextureAtlases(textureName, textureAtlases);
-//     if (texture) {
+function modifyTextureAtlasScale(textureName: string, attachment: { width: number, height: number }, textureAtlases: dbft.TextureAtlas[]): number {
+    const texture = dbft.getTextureFormTextureAtlases(textureName, textureAtlases);
+    if (texture) {
 
-//         if (texture.rotated) {
-//             return (texture.frameWidth || texture.width) / attachment.height;
-//         }
+        if (texture.frameWidth) {
+            return texture.frameWidth / attachment.width;
+        }
 
-//         return (texture.frameWidth || texture.width) / attachment.height;
-//     }
+        if (texture.rotated) {
+            return texture.width / attachment.height;
+        }
 
-//     return -1;
-// }
+        return texture.width / attachment.width;
+    }
+
+    return -1;
+}
 
 function setTweenFormSP(dbFrame: dbft.TweenFrame, spFrame: spft.TweenFrame, isLastFrame: boolean): void {
     if (isLastFrame) {

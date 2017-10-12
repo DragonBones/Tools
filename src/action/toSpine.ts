@@ -133,14 +133,14 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                         }
 
                         for (const index of dbft.getEdgeFormTriangles(display.triangles)) {
-                            spAttachment.edges.push(index);
+                            spAttachment.edges.push(index * 2);
                         }
 
                         spAttachment.hull = spAttachment.edges.length / 2;
 
                         if (display.userEdges.length > 0) {
                             for (const index of display.userEdges) {
-                                spAttachment.edges.push(index);
+                                spAttachment.edges.push(index * 2);
                             }
                         }
 
@@ -312,7 +312,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                         });
                     }
 
-                    spAnimation.draworder.push(spFrame);
+                    spAnimation.drawOrder.push(spFrame);
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }

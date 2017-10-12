@@ -89,11 +89,11 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                             }
 
                             for (let i = 0, l = display.uvs.length; i < l; ++i) {
-                                display.uvs[i] = Number(display.uvs[i].toFixed(4));
+                                display.uvs[i] = Number(display.uvs[i].toFixed(6));
                             }
 
                             for (let i = 0, l = display.weights.length; i < l; ++i) {
-                                display.weights[i] = Number(display.weights[i].toFixed(4));
+                                display.weights[i] = Number(display.weights[i].toFixed(6));
                             }
 
                             for (let i = 0, l = display.bonePose.length; i < l; ++i) {

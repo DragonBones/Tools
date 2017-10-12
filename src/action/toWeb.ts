@@ -20,16 +20,16 @@ type Input = {
 type ZipData = {
     data: string;
     textureAtlases: string[];
-};
+}[];
 
 export default function (data: Input, isPlayer: boolean): string {
     const isLocal = data.config ? data.config.isLocal : false;
-    const zipData = {
+    const zipData = [{
         data: data.data instanceof Buffer ? data.data.toString("base64") : data.data,
         textureAtlases: data.textureAtlases.map((v) => {
             return v ? v.toString("base64") : "";
         })
-    } as ZipData;
+    }] as ZipData;
     // const compressed = zlib.gzipSync(new Buffer(JSON.stringify(zipData))).toString("base64");
     // let htmlString = fs.readFileSync(path.join(__dirname, isPlayer ? "../resource/player.html" : "../resource/viewer.html"), "utf-8");
     // htmlString = replaceHTMLCommentTag(htmlString, DATA_TAG, `<b id="data">${compressed}</b>`, false);
