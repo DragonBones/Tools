@@ -4,6 +4,15 @@ import * as dbft from "../format/dragonBonesFormat";
 export default function (data: dbft.DragonBones | null, textureAtlases: dbft.TextureAtlas[] | null = null): void {
     if (data) {
         for (const armature of data.armature) {
+            if (armature.canvas) {
+                if (armature.canvas.hasBackground) {
+                    armature.canvas.hasBackground = false; // { color:0xxxxxxx }
+                }
+                else {
+                    armature.canvas.color = -1; // { }
+                }
+            }
+
             if (armature.bone.length === 0) {
                 armature.slot.length = 0;
                 armature.ik.length = 0;
@@ -66,6 +75,8 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                         skinSlot.display.length = 0;
                         continue;
                     }
+
+                    skinSlot.actions.length = 0; // Fix data bug.
 
                     for (const display of skinSlot.display) {
                         display.transform.skX = geom.normalizeDegree(display.transform.skX);

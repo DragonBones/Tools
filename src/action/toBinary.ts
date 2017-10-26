@@ -86,6 +86,10 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
                     timelines.push(value);
                 }
             }
+
+            for (const timeline of animation.ik) {
+                currentAnimationBinary.constraint[timeline.name] = createIKConstraintTimeline(timeline);
+            }
         }
 
         currentArmature.animation.length = 0;
@@ -289,8 +293,8 @@ function createTimeline<T extends dbft.Frame>(
         timelineArray[offset + dbft.BinaryOffset.TimelineOffset] = 0;
     }
     else {
-        timelineArray[offset + dbft.BinaryOffset.TimelineScale] = Math.round(value.scale * 100);
-        timelineArray[offset + dbft.BinaryOffset.TimelineOffset] = Math.round(value.offset * 100);
+        timelineArray[offset + dbft.BinaryOffset.TimelineScale] = Math.round(value.scale * 100.0);
+        timelineArray[offset + dbft.BinaryOffset.TimelineOffset] = Math.round(value.offset * 100.0);
     }
 
     timelineArray[offset + dbft.BinaryOffset.TimelineFrameValueCount] = frameValueCount;
@@ -718,10 +722,27 @@ function createFFDTimeline(value: dbft.FFDTimeline): number[] {
         return offset;
     });
 
-    // Get more infomation form value count offset。
+    // Get more infomation form value count offset.
     timelineArray[timelineOffset + dbft.BinaryOffset.TimelineFrameValueCount] = frameIntOffset - currentAnimationBinary.offset[dbft.OffsetOrder.FrameInt];
 
     timelines.push(dbft.TimelineType.SlotFFD);
+    timelines.push(timelineOffset);
+
+    return timelines;
+}
+
+function createIKConstraintTimeline(value: dbft.IKConstraintTimeline): number[] {
+    const timelines = new Array<number>();
+
+    const timelineOffset = createTimeline(value, value.frame, true, false, 2, (frame, frameStart) => {
+        const offset = createTweenFrame(frame, frameStart);
+        frameIntArray.push(frame.bendPositive ? 1 : 0);
+        frameIntArray.push(Math.round(frame.weight * 100.0));
+
+        return offset;
+    });
+
+    timelines.push(dbft.TimelineType.IKConstraint);
     timelines.push(timelineOffset);
 
     return timelines;

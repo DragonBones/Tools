@@ -118,7 +118,14 @@ function execute(): void {
     }
 
     if (resourcesJSON.resources.length > 0) {
-        const file = path.join(root, RESOURCE_NAME);
+        let file = root;
+        if (file.indexOf(RESOURCE_PATH) >= 0) {
+            file = path.join(file, RESOURCE_NAME);
+        }
+        else {
+            file = path.join(file, RESOURCE_PATH, RESOURCE_NAME);
+        }
+
         fs.writeFileSync(file, new Buffer(JSON.stringify(resourcesJSON)));
         console.log(file);
     }

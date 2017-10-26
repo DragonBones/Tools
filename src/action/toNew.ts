@@ -2,12 +2,19 @@ import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
 export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.DragonBones {
-    data.version = dbft.DATA_VERSION_5_1;
-    data.compatibleVersion = dbft.DATA_VERSION_5_1;
-
-    const normalColor = new geom.ColorTransform();
+    data.version = dbft.DATA_VERSION_5_5;
+    data.compatibleVersion = dbft.DATA_VERSION_5_5;
 
     for (const armature of data.armature) {
+        if (armature.type.toString().toLowerCase() === dbft.ArmatureType[dbft.ArmatureType.Stage]) {
+            armature.type = dbft.ArmatureType[dbft.ArmatureType.MovieClip];
+            armature.canvas = new dbft.Canvas();
+            armature.canvas.x = armature.aabb.x;
+            armature.canvas.y = armature.aabb.y;
+            armature.canvas.width = armature.aabb.width;
+            armature.canvas.height = armature.aabb.height;
+        }
+
         if (forRuntime) { // Old action to new action.
             if (armature.defaultActions.length > 0) {
                 for (let i = 0, l = armature.defaultActions.length; i < l; ++i) {
@@ -167,16 +174,6 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                     }
 
                     position += frame.duration;
-                }
-
-                for (let i = 0, l = timeline.colorFrame.length; i < l; ++i) {
-                    const colorFrame = timeline.colorFrame[i];
-
-                    if (!colorFrame.color.equal(normalColor) && colorFrame.value.equal(normalColor)) {
-                        colorFrame.value.copyFrom(colorFrame.color);
-                    }
-
-                    colorFrame.color.identity();
                 }
             }
         }

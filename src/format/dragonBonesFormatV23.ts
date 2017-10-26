@@ -136,27 +136,30 @@ export const copyConfig = [
         transform: Transform
     },
     Slot, {
-        display: function (display: any): { new (): Display } | null {
-            let type = display.type;
-            if (type !== undefined) {
-                if (typeof type === "string") {
-                    type = utils.getEnumFormString(dbft.DisplayType, type, dbft.DisplayType.Image);
+        display: [
+            function (display: any): { new(): Display } | null {
+                let type = display.type;
+                if (type !== undefined) {
+                    if (typeof type === "string") {
+                        type = utils.getEnumFormString(dbft.DisplayType, type, dbft.DisplayType.Image);
+                    }
                 }
-            }
-            else {
-                type = dbft.DisplayType.Image;
-            }
+                else {
+                    type = dbft.DisplayType.Image;
+                }
 
-            switch (type) {
-                case dbft.DisplayType.Image:
-                    return ImageDisplay;
+                switch (type) {
+                    case dbft.DisplayType.Image:
+                        return ImageDisplay;
 
-                case dbft.DisplayType.Armature:
-                    return ArmatureDisplay;
-            }
+                    case dbft.DisplayType.Armature:
+                        return ArmatureDisplay;
+                }
 
-            return null;
-        }
+                return null;
+            },
+            Function
+        ]
     },
     Skin, {
         slot: Slot

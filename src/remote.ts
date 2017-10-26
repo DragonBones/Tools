@@ -17,6 +17,7 @@ type Input = {
     to: "binary" | "new" | "v45" | "player" | "viewer" | "spine";
     data: string; // DragonBones JSON string | spine JSON string { data: string, textureAtlas: string }
     compress?: boolean;
+    forPro?: boolean;
     textureAtlases?: string[]; // PNG Base64 string.
     config?: any; // { web: web config, spine: spine verison }
 };
@@ -75,7 +76,7 @@ gate.actions["/convert"] = (request, response) => {
 
                         const spine = new spft.Spine();
                         utils.copyFromObject(spine, JSON.parse(spineInput.data), spft.copyConfig);
-                        const result = fromSpine({ name: spineInput.name, data: spine, textureAtlas: spineInput.textureAtlas });
+                        const result = fromSpine({ name: spineInput.name, data: spine, textureAtlas: spineInput.textureAtlas }, true);
                         format(result);
                         utils.compress(result, dbft.compressConfig);
                         gate.responseEnd(response, Code.Success, Code[Code.Success], result);
@@ -147,7 +148,7 @@ gate.actions["/convert"] = (request, response) => {
                     }
 
                     case "v45": {
-                        toV45(dragonBonesData, false);
+                        toV45(dragonBonesData);
                         format(dragonBonesData);
 
                         if (input.compress !== false) {

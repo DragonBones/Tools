@@ -1,6 +1,7 @@
 import { Map } from "../common/types";
 import * as utils from "../common/utils";
 import { Matrix, Transform, ColorTransform, Point, Rectangle, helpPoint } from "./geom";
+import * as geom from "./geom";
 import * as dbftV23 from "./dragonBonesFormatV23";
 /**
  * DragonBones format.
@@ -10,15 +11,17 @@ export const DATA_VERSION_3_0: string = "3.0";
 export const DATA_VERSION_4_0: string = "4.0";
 export const DATA_VERSION_4_5: string = "4.5";
 export const DATA_VERSION_5_0: string = "5.0";
-export const DATA_VERSION_5_1: string = "5.5";
-export const DATA_VERSION: string = DATA_VERSION_5_1;
+export const DATA_VERSION_5_5: string = "5.5";
+export const DATA_VERSION_5_6: string = "5.6";
+export const DATA_VERSION: string = DATA_VERSION_5_6;
 export const DATA_VERSIONS: Array<string> = [
     DATA_VERSION_2_3,
     DATA_VERSION_3_0,
     DATA_VERSION_4_0,
     DATA_VERSION_4_5,
     DATA_VERSION_5_0,
-    DATA_VERSION_5_1
+    DATA_VERSION_5_5,
+    DATA_VERSION_5_6
 ];
 
 export enum OffsetOrder {
@@ -116,6 +119,8 @@ export enum TimelineType {
     SlotColor = 21,
     SlotFFD = 22,
 
+    IKConstraint = 30,
+
     AnimationTime = 40,
     AnimationWeight = 41
 }
@@ -132,6 +137,36 @@ export enum TweenType {
 export function isDragonBonesString(string: string): boolean {
     const testString = string.substr(0, Math.min(200, string.length));
     return testString.indexOf("armature") > 0 || testString.indexOf("textureAtlas") > 0;
+}
+
+export function getFrameByPosition<T extends Frame>(frames: T[], position: number): T {
+    let index = 0;
+    let currentPosition = 0;
+
+    for (const frame of frames) {
+        if (frame._position >= 0) {
+            if (frame._position === position) {
+                return frame;
+            }
+            else if (frame._position > position) {
+                return frames[index - 1];
+            }
+        }
+        else {
+            if (currentPosition === position) {
+                return frame;
+            }
+            else if (currentPosition > position) {
+                return frames[index - 1];
+            }
+
+            currentPosition += frame.duration;
+        }
+
+        index++;
+    }
+
+    return frames[0];
 }
 
 export function getTextureFormTextureAtlases(name: string, textureAtlases: TextureAtlas[]): Texture | null {
@@ -311,7 +346,11 @@ export function oldActionToNewAction(oldAction: OldAction): Action {
     return newAction;
 }
 
-export function mergeActionToAnimation(animation: Animation, frame: dbftV23.AllFrame | BoneAllFrame | SlotAllFrame | SlotDisplayFrame, framePosition: number, bone: Bone | null, slot: Slot | null, forRuntime: boolean): void {
+export function mergeActionToAnimation(
+    animation: Animation, frame: dbftV23.AllFrame | BoneAllFrame | SlotAllFrame | SlotDisplayFrame, framePosition: number,
+    bone: Bone | null, slot: Slot | null,
+    forRuntime: boolean
+): void {
     const frames = animation.frame;
     const boneName = bone ? bone.name : "";
     const slotName = slot ? slot.name : "";
@@ -427,6 +466,15 @@ export class Action extends UserData {
     slot: string = "";
 }
 
+export class Canvas {
+    hasBackground: boolean = false;
+    color: number = -1;
+    x: number = 0;
+    y: number = 0;
+    width: number = 0;
+    height: number = 0;
+}
+
 export class Armature {
     type: ArmatureType | string = ArmatureType[ArmatureType.Armature].toLowerCase();
     frameRate: number = 0;
@@ -439,6 +487,7 @@ export class Armature {
     readonly animation: (Animation | AnimationBinary)[] = []; // Binary.
     readonly defaultActions: (OldAction | Action)[] = [];
     readonly actions: Action[] = [];
+    canvas: Canvas | null = null;
     userData: UserData | null = null;
 
     sortBones(): void {
@@ -629,6 +678,7 @@ export class Skin {
 export class SkinSlot {
     name: string = "";
     readonly display: Display[] = [];
+    readonly actions: OldAction[] = []; // Deprecated.
 
     getDisplay(name: string): Display | null {
         for (const display of this.display) {
@@ -791,6 +841,7 @@ export class Animation {
     readonly bone: BoneTimeline[] = [];
     readonly slot: SlotTimeline[] = [];
     readonly ffd: FFDTimeline[] = [];
+    readonly ik: IKConstraintTimeline[] = [];
     zOrder: ZOrderTimeline | null = null;
 
     getSlotTimeline(name: string): SlotTimeline | null {
@@ -826,6 +877,7 @@ export class AnimationBinary {
     readonly offset: number[] = [];
     readonly bone: Map<number[]> = {};
     readonly slot: Map<number[]> = {};
+    readonly constraint: Map<number[]> = {};
 }
 
 export abstract class Timeline {
@@ -843,12 +895,361 @@ export class BoneTimeline extends Timeline {
     readonly translateFrame: BoneTranslateFrame[] = [];
     readonly rotateFrame: BoneRotateFrame[] = [];
     readonly scaleFrame: BoneScaleFrame[] = [];
+
+    insertFrame(frames: Frame[], position: number): number {
+        let index = 0;
+        let fromPosition = 0;
+        let progress = 0.0;
+        let from: Frame | null = null;
+        let insert: Frame;
+        let to: Frame | null = null;
+
+        for (const frame of frames) {
+            if (fromPosition === position) {
+                return index;
+            }
+            else if (fromPosition < position && position <= fromPosition + frame.duration) {
+                if (index === frames.length - 1) {
+                }
+                else if (position === fromPosition + frame.duration) {
+                    return index + 1;
+                }
+                else {
+                    to = frames[index + 1];
+                }
+
+                progress = (position - fromPosition) / frame.duration;
+                from = frame;
+                index++;
+                break;
+            }
+
+            index++;
+            fromPosition += frame.duration;
+        }
+
+        if (frames === this.frame) {
+            if (!from) {
+                from = new BoneAllFrame();
+                frames.push(from);
+            }
+            insert = new BoneAllFrame();
+        }
+        else if (frames === this.translateFrame) {
+            if (!from) {
+                from = new BoneTranslateFrame();
+                frames.push(from);
+            }
+            insert = new BoneTranslateFrame();
+        }
+        else if (frames === this.rotateFrame) {
+            if (!from) {
+                from = new BoneRotateFrame();
+                frames.push(from);
+            }
+            insert = new BoneRotateFrame();
+        }
+        else if (frames === this.scaleFrame) {
+            if (!from) {
+                from = new BoneScaleFrame();
+                frames.push(from);
+            }
+            insert = new BoneScaleFrame();
+        }
+        else {
+            return -1;
+        }
+
+        insert.duration = from.duration - (position - fromPosition);
+        from.duration -= insert.duration;
+        frames.splice(index, 0, insert);
+
+        if (from instanceof TweenFrame && insert instanceof TweenFrame) {
+            // TODO
+            insert.tweenEasing = from.tweenEasing;
+            //to.curve; 
+            progress = from.getTweenProgress(progress);
+        }
+
+        if (from instanceof BoneAllFrame && insert instanceof BoneAllFrame) {
+            if (to instanceof BoneAllFrame) {
+                insert.transform.x = from.transform.x + (to.transform.x - from.transform.x) * progress;
+                insert.transform.y = from.transform.y + (to.transform.y - from.transform.y) * progress;
+                insert.transform.scX = from.transform.scX + (to.transform.scX - from.transform.scX) * progress;
+                insert.transform.scY = from.transform.scY + (to.transform.scY - from.transform.scY) * progress;
+
+                if (from.tweenRotate === 0) {
+                    insert.tweenRotate = 0;
+                    insert.transform.skX = from.transform.skX + geom.normalizeDegree(to.transform.skX - from.transform.skX) * progress;
+                    insert.transform.skY = from.transform.skY + geom.normalizeDegree(to.transform.skY - from.transform.skY) * progress;
+                }
+                else {
+                    let tweenRotate = from.tweenRotate;
+                    if (tweenRotate > 0 && tweenRotate < 2) {
+                        insert.tweenRotate = 1;
+                    }
+                    else if (tweenRotate < 0 && tweenRotate > -2) {
+                        insert.tweenRotate = -1;
+                    }
+                    else {
+                        insert.tweenRotate = Math.floor(tweenRotate * progress);
+                    }
+
+                    if (tweenRotate > 0 ? to.transform.skY >= from.transform.skY : to.transform.skY <= from.transform.skY) {
+                        tweenRotate = tweenRotate > 0 ? tweenRotate - 1 : tweenRotate + 1;
+                    }
+
+                    insert.transform.skX = from.transform.skX + geom.normalizeDegree(to.transform.skX - from.transform.skX + 360.0 * tweenRotate) * progress;
+                    insert.transform.skY = from.transform.skY + geom.normalizeDegree(to.transform.skY - from.transform.skY + 360.0 * tweenRotate) * progress;
+                }
+            }
+            else {
+                insert.transform.copyFrom(from.transform);
+            }
+        }
+        else if (from instanceof BoneTranslateFrame && insert instanceof BoneTranslateFrame) {
+            if (to instanceof BoneTranslateFrame) {
+                insert.x = from.x + (to.x - from.x) * progress;
+                insert.y = from.y + (to.y - from.y) * progress;
+            }
+            else {
+                insert.x = from.x;
+                insert.y = from.y;
+            }
+        }
+        else if (from instanceof BoneRotateFrame && insert instanceof BoneRotateFrame && to instanceof BoneRotateFrame) {
+            if (to instanceof BoneRotateFrame) {
+                if (from.clockwise === 0) {
+                    insert.clockwise = 0;
+                    insert.rotate = from.rotate + geom.normalizeDegree(to.rotate - from.rotate) * progress;
+                }
+                else {
+                    let clockwise = from.clockwise;
+                    if (clockwise > 0 && clockwise < 2) {
+                        insert.clockwise = 1;
+                    }
+                    else if (clockwise < 0 && clockwise > -2) {
+                        insert.clockwise = -1;
+                    }
+                    else {
+                        insert.clockwise = Math.floor(clockwise * progress);
+                    }
+
+                    if (clockwise > 0 ? to.rotate >= from.rotate : to.rotate <= from.rotate) {
+                        clockwise = clockwise > 0 ? clockwise - 1 : clockwise + 1;
+                    }
+
+                    insert.rotate = from.rotate + (to.rotate - from.rotate + 360.0 * clockwise) * progress;
+                }
+
+                insert.skew = from.skew + (to.skew - from.skew) * progress;
+            }
+            else {
+                insert.rotate = from.rotate;
+                insert.skew = from.skew;
+            }
+        }
+        else if (from instanceof BoneScaleFrame && insert instanceof BoneScaleFrame) {
+            if (to instanceof BoneScaleFrame) {
+                insert.x = from.x + (to.x - from.x) * progress;
+                insert.y = from.y + (to.y - from.y) * progress;
+            }
+            else {
+                insert.x = from.x;
+                insert.y = from.y;
+            }
+        }
+        else {
+            return -1;
+        }
+
+        return index;
+    }
 }
 
 export class SlotTimeline extends Timeline {
     readonly frame: SlotAllFrame[] = []; // Deprecated.
     readonly displayFrame: SlotDisplayFrame[] = [];
     readonly colorFrame: SlotColorFrame[] = [];
+
+    insertFrame(frames: Frame[], position: number): number {
+        let index = 0;
+        let fromPosition = 0;
+        let progress = 0.0;
+        let from: Frame | null = null;
+        let insert: Frame;
+        let to: Frame | null = null;
+
+        for (const frame of frames) {
+            if (fromPosition === position) {
+                return index;
+            }
+            else if (fromPosition < position && position <= fromPosition + frame.duration) {
+                if (index === frames.length - 1) {
+                }
+                else if (position === fromPosition + frame.duration) {
+                    return index + 1;
+                }
+                else {
+                    to = frames[index + 1];
+                }
+
+                progress = (position - fromPosition) / frame.duration;
+                from = frame;
+                index++;
+                break;
+            }
+
+            index++;
+            fromPosition += frame.duration;
+        }
+
+        if (frames === this.frame) {
+            if (!from) {
+                from = new SlotAllFrame();
+                frames.push(from);
+            }
+            insert = new SlotAllFrame();
+        }
+        else if (frames === this.displayFrame) {
+            if (!from) {
+                from = new SlotDisplayFrame();
+                frames.push(from);
+            }
+            insert = new SlotDisplayFrame();
+        }
+        else if (frames === this.colorFrame) {
+            if (!from) {
+                from = new SlotColorFrame();
+                frames.push(from);
+            }
+            insert = new SlotColorFrame();
+        }
+        else {
+            return -1;
+        }
+
+        insert.duration = from.duration - (position - fromPosition);
+        from.duration -= insert.duration;
+        frames.splice(index, 0, insert);
+
+        if (from instanceof TweenFrame && insert instanceof TweenFrame) {
+            // TODO
+            insert.tweenEasing = from.tweenEasing;
+            //insert.curve; 
+            progress = from.getTweenProgress(progress);
+        }
+
+        if (from instanceof SlotAllFrame && insert instanceof SlotAllFrame) {
+            insert.displayIndex = from.displayIndex;
+
+            if (to instanceof SlotAllFrame) {
+                insert.color.aM = from.color.aM + (to.color.aM - from.color.aM) * progress;
+                insert.color.rM = from.color.rM + (to.color.rM - from.color.rM) * progress;
+                insert.color.gM = from.color.gM + (to.color.gM - from.color.gM) * progress;
+                insert.color.bM = from.color.bM + (to.color.bM - from.color.bM) * progress;
+                insert.color.aO = from.color.aO + (to.color.aO - from.color.aO) * progress;
+                insert.color.rO = from.color.rO + (to.color.rO - from.color.rO) * progress;
+                insert.color.gO = from.color.gO + (to.color.gO - from.color.gO) * progress;
+                insert.color.bO = from.color.bO + (to.color.bO - from.color.bO) * progress;
+            }
+            else {
+                insert.color.copyFrom(insert.color);
+            }
+        }
+        else if (from instanceof SlotDisplayFrame && insert instanceof SlotDisplayFrame) {
+            insert.value = from.value;
+        }
+        else if (from instanceof SlotColorFrame && insert instanceof SlotColorFrame) {
+            if (to instanceof SlotColorFrame) {
+                insert.value.aM = from.value.aM + (to.value.aM - from.value.aM) * progress;
+                insert.value.rM = from.value.rM + (to.value.rM - from.value.rM) * progress;
+                insert.value.gM = from.value.gM + (to.value.gM - from.value.gM) * progress;
+                insert.value.bM = from.value.bM + (to.value.bM - from.value.bM) * progress;
+                insert.value.aO = from.value.aO + (to.value.aO - from.value.aO) * progress;
+                insert.value.rO = from.value.rO + (to.value.rO - from.value.rO) * progress;
+                insert.value.gO = from.value.gO + (to.value.gO - from.value.gO) * progress;
+                insert.value.bO = from.value.bO + (to.value.bO - from.value.bO) * progress;
+            }
+            else {
+                insert.value.copyFrom(insert.value);
+            }
+        }
+        else {
+            return -1;
+        }
+
+        return index;
+    }
+
+    insertFrameaaa(from: Frame, progress: number): Frame | null {
+        if (progress === 0.0) {
+            return null;
+        }
+
+        if (progress >= 1.0) {
+            return null;
+        }
+
+        let frames: Frame[];
+        let insert: Frame;
+        if (from instanceof SlotAllFrame) {
+            frames = this.frame;
+            insert = new SlotAllFrame();
+        }
+        else if (from instanceof SlotColorFrame) {
+            frames = this.colorFrame;
+            insert = new SlotColorFrame();
+        }
+        else {
+            return null;
+        }
+
+        const index = frames.indexOf(from) + 1;
+        if (index < 1 || index >= frames.length) {
+            return null;
+        }
+
+        const to = frames[index];
+        insert.duration = Math.floor(from.duration * progress);
+        from.duration -= insert.duration;
+        progress = from.getTweenProgress(progress);
+
+        if (from instanceof TweenFrame && insert instanceof TweenFrame) {
+            // TODO
+            insert.tweenEasing = from.tweenEasing;
+            //to.curve; 
+        }
+
+        frames.splice(index, 0, insert);
+
+        if (from instanceof SlotAllFrame && insert instanceof SlotAllFrame && to instanceof SlotAllFrame) {
+            insert.displayIndex = from.displayIndex;
+            insert.color.aM = from.color.aM + (to.color.aM - from.color.aM) * progress;
+            insert.color.rM = from.color.rM + (to.color.rM - from.color.rM) * progress;
+            insert.color.gM = from.color.gM + (to.color.gM - from.color.gM) * progress;
+            insert.color.bM = from.color.bM + (to.color.bM - from.color.bM) * progress;
+            insert.color.aO = from.color.aO + (to.color.aO - from.color.aO) * progress;
+            insert.color.rO = from.color.rO + (to.color.rO - from.color.rO) * progress;
+            insert.color.gO = from.color.gO + (to.color.gO - from.color.gO) * progress;
+            insert.color.bO = from.color.bO + (to.color.bO - from.color.bO) * progress;
+        }
+        else if (from instanceof SlotColorFrame && insert instanceof SlotColorFrame && to instanceof SlotColorFrame) {
+            insert.value.aM = from.value.aM + (to.value.aM - from.value.aM) * progress;
+            insert.value.rM = from.value.rM + (to.value.rM - from.value.rM) * progress;
+            insert.value.gM = from.value.gM + (to.value.gM - from.value.gM) * progress;
+            insert.value.bM = from.value.bM + (to.value.bM - from.value.bM) * progress;
+            insert.value.aO = from.value.aO + (to.value.aO - from.value.aO) * progress;
+            insert.value.rO = from.value.rO + (to.value.rO - from.value.rO) * progress;
+            insert.value.gO = from.value.gO + (to.value.gO - from.value.gO) * progress;
+            insert.value.bO = from.value.bO + (to.value.bO - from.value.bO) * progress;
+        }
+        else {
+            return null;
+        }
+
+        return insert;
+    }
 }
 
 export class FFDTimeline extends Timeline {
@@ -857,9 +1258,13 @@ export class FFDTimeline extends Timeline {
     readonly frame: FFDFrame[] = [];
 }
 
+export class IKConstraintTimeline extends Timeline {
+    readonly frame: IKConstraintFrame[] = [];
+}
+
 export abstract class Frame {
     duration: number = 1;
-    _position: number = 0;
+    _position: number = -1;
 
     abstract equal(value: this): boolean;
 }
@@ -875,6 +1280,31 @@ export abstract class TweenFrame extends Frame {
     removeTween(): void {
         this.tweenEasing = NaN;
         this.curve.length = 0;
+    }
+
+    getTweenProgress(value: number): number {
+        if (this.getTweenEnabled()) {
+            if (this.curve.length > 0) {
+                return getCurveEasingValue(value, this.curve);
+            }
+            else {
+                if (this.tweenEasing === 0.0) {
+                }
+                else if (this.tweenEasing <= 0.0) {
+                    return getEasingValue(TweenType.QuadOut, value, this.tweenEasing);
+                }
+                else if (this.tweenEasing <= 1.0) {
+                    return getEasingValue(TweenType.QuadIn, value, this.tweenEasing);
+                }
+                else if (this.tweenEasing <= 2.0) {
+                    return getEasingValue(TweenType.QuadInOut, value, this.tweenEasing);
+                }
+
+                return value;
+            }
+        }
+
+        return 0.0;
     }
 }
 
@@ -938,6 +1368,36 @@ export class BoneRotateFrame extends TweenFrame {
     equal(value: this): boolean {
         return this.clockwise === 0 && this.rotate === value.rotate && this.skew === value.skew;
     }
+
+    getTweenFrame(to: this, progress: number): this {
+        if (progress === 0.0 || this.getTweenEnabled()) {
+            return this;
+        }
+
+        if (progress >= 1.0) {
+            return to;
+        }
+
+        progress = this.getTweenProgress(progress);
+
+        const frame = new BoneRotateFrame();
+
+        if (this.clockwise === 0) {
+            frame.rotate = this.rotate + geom.normalizeDegree(to.rotate - this.rotate) * progress;
+        }
+        else {
+            let clockwise = this.clockwise;
+            if (clockwise > 0 ? to.rotate >= this.rotate : to.rotate <= this.rotate) {
+                clockwise = clockwise > 0 ? clockwise - 1 : clockwise + 1;
+            }
+
+            frame.rotate = this.rotate + (to.rotate - this.rotate + 360.0 * clockwise) * progress;
+        }
+
+        frame.skew = this.skew + (to.skew - this.skew) * progress;
+
+        return frame as any;
+    }
 }
 
 export class BoneScaleFrame extends TweenFrame {
@@ -996,6 +1456,15 @@ export class FFDFrame extends TweenFrame {
     }
 }
 
+export class IKConstraintFrame extends TweenFrame {
+    bendPositive: boolean = true;
+    weight: number = 1.0;
+
+    equal(value: this): boolean {
+        return this.bendPositive === value.bendPositive && this.weight === value.weight;
+    }
+}
+
 export class TextureAtlas {
     width: number = 0;
     height: number = 0;
@@ -1041,6 +1510,7 @@ export const copyConfig = [
         skin: Skin,
         animation: Animation,
         defaultActions: OldAction,
+        canvas: Canvas,
         userData: UserData
     },
     Bone, {
@@ -1122,7 +1592,8 @@ export const copyConfig = [
         zOrder: ZOrderTimeline,
         bone: BoneTimeline,
         slot: SlotTimeline,
-        ffd: FFDTimeline
+        ffd: FFDTimeline,
+        ik: IKConstraintTimeline
     },
     ZOrderTimeline, {
         frame: ZOrderFrame
@@ -1140,6 +1611,9 @@ export const copyConfig = [
     },
     FFDTimeline, {
         frame: FFDFrame
+    },
+    IKConstraintTimeline, {
+        frame: IKConstraintFrame
     },
     ActionFrame, {
         actions: Action,
@@ -1165,6 +1639,7 @@ export const compressConfig = [
     new DragonBones(),
     new UserData(),
     new Action(),
+    new Canvas(),
     new Armature(),
     new Bone(),
     new Slot(),
@@ -1186,6 +1661,7 @@ export const compressConfig = [
     new BoneTimeline(),
     new SlotTimeline(),
     new FFDTimeline(),
+    new IKConstraintTimeline(),
     new ActionFrame(),
     new ZOrderFrame(),
     new BoneAllFrame(),
@@ -1196,6 +1672,7 @@ export const compressConfig = [
     new SlotDisplayFrame(),
     new SlotColorFrame(),
     new FFDFrame(),
+    new IKConstraintFrame(),
 
     new TextureAtlas(),
     new Texture()

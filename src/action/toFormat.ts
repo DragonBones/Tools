@@ -3,6 +3,8 @@ import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 import * as dbftV23 from "../format/dragonBonesFormatV23";
 
+const normalColor = new geom.ColorTransform();
+
 export default function (data: string, getTextureAtlases: () => dbft.TextureAtlas[]): dbft.DragonBones | null {
     if (!dbft.isDragonBonesString(data)) {
         return null;
@@ -11,6 +13,7 @@ export default function (data: string, getTextureAtlases: () => dbft.TextureAtla
     try {
         const json = JSON.parse(data);
         const version = json["version"];
+
         if (dbft.DATA_VERSIONS.indexOf(version) < dbft.DATA_VERSIONS.indexOf(dbft.DATA_VERSION_4_0)) {
             textureAtlases = getTextureAtlases();
             const data = new dbftV23.DragonBones();
@@ -22,8 +25,25 @@ export default function (data: string, getTextureAtlases: () => dbft.TextureAtla
         const result = new dbft.DragonBones();
         utils.copyFromObject(result, json, dbft.copyConfig);
 
-        return result;
+        for (const armature of result.armature) {
+            for (const animation of armature.animation) {
+                if (animation instanceof dbft.AnimationBinary) {
+                    continue;
+                }
 
+                for (const timeline of animation.slot) {
+                    for (const colorFrame of timeline.colorFrame) {
+                        if (!colorFrame.color.equal(normalColor) && colorFrame.value.equal(normalColor)) {
+                            colorFrame.value.copyFrom(colorFrame.color);
+                        }
+
+                        colorFrame.color.identity();
+                    }
+                }
+            }
+        }
+
+        return result;
     }
     catch (error) {
         return null;
@@ -40,8 +60,8 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
 
     result.frameRate = result.frameRate;
     result.name = data.name;
-    result.version = dbft.DATA_VERSION_5_0;
-    result.compatibleVersion = dbft.DATA_VERSION_4_5;
+    result.version = dbft.DATA_VERSION_4_5;
+    result.compatibleVersion = dbft.DATA_VERSION_4_0;
 
     for (const armatureV23 of data.armature) {
         const armature = new dbft.Armature();
@@ -311,25 +331,7 @@ function getTimelineFrameMatrix(timeline: dbft.BoneTimeline, framePosition: numb
         transform.copyFrom(currentFrame.transform);
     }
     else {
-        let tweenProgress = (framePosition - position) / currentFrame.duration;
-        if (currentFrame.curve.length > 0) {
-            tweenProgress = dbft.getCurveEasingValue(tweenProgress, currentFrame.curve);
-        }
-        else if (isNaN(currentFrame.tweenEasing)) {
-            tweenProgress = 0.0;
-        }
-        else if (currentFrame.tweenEasing === 0.0) {
-        }
-        else if (currentFrame.tweenEasing <= 0.0) {
-            tweenProgress = dbft.getEasingValue(dbft.TweenType.QuadOut, tweenProgress, currentFrame.tweenEasing);
-        }
-        else if (currentFrame.tweenEasing <= 1.0) {
-            tweenProgress = dbft.getEasingValue(dbft.TweenType.QuadIn, tweenProgress, currentFrame.tweenEasing);
-        }
-        else if (currentFrame.tweenEasing <= 2.0) {
-            tweenProgress = dbft.getEasingValue(dbft.TweenType.QuadInOut, tweenProgress, currentFrame.tweenEasing);
-        }
-
+        let tweenProgress = currentFrame.getTweenProgress((framePosition - position) / currentFrame.duration);
         transform.x = nextFrame.transform.x - currentFrame.transform.x;
         transform.y = nextFrame.transform.y - currentFrame.transform.y;
         transform.skX = geom.normalizeRadian(nextFrame.transform.skX - currentFrame.transform.skX);

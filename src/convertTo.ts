@@ -25,7 +25,7 @@ function execute(): void {
         .parse(process.argv);
 
     const input = path.resolve(commands["input"] as string || process.cwd());
-    const output = path.resolve(commands["output"] as string || "");
+    const output = commands["output"] ? path.resolve(commands["output"] as string || "") : null;
     const type = commands["type"] as string || "";
     const filter = commands["filter"] as string || "";
     const deleteRaw = commands["delete"] as boolean || false;
@@ -246,7 +246,7 @@ function execute(): void {
             }
 
             case "v45": {
-                toV45(dragonBonesData, false);
+                toV45(dragonBonesData);
                 format(dragonBonesData);
                 utils.compress(dragonBonesData, dbft.compressConfig);
 
@@ -326,9 +326,7 @@ function execute(): void {
                     config: {
                         isLocal: true
                     }
-                },
-                    type === "player"
-                );
+                }, type === "player");
                 const outputFile = (output ? file.replace(input, output) : file).replace(".json", ".html");
 
                 if (!fs.existsSync(path.dirname(outputFile))) {
@@ -361,7 +359,7 @@ function execute(): void {
                 const base = (output ? file.replace(input, output) : file).replace("_ske.json", "");
                 dragonBonesData.name = path.basename(base); // Modify name to file name.
                 console.log(dragonBonesData.name);
-                
+
 
                 for (const spine of result.spines) {
                     utils.compress(spine, spft.compressConfig);

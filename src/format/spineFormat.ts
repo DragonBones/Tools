@@ -8,7 +8,7 @@ export type BlendMode = "normal" | "additive" | "multiply" | "screen";
 
 export function isSpineString(string: string): boolean {
     const testString = string.substr(0, Math.min(200, string.length));
-    return testString.indexOf('"spine"') > 0;
+    return testString.indexOf("skeleton") > 0 && testString.indexOf("spine") > 0;
 }
 
 export class Spine {

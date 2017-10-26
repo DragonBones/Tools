@@ -1,109 +1,169 @@
-import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
-export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.DragonBones {
-    data.version = dbft.DATA_VERSION_5_0;
-    data.compatibleVersion = dbft.DATA_VERSION_4_5;
+export default function (data: dbft.DragonBones): dbft.DragonBones {
+    data.version = dbft.DATA_VERSION_4_5;
+    data.compatibleVersion = dbft.DATA_VERSION_4_0;
 
     for (const armature of data.armature) {
-        if (forRuntime) { // Old action to new action.
-            if (armature.defaultActions.length > 0) {
-                for (let i = 0, l = armature.defaultActions.length; i < l; ++i) {
-                    const action = armature.defaultActions[i];
-                    if (action instanceof dbft.OldAction) {
-                        armature.defaultActions[i] = dbft.oldActionToNewAction(action);
-                    }
+        if (armature.defaultActions.length > 0) {
+            for (let i = 0, l = armature.defaultActions.length; i < l; ++i) {
+                const action = armature.defaultActions[i];
+                if (action instanceof dbft.Action) {
+                    const oldAction = new dbft.OldAction();
+                    oldAction.gotoAndPlay = action.name;
+                    armature.defaultActions[i] = oldAction;
                 }
             }
         }
 
-        if (forRuntime) { // Old action to new action and move action to display.
-            for (const slot of armature.slot) {
-                if (slot.actions.length > 0) {
-                    const defaultSkin = armature.getSkin("default");
-                    if (defaultSkin) {
-                        const skinSlot = defaultSkin.getSlot(slot.name);
-                        if (skinSlot !== null && skinSlot instanceof dbft.SkinSlot) {
-                            for (const action of slot.actions) {
-                                if (action instanceof dbft.OldAction) {
-                                    for (const display of skinSlot.display) {
-                                        if (display instanceof dbft.ArmatureDisplay) {
-                                            display.actions.push(dbft.oldActionToNewAction(action));
-                                        }
-                                    }
+        // if (forRuntime) {
+        //     for (const slot of armature.slot) {
+        //         if (slot.actions.length > 0) {
+        //             const defaultSkin = armature.getSkin("default");
+        //             if (defaultSkin) {
+        //                 const skinSlot = defaultSkin.getSlot(slot.name);
+        //                 if (skinSlot !== null && skinSlot instanceof dbft.SkinSlot) {
+        //                     for (const action of slot.actions) {
+        //                         if (action instanceof dbft.OldAction) {
+        //                             for (const display of skinSlot.display) {
+        //                                 if (display instanceof dbft.ArmatureDisplay) {
+        //                                     display.actions.push(dbft.oldActionToNewAction(action));
+        //                                 }
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //             }
+
+        //             slot.actions.length = 0;
+        //         }
+        //     }
+        // }
+
+        for (const animation of armature.animation as dbft.Animation[]) {
+            for (const frame of animation.frame) {
+                if (frame.events.length > 0) {
+                    const events = [];
+                    let i = frame.events.length;
+                    while (i--) {
+                        const action = frame.events[i];
+                        switch (action.type) {
+                            case dbft.ActionType.Play:
+                                frame.action = action.name;
+                                break;
+
+                            case dbft.ActionType.Sound:
+                                frame.sound = action.name;
+                                break;
+
+                            case dbft.ActionType.Frame:
+                                if (frame.event) {
+                                    events.push(action);
                                 }
-                            }
+                                else {
+                                    frame.event = action.name;
+                                }
+                                break;
                         }
                     }
 
-                    slot.actions.length = 0;
-                }
-            }
-        }
-
-        for (const animation of armature.animation as dbft.Animation[]) {
-            if (forRuntime) { // Old animation frame to new animation frame.
-                for (const frame of animation.frame) {
-                    if (frame.event) {
-                        const action = new dbft.Action();
-                        action.type = dbft.ActionType.Frame;
-                        action.name = frame.event;
-                        frame.actions.push(action);
-                        frame.event = "";
-                    }
-
-                    if (frame.sound) {
-                        const action = new dbft.Action();
-                        action.type = dbft.ActionType.Sound;
-                        action.name = frame.sound;
-                        frame.actions.push(action);
-                        frame.sound = "";
-                    }
-
-                    if (frame.action) {
-                        const action = new dbft.Action();
-                        action.type = dbft.ActionType.Play;
-                        action.name = frame.action;
-                        frame.actions.push(action);
-                        frame.action = "";
-                    }
-
-                    for (const event of frame.events) {
-                        event.type = dbft.ActionType.Frame;
-                        frame.actions.push(event);
-                    }
-
                     frame.events.length = 0;
+                    if (events.length > 0) {
+                        for (const action of events) {
+                            frame.events.push(action);
+                        }
+                    }
+                }
+                else {
+                    let i = frame.actions.length;
+                    while (i--) {
+                        const action = frame.actions[i];
+                        switch (action.type) {
+                            case dbft.ActionType.Play:
+                                frame.action = action.name;
+                                break;
+
+                            case dbft.ActionType.Sound:
+                                frame.sound = action.name;
+                                break;
+
+                            case dbft.ActionType.Frame:
+                                if (frame.event) {
+                                    frame.events.push(action);
+                                }
+                                else {
+                                    frame.event = action.name;
+                                }
+                                break;
+                        }
+                    }
+
+                    frame.actions.length = 0;
                 }
             }
 
+            let position = 0;
             for (const timeline of animation.bone) {
-                const bone = armature.getBone(timeline.name);
-                if (!bone) {
-                    continue;
+                for (const rotateFrame of timeline.rotateFrame) {
+                    const frame = new dbft.BoneAllFrame();
+                    frame.duration = rotateFrame.duration;
+                    frame.tweenEasing = rotateFrame.tweenEasing;
+                    frame.curve = rotateFrame.curve;
+                    frame.tweenRotate = rotateFrame.clockwise;
+                    frame.transform.skX = rotateFrame.rotate + rotateFrame.skew;
+                    frame.transform.skY = rotateFrame.rotate;
+                    timeline.frame.push(frame);
                 }
 
-                let position = 0;
-                const slot = armature.getSlot(timeline.name);
-                for (let i = 0, l = timeline.frame.length; i < l; ++i) {
-                    const frame = timeline.frame[i];
-                    frame.transform.skX = geom.normalizeDegree(frame.transform.skX);
-                    frame.transform.skY = geom.normalizeDegree(frame.transform.skY);
-                    frame.transform.toFixed();
-
-                    if (frame.action && !slot) {
-                        frame.action = "";
-                    }
-
-                    if (frame.event || frame.sound || frame.action) {
-                        dbft.mergeActionToAnimation(animation, frame, position, bone, slot, forRuntime);
-                        frame.event = "";
-                        frame.sound = "";
-                        frame.action = "";
-                    }
-
-                    position += frame.duration;
+                if (timeline.frame.length === 0) {
+                    const frame = new dbft.BoneAllFrame();
+                    frame.duration = animation.duration;
+                    timeline.frame.push(frame);
                 }
+
+                position = 0;
+                for (const translateFrame of timeline.translateFrame) {
+                    const index = timeline.insertFrame(timeline.frame, position);
+                    if (index >= 0) {
+                        for (let i = index; i < timeline.frame.length; ++i) {
+                            const frame = timeline.frame[i];
+                            frame.transform.x = translateFrame.x;
+                            frame.transform.y = translateFrame.y;
+                        }
+
+                        const insertFrame = timeline.frame[index];
+                        if (translateFrame.getTweenEnabled() && !insertFrame.getTweenEnabled()) {
+                            insertFrame.tweenEasing = translateFrame.tweenEasing;
+                            insertFrame.curve = translateFrame.curve;
+                        }
+                    }
+
+                    position += translateFrame.duration;
+                }
+
+                position = 0;
+                for (const scaleFrame of timeline.scaleFrame) {
+                    const index = timeline.insertFrame(timeline.frame, position);
+                    if (index >= 0) {
+                        for (let i = index; i < timeline.frame.length; ++i) {
+                            const frame = timeline.frame[i];
+                            frame.transform.scX = scaleFrame.x;
+                            frame.transform.scY = scaleFrame.y;
+                        }
+
+                        const insertFrame = timeline.frame[index];
+                        if (scaleFrame.getTweenEnabled() && !insertFrame.getTweenEnabled()) {
+                            insertFrame.tweenEasing = scaleFrame.tweenEasing;
+                            insertFrame.curve = scaleFrame.curve;
+                        }
+                    }
+
+                    position += scaleFrame.duration;
+                }
+
+                timeline.translateFrame.length = 0;
+                timeline.rotateFrame.length = 0;
+                timeline.scaleFrame.length = 0;
             }
 
             for (const timeline of animation.slot) {
@@ -112,40 +172,38 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                     continue;
                 }
 
-                if (forRuntime) {
-                    let position = 0;
-                    for (let i = 0, l = timeline.frame.length; i < l; ++i) {
-                        const frame = timeline.frame[i];
-                        const displayFrame = new dbft.SlotDisplayFrame();
-                        const colorFrame = new dbft.SlotColorFrame();
-                        timeline.displayFrame.push(displayFrame);
-                        timeline.colorFrame.push(colorFrame);
+                for (const colorFrame of timeline.colorFrame) {
+                    const frame = new dbft.SlotAllFrame();
+                    frame.duration = colorFrame.duration;
+                    frame.tweenEasing = colorFrame.tweenEasing;
+                    frame.curve = colorFrame.curve;
+                    frame.color.copyFrom(colorFrame.value);
+                    timeline.frame.push(frame);
+                }
 
-                        displayFrame.duration = frame.duration;
-                        colorFrame.duration = frame.duration;
+                if (timeline.frame.length === 0) {
+                    const frame = new dbft.SlotAllFrame();
+                    frame.duration = animation.duration;
+                    frame.displayIndex = slot.displayIndex;
+                    frame.color.copyFrom(slot.color);
+                    timeline.frame.push(frame);
+                }
 
-                        colorFrame.tweenEasing = frame.tweenEasing;
-                        colorFrame.curve = frame.curve.concat();
-
-                        displayFrame.value = frame.displayIndex;
-                        colorFrame.value.copyFrom(frame.color);
-
-                        if (frame.actions.length > 0) {
-                            if (forRuntime) {
-                                dbft.mergeActionToAnimation(animation, frame, position, null, slot, true);
-                            }
-                            else {
-                                for (const action of frame.actions) {
-                                    displayFrame.actions.push(action);
-                                }
-                            }
+                position = 0;
+                for (const displayFrame of timeline.displayFrame) {
+                    const index = timeline.insertFrame(timeline.frame, position);
+                    if (index >= 0) {
+                        for (let i = index; i < timeline.frame.length; ++i) {
+                            const frame = timeline.frame[i];
+                            frame.displayIndex = displayFrame.value;
                         }
-
-                        position += frame.duration;
                     }
 
-                    timeline.frame.length = 0;
+                    position += displayFrame.duration;
                 }
+
+                timeline.displayFrame.length = 0;
+                timeline.colorFrame.length = 0;
             }
         }
     }

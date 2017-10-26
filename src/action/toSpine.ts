@@ -207,6 +207,8 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                 continue;
             }
 
+            let iF = 0;
+            let position = 0.0;
             const spAnimation = new spft.Animation();
 
             if (animation.frame.length > 0) {
@@ -322,17 +324,16 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                 const spTimelines = new spft.BoneTimelines();
                 spAnimation.bones[timeline.name] = spTimelines;
 
-                let iF = 0;
-                let position = 0.0;
+                iF = 0;
+                position = 0.0;
                 for (const frame of timeline.translateFrame) {
                     const spFrame = new spft.TranslateFrame();
                     spFrame.time = position;
                     spFrame.x = frame.x;
                     spFrame.y = -frame.y;
-                    setCurveFormDB(spFrame, frame, iF === timeline.translateFrame.length - 1);
+                    setCurveFormDB(spFrame, frame, iF++ === timeline.translateFrame.length - 1);
                     spTimelines.translate.push(spFrame);
 
-                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
@@ -365,10 +366,9 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                     spFrame.time = position;
                     spFrame.x = frame.x;
                     spFrame.y = frame.y;
-                    setCurveFormDB(spFrame, frame, iF === timeline.scaleFrame.length - 1);
+                    setCurveFormDB(spFrame, frame, iF++ === timeline.scaleFrame.length - 1);
                     spTimelines.scale.push(spFrame);
 
-                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
@@ -379,8 +379,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                 const spTimelines = new spft.SlotTimelines();
                 spAnimation.slots[timeline.name] = spTimelines;
 
-                let iF = 0;
-                let position = 0.0;
+                position = 0.0;
                 for (const frame of timeline.displayFrame) {
                     const spFrame = new spft.AttachmentFrame();
                     spFrame.time = position;
@@ -393,7 +392,6 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                         spFrame.name = skinSlot.display[frame.value].name;
                     }
 
-                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
@@ -403,7 +401,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                 for (const frame of timeline.colorFrame) {
                     const spFrame = new spft.ColorFrame();
                     spFrame.time = position;
-                    setCurveFormDB(spFrame, frame, iF === timeline.colorFrame.length - 1);
+                    setCurveFormDB(spFrame, frame, iF++ === timeline.colorFrame.length - 1);
                     spTimelines.color.push(spFrame);
 
                     spFrame.color = (
@@ -413,7 +411,6 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                         Math.round(frame.value.aM * 2.55).toString(16)
                     ).toUpperCase();
 
-                    iF++;
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }
@@ -431,13 +428,13 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                 slots[timeline.name] = deformFrames;
                 meshDisplay.transform.toMatrix(geom.helpMatrixA);
 
-                let iF = 0;
-                let position = 0.0;
+                iF = 0;
+                position = 0.0;
                 for (const frame of timeline.frame) {
                     const spFrame = new spft.DeformFrame();
                     deformFrames.push(spFrame);
                     spFrame.time = position;
-                    setCurveFormDB(spFrame, frame, iF === timeline.frame.length - 1);
+                    setCurveFormDB(spFrame, frame, iF++ === timeline.frame.length - 1);
 
                     for (let j = 0; j < frame.offset; ++j) {
                         spFrame.vertices.push(0.0);
@@ -488,7 +485,21 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                     spFrame.offset = begin;
                     spFrame.vertices.length = end - begin + 1;
 
-                    iF++;
+                    position += frame.duration / frameRate;
+                    position = Number(position.toFixed(4));
+                }
+            }
+
+            for (const timeline of animation.ik) {
+                iF = 0;
+                position = 0.0;
+                for (const frame of timeline.frame) {
+                    const spFrame = new spft.IKConstraintFrame();
+                    spFrame.time = position;
+                    setCurveFormDB(spFrame, frame, iF++ === timeline.frame.length - 1);
+                    spFrame.bendPositive = !frame.bendPositive;
+                    spFrame.mix = frame.weight;
+
                     position += frame.duration / frameRate;
                     position = Number(position.toFixed(4));
                 }

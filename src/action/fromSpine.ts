@@ -10,7 +10,7 @@ type Input = {
     textureAtlas: string;
 };
 
-export default function (data: Input): dbft.DragonBones {
+export default function (data: Input, forPro: boolean = false): dbft.DragonBones {
     let textureAtlasScale = -1.0;
     const result: dbft.DragonBones = new dbft.DragonBones();
 
@@ -46,7 +46,7 @@ export default function (data: Input): dbft.DragonBones {
             else {
                 const texture = new dbft.Texture();
                 texture.name = line;
-                texture.rotated = readValue(lines.shift()) === "true";
+                texture.rotated = readValue(lines.shift()) === "true" ? (forPro ? 1 as any : true) : false;
 
                 readTuple(tuple, lines.shift());
                 texture.x = parseInt(tuple[0]);
@@ -83,8 +83,8 @@ export default function (data: Input): dbft.DragonBones {
     armature.name = data.name;
     result.frameRate = data.data.skeleton.fps;
     result.name = data.name;
-    result.version = dbft.DATA_VERSION_5_1;
-    result.compatibleVersion = dbft.DATA_VERSION_5_1;
+    result.version = dbft.DATA_VERSION_5_5;
+    result.compatibleVersion = dbft.DATA_VERSION_5_5;
     result.armature.push(armature);
 
     for (const sfBone of data.data.bones) {
@@ -363,16 +363,17 @@ export default function (data: Input): dbft.DragonBones {
     for (const animationName in data.data.animations) {
         const spAnimation = data.data.animations[animationName];
         const animation = new dbft.Animation();
+        let lastFramePosition = 0;
+        let iF = 0;
         animation.playTimes = 0;
         animation.name = animationName;
 
-        let animationDuration = 0;
         for (const timelineName in spAnimation.bones) {
             const spTimeline = spAnimation.bones[timelineName];
             const timeline = new dbft.BoneTimeline();
             timeline.name = timelineName;
 
-            let iF = 0;
+            iF = 0;
             for (const spFrame of spTimeline.translate) {
                 const frame = new dbft.BoneTranslateFrame();
                 frame._position = Math.round(spFrame.time * result.frameRate);
@@ -381,8 +382,9 @@ export default function (data: Input): dbft.DragonBones {
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.translate.length - 1);
                 timeline.translateFrame.push(frame);
 
-                animationDuration = Math.max(frame._position, animationDuration);
+                lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
+            modifyFrames(timeline.translateFrame);
 
             iF = 0;
             for (const spFrame of spTimeline.rotate) {
@@ -392,48 +394,23 @@ export default function (data: Input): dbft.DragonBones {
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.rotate.length - 1);
                 timeline.rotateFrame.push(frame);
 
-                animationDuration = Math.max(frame._position, animationDuration);
+                lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
+            modifyFrames(timeline.rotateFrame);
 
             iF = 0;
             for (const spFrame of spTimeline.shear) {
                 const position = Math.round(spFrame.time * result.frameRate);
-                let frame: dbft.BoneRotateFrame | null = null;
-                let index = 0;
-
-                for (; index < timeline.rotateFrame.length; ++index) {
-                    const eachFrame = timeline.rotateFrame[index];
-                    if (eachFrame._position === position) {
-                        frame = eachFrame;
-                        break;
-                    }
-                    else if (eachFrame._position > position) {
-                        break;
-                    }
+                const index = timeline.insertFrame(timeline.rotateFrame, position);
+                if (index < 0) {
+                    continue;
                 }
 
-                if (!frame) {
-                    const prevFrame = timeline.rotateFrame[index];
-                    frame = new dbft.BoneRotateFrame();
-                    frame._position = position;
-                    frame.rotate = prevFrame.rotate;
-
-                    if (index === timeline.rotateFrame.length - 1) {
-                        prevFrame.tweenEasing = 0.0;
-                    }
-
-                    timeline.rotateFrame.splice(index + 1, 0, frame);
-                }
-
+                const frame = timeline.rotateFrame[index];
                 frame.rotate += -spFrame.x;
                 frame.skew = spFrame.x - spFrame.y;
-
-                animationDuration = Math.max(frame._position, animationDuration);
+                lastFramePosition = Math.max(position, lastFramePosition);
             }
-
-            timeline.rotateFrame.sort((a, b) => {
-                return a._position > b._position ? 1 : -1;
-            });
 
             iF = 0;
             for (const spFrame of spTimeline.scale) {
@@ -443,13 +420,10 @@ export default function (data: Input): dbft.DragonBones {
                 frame.y = spFrame.y;
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.scale.length - 1);
                 timeline.scaleFrame.push(frame);
-
-                animationDuration = Math.max(frame._position, animationDuration);
+                lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
-
-            modifyFrames(timeline.translateFrame);
-            modifyFrames(timeline.rotateFrame);
             modifyFrames(timeline.scaleFrame);
+
             animation.bone.push(timeline);
         }
 
@@ -464,19 +438,17 @@ export default function (data: Input): dbft.DragonBones {
                 frame._position = Math.round(spFrame.time * result.frameRate);
                 frame.value = displays ? displays.indexOf(spFrame.name) : -1;
                 timeline.displayFrame.push(frame);
-
-                animationDuration = Math.max(frame._position, animationDuration);
+                lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
 
-            let iF = 0;
+            iF = 0;
             for (const spFrame of spTimeline.color) {
                 const frame = new dbft.SlotColorFrame();
                 frame._position = Math.round(spFrame.time * result.frameRate);
                 frame.value.copyFromRGBA(Number("0x" + spFrame.color));
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.color.length - 1);
                 timeline.colorFrame.push(frame);
-
-                animationDuration = Math.max(frame._position, animationDuration);
+                lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
 
             modifyFrames(timeline.displayFrame);
@@ -501,13 +473,13 @@ export default function (data: Input): dbft.DragonBones {
                         continue;
                     }
 
-                    let iF = 0;
                     const timeline = new dbft.FFDTimeline();
                     const spFrames = timelines[timelineName];
                     timeline.name = meshName;
                     timeline.skin = skinName;
                     timeline.slot = slotName;
 
+                    iF = 0;
                     for (const spFrame of spFrames) {
                         const frame = new dbft.FFDFrame();
                         frame._position = Math.round(spFrame.time * result.frameRate);
@@ -520,7 +492,7 @@ export default function (data: Input): dbft.DragonBones {
                             }
 
                             for (
-                                let i = 0, iW = 0, iF = 0;
+                                let i = 0, iW = 0, iV = 0;
                                 i < meshDisplay.vertices.length;
                                 i += 2
                             ) {
@@ -534,8 +506,8 @@ export default function (data: Input): dbft.DragonBones {
                                     const bone = armature.bone[boneIndex];
 
                                     if (bone && bone._global) {
-                                        const xL = spFrame.vertices[iF++] || 0.0;
-                                        const yL = -spFrame.vertices[iF++] || 0.0;
+                                        const xL = spFrame.vertices[iV++] || 0.0;
+                                        const yL = -spFrame.vertices[iV++] || 0.0;
                                         bone._global.toMatrix(geom.helpMatrixA);
                                         geom.helpMatrixA.transformPoint(xL, yL, geom.helpPoint, true);
 
@@ -566,13 +538,32 @@ export default function (data: Input): dbft.DragonBones {
                             }
                         }
 
-                        animationDuration = Math.max(frame._position, animationDuration);
+                        lastFramePosition = Math.max(frame._position, lastFramePosition);
                     }
 
                     modifyFrames(timeline.frame);
                     animation.ffd.push(timeline);
                 }
             }
+        }
+
+        for (const ikConstraintName in spAnimation.ik) {
+            const spFrames = spAnimation.ik[ikConstraintName];
+            const timeline = new dbft.IKConstraintTimeline();
+            timeline.name = ikConstraintName;
+
+            iF = 0;
+            for (const spFrame of spFrames) {
+                const frame = new dbft.IKConstraintFrame();
+                frame._position = Math.round(spFrame.time * result.frameRate);
+                frame.bendPositive = !spFrame.bendPositive;
+                frame.weight = spFrame.mix;
+                setTweenFormSP(frame, spFrame, iF++ === spFrames.length - 1);
+                timeline.frame.push(frame);
+                lastFramePosition = Math.max(frame._position, lastFramePosition);
+            }
+
+            modifyFrames(timeline.frame);
         }
 
         if (spAnimation.events.length > 0) {
@@ -583,8 +574,8 @@ export default function (data: Input): dbft.DragonBones {
             let prevFrame: dbft.Frame | null = null;
             for (const spFrame of spAnimation.events) {
                 const position = Math.round(spFrame.time * result.frameRate);
-
                 let frame: dbft.ActionFrame;
+
                 if (prevFrame && prevFrame._position === position) {
                     frame = prevFrame as any;
                 }
@@ -611,8 +602,7 @@ export default function (data: Input): dbft.DragonBones {
                 }
 
                 frame.actions.push(action);
-
-                animationDuration = Math.max(frame._position, animationDuration);
+                lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
 
             modifyFrames(animation.frame);
@@ -631,14 +621,13 @@ export default function (data: Input): dbft.DragonBones {
                 }
 
                 animation.zOrder.frame.push(frame);
-
-                animationDuration = Math.max(frame._position, animationDuration);
+                lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
 
             modifyFrames(animation.zOrder.frame);
         }
 
-        animation.duration = animationDuration;
+        animation.duration = lastFramePosition + 1;
         armature.animation.push(animation);
     }
 
