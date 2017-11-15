@@ -51,7 +51,8 @@
             // The custom user data. (Optional property, default: null)
             "userData": null,
 
-            // The transform of the bone relative to the parent bone or the armature for the base pose. (Optional property, default: null)
+            // The transform of the bone relative to the parent bone or the armature for the base pose.
+            // (Optional property, default: null)
             "transform": {
                 "x": 0.0, // The horizontal translate. (Optional property, default: 0.0)
                 "y": 0.0, // The vertical translate. (Optional property, default: 0.0)
@@ -112,7 +113,12 @@
                     "name": "displayName",
 
                     // The type of the display. (Optional property, default: "image")
-                    // ["image": A textured rectangle, "armature": A nested child armature, "mesh": A textured mesh, "boundingBox": A bounding box]
+                    // [
+                    //     "image": A textured rectangle, 
+                    //     "armature": A nested child armature, 
+                    //     "mesh": A textured mesh, 
+                    //     "boundingBox": A bounding box
+                    // ]
                     "type": "image",
 
                     // The resource path of the display. (Optional property, default: null)
@@ -125,7 +131,8 @@
                     "inheritFFD": true,
 
                     // The sub type of the display.
-                    // If the display is a bounding box: ["rectangle": A rectangle, "ellipse": An ellipse, "polygon": A pllygon] (Optional property, default: "rectangle")
+                    // If the display is a bounding box: (Optional property, default: "rectangle")
+                    // ["rectangle": A rectangle, "ellipse": An ellipse, "polygon": A pllygon]
                     "subType": "rectangle", 
 
                     // Nonessential.
@@ -218,7 +225,8 @@
                 // A list of actions. (Optional property, default: null)
                 "actions": [{
 
-                    // The type of the action. [0: Play animation, 10: Frame event, 11: Frame sound event] (Optional property, default: 0)
+                    // The type of the action. (Optional property, default: 0)
+                    // [0: Play animation, 10: Frame event, 11: Frame sound event]
                     "type": 0,
 
                     // The name of the action. (The name of a animation or an event)
@@ -244,7 +252,8 @@
                     // The duration of the frame. (Optional property, default: 1)
                     "duration": 1,
 
-                    // A list of slot indeices and numeric offsets. [slotIndexA, offsetA, slotIndexB, offsetB, ...] (Optional property, default: null)
+                    // A list of slot indeices and numeric offsets. [slotIndexA, offsetA, slotIndexB, offsetB, ...]
+                    // (Optional property, default: null)
                     "zOrder": [0, 2, 4, 1, 6, -1]
                 }]
             },
@@ -270,7 +279,8 @@
                     // The tween easing of the frame. [0.0: Linear, null: No easing]. (Optional property, default: 0)
                     "tweenEasing": 0.0,
 
-                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]. (Optional property, default: null)
+                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]
+                    // (Optional property, default: null)
                     "curve": [0.0, 0.0, 1.0, 1.0],
                     
                     // The horizontal translate of a bone in the keyframe. (Optional property, default: 0.0)
@@ -289,11 +299,18 @@
                     // The tween easing of the frame. [0.0: Linear, null: No easing]. (Optional property, default: 0)
                     "tweenEasing": 0.0,
 
-                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]. (Optional property, default: null)
+                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]
+                    // (Optional property, default: null)
                     "curve": [0.0, 0.0, 1.0, 1.0],
 
                     // The rotation behavior during a tween. (Optional property, default: 0)
-                    // [0: Chooses a direction of rotation that requires the least amount of turning, 1: Rotates clockwise, -1: Rotates counterclockwise, N: Rotates clockwise at least N-rings, -N: Rotates counterclockwise at least N-rings]
+                    // [
+                    //     0: Chooses a direction of rotation that requires the least amount of turning, 
+                    //     1: Rotates clockwise, 
+                    //     -1: Rotates counterclockwise, 
+                    //     N: Rotates clockwise at least N-rings, 
+                    //     -N: Rotates counterclockwise at least N-rings
+                    // ]
                     "clockwise": 0,
 
                     // The rotation of a bone in the keyframe. [-PI ~ PI] (Optional property, default: 0.0)
@@ -312,7 +329,8 @@
                     // The tween easing of the frame. [0.0: Linear, null: No easing]. (Optional property, default: 0)
                     "tweenEasing": 0.0,
 
-                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]. (Optional property, default: null)
+                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]
+                    // (Optional property, default: null)
                     "curve": [0.0, 0.0, 1.0, 1.0],
 
                     // The horizontal scale of a bone in the keyframe. (Optional property, default: 1.0)
@@ -355,7 +373,8 @@
                     // The tween easing of the frame. [0.0: Linear, null: No easing]. (Optional property, default: 0)
                     "tweenEasing": 0.0,
 
-                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]. (Optional property, default: null)
+                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]
+                    // (Optional property, default: null)
                     "curve": [0.0, 0.0, 1.0, 1.0],
 
                     // The color transform of a slot in the frame. (Optional property, default: null)
@@ -392,13 +411,15 @@
                     // The tween easing of the frame. [0.0: Linear, null: No easing]. (Optional property, default: 0)
                     "tweenEasing": 0.0,
 
-                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]. (Optional property, default: null)
+                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]
+                    // (Optional property, default: null)
                     "curve": [0.0, 0.0, 1.0, 1.0],
 
                     // The number of vertices to skip before applying vertices. (Optional property, default: 0)
                     "offset": 0,
 
-                    // A list of number pairs that are the amounts to add to the setup vertex positions for the keyframe. (Optional property, default: null)
+                    // A list of number pairs that are the amounts to add to the setup vertex positions for the keyframe.
+                    // (Optional property, default: null)
                     // [x0, y0, x1, y1, ...]
                     "vertices": [0.1, 0.1]
                 }]
