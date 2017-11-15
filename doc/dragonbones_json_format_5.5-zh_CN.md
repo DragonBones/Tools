@@ -1,4 +1,4 @@
-# DragonBones 5.5 JSON format
+# DragonBones 5.5 JSON 数据格式
 [English](./dragonbones_json_format_5.5.md)
 ```javascript
 {
