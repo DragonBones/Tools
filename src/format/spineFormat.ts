@@ -254,7 +254,13 @@ export class SlotTimelines {
 }
 
 export class Frame {
-    time: number = -1.0;
+    time: number = 0.0;
+
+    constructor(isDefault: boolean = false) {
+        if (isDefault) {
+            this.time = NaN; // spine import data bug
+        }
+    }
 }
 
 export class TweenFrame extends Frame {
@@ -270,7 +276,8 @@ export class RotateFrame extends TweenFrame {
     angle: number = 0.0;
 
     constructor(isDefault: boolean = false) {
-        super();
+        super(isDefault);
+
         if (isDefault) {
             this.angle = NaN; // Spine import data bug.
         }
@@ -287,7 +294,8 @@ export class ScaleFrame extends TweenFrame {
     y: number = 1.0;
 
     constructor(isDefault: boolean = false) {
-        super();
+        super(isDefault);
+
         if (isDefault) {
             this.x = NaN; // spine import data bug
             this.y = NaN; // spine import data bug
@@ -299,7 +307,8 @@ export class AttachmentFrame extends Frame {
     name: string = "";
 
     constructor(isDefault: boolean = false) {
-        super();
+        super(isDefault);
+
         if (isDefault) {
             this.name = null as any; // Spine import data bug.
         }
@@ -310,9 +319,10 @@ export class ColorFrame extends TweenFrame {
     color: string = "FFFFFFFF";
 
     constructor(isDefault: boolean = false) {
-        super();
+        super(isDefault);
+
         if (isDefault) {
-            this.color = ""; // Spine import data bug.
+            this.color = null as any; // Spine import data bug.
         }
     }
 }
@@ -443,15 +453,15 @@ export const compressConfig = [
     new Animation(),
     new BoneTimelines(),
     new SlotTimelines(),
-    new TranslateFrame(),
+    new TranslateFrame(true),
     new RotateFrame(true),
-    new ShearFrame(),
+    new ShearFrame(true),
     new ScaleFrame(true),
     new AttachmentFrame(true),
     new ColorFrame(true),
-    new IKConstraintFrame(),
-    new TransformConstraintFrame(),
-    new DeformFrame(),
-    new EventFrame(),
-    new DrawOrderFrame(),
+    new IKConstraintFrame(true),
+    new TransformConstraintFrame(true),
+    new DeformFrame(true),
+    new EventFrame(true),
+    new DrawOrderFrame(true),
 ];
