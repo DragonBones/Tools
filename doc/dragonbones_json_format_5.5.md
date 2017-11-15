@@ -1,4 +1,5 @@
 # DragonBones 5.5 JSON format
+[中文](./dragonbones_json_format_5.5-zh_CN.md)
 ```javascript
 {
     // The name of the DragonBones data.
