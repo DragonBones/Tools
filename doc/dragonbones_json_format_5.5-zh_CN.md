@@ -1,5 +1,6 @@
 # DragonBones 5.5 JSON 数据格式
 [English](./dragonbones_json_format_5.5.md)
+
 ```javascript
 {
     // 龙骨数据名称。
@@ -403,6 +404,31 @@
                     // 变形顶点列表，队尾为 0 的数据会别省略。
                     // [x0, y0, x1, y1, ...] （可选属性，默认：null）
                     "vertices": [0.1, 0.1]
+                }]
+            }],
+
+            // IK 约束时间轴。 （可选属性，默认：null）
+            "ik": [{
+                
+                // IK 约束名称。
+                "name": "meshName",
+
+                "frame": [{
+
+                    // 关键帧长度。 （可选属性，默认：1）
+                    "duration": 1,
+
+                    // 补间类型 [0.0: 线形, null: 不补间]. （可选属性，默认：0）
+                    "tweenEasing": 0.0,
+
+                    // 补间贝塞尔曲线。 [x1, y1, x2, y2, ...] （可选属性，默认：null）
+                    "curve": [0.0, 0.0, 1.0, 1.0],
+                    
+                    // 该帧 IK 约束的方向。 （可选属性，默认：true）
+                    "bendPositive": true,
+
+                    // 该帧 IK 约束的权重。 （可选属性，默认：1.0）
+                    "weight": 1.0
                 }]
             }]
         }]

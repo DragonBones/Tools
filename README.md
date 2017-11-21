@@ -14,7 +14,7 @@ $ `npm install dragonbones-tools --global`
     
     $ `db2 --help`
 
-## Examples
+## How to use
 * Convert Spine json format files to DragonBones json format files in current path.
     
     $ `2db -t spine`
@@ -33,9 +33,7 @@ $ `npm install dragonbones-tools --global`
 * Make sure you have installed a browser that supports html5.
 * Make sure backup your raw resources before convert.
 
-## Build
-```
-$ npm install
-$ npm install typescript --global
-$ tsc
-```
+## How to build
+* $ `npm install`
+* $ `npm install typescript --global`
+* $ `tsc`

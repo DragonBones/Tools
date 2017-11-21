@@ -1,5 +1,6 @@
 # DragonBones 5.5 JSON format
 [中文](./dragonbones_json_format_5.5-zh_CN.md)
+
 ```javascript
 {
     // The name of the DragonBones data.
@@ -423,6 +424,32 @@
                     // (Optional property, default: null)
                     // [x0, y0, x1, y1, ...]
                     "vertices": [0.1, 0.1]
+                }]
+            }],
+
+            // A list of the IK constraint timelines. (Optional property, default: null)
+            "ik": [{
+                
+                // The name of the IK constraint.
+                "name": "meshName",
+
+                "frame": [{
+
+                    // The duration of the frame. (Optional property, default: 1)
+                    "duration": 1,
+
+                    // The tween easing of the frame. [0.0: Linear, null: No easing]. (Optional property, default: 0)
+                    "tweenEasing": 0.0,
+
+                    // The interpolation to use between this and the next keyframe. [x1, y1, x2, y2, ...]
+                    // (Optional property, default: null)
+                    "curve": [0.0, 0.0, 1.0, 1.0],
+
+                    // The positive direction of the IK constraint in the frame. (Optional property, default: true)
+                    "bendPositive": true,
+
+                    // The weight of the IK constraint in the frame. (Optional property, default: 1.0)
+                    "weight": 1.0
                 }]
             }]
         }]

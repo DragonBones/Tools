@@ -326,6 +326,7 @@ function createTimeline<T extends dbft.Frame>(
 }
 
 function createFrame(value: dbft.Frame, frameStart: number): number {
+    // tslint:disable-next-line:no-unused-expression
     value;
 
     const offset = frameArray.length;
