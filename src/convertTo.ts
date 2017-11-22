@@ -355,15 +355,14 @@ function execute(): void {
                 toNew(dragonBonesData, true);
                 format(dragonBonesData);
 
-                const result = toSpine(dragonBonesData, "3.6");
+                const result = toSpine(dragonBonesData, "3.6.0", !output);
                 const base = (output ? file.replace(input, output) : file).replace("_ske.json", "");
                 dragonBonesData.name = path.basename(base); // Modify name to file name.
                 console.log(dragonBonesData.name);
 
-
                 for (const spine of result.spines) {
                     utils.compress(spine, spft.compressConfig);
-                    const outputFile = (result.spines.length > 1 ? base + "_" + spine.skeleton.name : base) + "_spine.json";
+                    const outputFile = (result.spines.length > 1 ? base + "_" + spine.skeleton.name : base) + (output ? ".json" : "_spine.json");
                     delete spine.skeleton.name; // delete keep name.
                     if (!fs.existsSync(path.dirname(outputFile))) {
                         fs.mkdirsSync(path.dirname(outputFile));
@@ -372,7 +371,7 @@ function execute(): void {
                     console.log(outputFile);
                 }
 
-                const outputFile = base + "_spine.atlas";
+                const outputFile = base + (output ? ".atlas" : "_spine.atlas");
 
                 if (!fs.existsSync(path.dirname(outputFile))) {
                     fs.mkdirsSync(path.dirname(outputFile));
@@ -396,7 +395,7 @@ function execute(): void {
                         if (fs.existsSync(textureAtlasImage)) {
                             const outputFile = path.join(
                                 path.dirname(textureAtlasImage.replace(input, output)),
-                                dragonBonesData.name + "_spine" + (textureAtlasImages.length > 1 ? "_" + index : "") + ".png"
+                                dragonBonesData.name + (output ? "" : "_spine") + (textureAtlasImages.length > 1 ? "_" + index : "") + ".png"
                             );
 
                             if (deleteRaw) {

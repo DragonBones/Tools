@@ -194,7 +194,7 @@ gate.actions["/convert"] = (request, response) => {
                     case "spine": {
                         toNew(dragonBonesData, true);
                         format(dragonBonesData);
-                        const result = toSpine(dragonBonesData, input.config);
+                        const result = toSpine(dragonBonesData, input.config, false);
 
                         for (const spine of result.spines) {
                             if (input.compress !== false) {

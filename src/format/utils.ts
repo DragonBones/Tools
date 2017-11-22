@@ -63,3 +63,24 @@ export function getTextureAtlases(filePath: string, rawName: string | null = nul
 
     return textureAtlases;
 }
+
+export function rgbaToHex(r: number, g: number, b: number, a: number): string {
+    let result = "";
+    let s = Math.round(r).toString(16);
+    if (s.length < 2) (s = "0" + s);
+    result += s;
+
+    s = Math.round(g).toString(16);
+    if (s.length < 2) (s = "0" + s);
+    result += s;
+
+    s = Math.round(b).toString(16);
+    if (s.length < 2) (s = "0" + s);
+    result += s;
+
+    s = Math.round(a).toString(16);
+    if (s.length < 2) (s = "0" + s);
+    result += s;
+
+    return result;
+}

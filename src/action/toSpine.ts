@@ -1,12 +1,13 @@
 // import { Map } from "../common/types";
 import * as utils from "../common/utils";
+import * as utilsFT from "../format/utils";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 import * as spft from "../format/spineFormat";
 
 type ResultType = { spines: spft.Spine[], textureAtlas: string };
 
-export default function (data: dbft.DragonBones, version: string): ResultType {
+export default function (data: dbft.DragonBones, version: string, addTextureAtlasSuffix: boolean): ResultType {
     const result: ResultType = { spines: [], textureAtlas: "" };
 
     for (const armature of data.armature) {
@@ -44,11 +45,11 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
             const spSlot = new spft.Slot();
             spSlot.name = slot.name;
             spSlot.bone = slot.parent;
-            spSlot.color = (
-                Math.round(slot.color.rM * 2.55).toString(16) +
-                Math.round(slot.color.gM * 2.55).toString(16) +
-                Math.round(slot.color.bM * 2.55).toString(16) +
-                Math.round(slot.color.aM * 2.55).toString(16)
+            spSlot.color = utilsFT.rgbaToHex(
+                Math.round(slot.color.rM * 2.55),
+                Math.round(slot.color.gM * 2.55),
+                Math.round(slot.color.bM * 2.55),
+                Math.round(slot.color.aM * 2.55)
             ).toUpperCase();
 
             switch (utils.getEnumFormString(dbft.BlendMode, slot.blendMode)) {
@@ -404,11 +405,11 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
                     setCurveFormDB(spFrame, frame, iF++ === timeline.colorFrame.length - 1);
                     spTimelines.color.push(spFrame);
 
-                    spFrame.color = (
-                        Math.round(frame.value.rM * 2.55).toString(16) +
-                        Math.round(frame.value.gM * 2.55).toString(16) +
-                        Math.round(frame.value.bM * 2.55).toString(16) +
-                        Math.round(frame.value.aM * 2.55).toString(16)
+                    spFrame.color = utilsFT.rgbaToHex(
+                        Math.round(frame.value.rM * 2.55),
+                        Math.round(frame.value.gM * 2.55),
+                        Math.round(frame.value.bM * 2.55),
+                        Math.round(frame.value.aM * 2.55)
                     ).toUpperCase();
 
                     position += frame.duration / frameRate;
@@ -512,7 +513,7 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
     let index = data.textureAtlas.length > 1 ? 0 : -1;
     for (const textureAtlas of data.textureAtlas) {
         result.textureAtlas += `\n`;
-        result.textureAtlas += `${data.name}_spine${data.textureAtlas.length > 1 ? "_" + index : ""}.png\n`;
+        result.textureAtlas += `${data.name}${addTextureAtlasSuffix ? "_spine" : ""}${data.textureAtlas.length > 1 ? "_" + index : ""}.png\n`;
         result.textureAtlas += `size: ${textureAtlas.width},${textureAtlas.height}\n`;
         result.textureAtlas += `format: RGBA8888\n`;
         result.textureAtlas += `filter: Linear,Linear\n`;
@@ -523,12 +524,8 @@ export default function (data: dbft.DragonBones, version: string): ResultType {
             result.textureAtlas += `  rotate: ${texture.rotated}\n`; // TODO
             result.textureAtlas += `  xy: ${texture.x}, ${texture.y}\n`;
             result.textureAtlas += `  size: ${texture.width}, ${texture.height}\n`;
-
-            if (texture.frameX || texture.frameY || texture.frameWidth || texture.frameHeight) {
-                result.textureAtlas += `  orig: ${texture.frameWidth || texture.width}, ${texture.frameHeight || texture.height}\n`;
-                result.textureAtlas += `  offset: ${texture.frameX}, ${texture.frameY}\n`;
-            }
-
+            result.textureAtlas += `  orig: ${texture.frameWidth || texture.width}, ${texture.frameHeight || texture.height}\n`;
+            result.textureAtlas += `  offset: ${texture.frameX || 0}, ${texture.frameY || 0}\n`;
             result.textureAtlas += `  index: ${index}\n`;
         }
 
