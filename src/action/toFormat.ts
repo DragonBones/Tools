@@ -137,6 +137,7 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
 
             for (const frameV23 of animationV23.frame) {
                 const frame = new dbft.ActionFrame();
+                frame.duration = frameV23.duration;
                 frame.action = frameV23.action;
                 frame.event = frameV23.event;
                 frame.sound = frameV23.sound;
