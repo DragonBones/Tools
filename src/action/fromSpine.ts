@@ -71,8 +71,8 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                 texture.frameWidth = parseInt(tuple[0]);
                 texture.frameHeight = parseInt(tuple[1]);
                 readTuple(tuple, lines.shift());
-                texture.frameX = parseInt(tuple[0]);
-                texture.frameY = parseInt(tuple[1]);
+                texture.frameX = -parseInt(tuple[0]);
+                texture.frameY = -(texture.frameHeight - (texture.rotated ? texture.width : texture.height) - parseInt(tuple[1]));
                 readTuple(tuple, lines.shift());
                 textureAtlas.SubTexture.push(texture);
             }

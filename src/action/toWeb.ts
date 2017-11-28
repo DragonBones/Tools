@@ -37,7 +37,6 @@ export default function (data: Input, isPlayer: boolean): string {
     let htmlString = fs.readFileSync(path.join(__dirname, `../resource/${isPlayer ? "player" : "viewer"}/${isLocal ? "local" : "index"}.html`), "utf-8");
     htmlString = replaceHTMLCommentTag(htmlString, DATA_TAG, `<b id="data">${JSON.stringify(zipData)}</b>`, false);
 
-
     if (data.config) {
         if (data.config.showFPS) {
             htmlString = htmlString.replace(`data-show-fps="false"`, `data-show-fps="${data.config.showFPS}"`);
@@ -48,7 +47,12 @@ export default function (data: Input, isPlayer: boolean): string {
         }
 
         if (data.config.backgroundColor || data.config.backgroundColor === 0) {
-            htmlString = htmlString.replace(`background: #333333;`, `background: #${data.config.backgroundColor.toString(16)};`);
+            if (data.config.backgroundColor || data.config.backgroundColor >= 0) {
+                htmlString = htmlString.replace(`background: #333333;`, `background: #${data.config.backgroundColor.toString(16)};`);
+            }
+            else {
+                htmlString = htmlString.replace(`background: #333333;`, "");
+            }
         }
 
         if (data.config.orientation) {
@@ -56,7 +60,7 @@ export default function (data: Input, isPlayer: boolean): string {
         }
 
         if (data.config.scaleMode) {
-            htmlString = htmlString.replace(`data-scale-mode="showAll"`, `data-scale-mode="${data.config.scaleMode}"`);
+            htmlString = htmlString.replace(`data-scale-mode="fixedNarrow"`, `data-scale-mode="${data.config.scaleMode}"`);
         }
     }
 
@@ -73,7 +77,8 @@ function replaceHTMLCommentTag(htmlString: string, tag: string, string: string, 
         let replaceString: string;
         if (keepTag) {
             replaceString = htmlString.substring(startIndex + startTag.length, endIndex);
-        } else {
+        }
+        else {
             replaceString = htmlString.substring(startIndex, endIndex + endTag.length);
         }
 

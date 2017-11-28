@@ -389,26 +389,24 @@ function execute(): void {
                     }
                 }
 
-                if (output) {
-                    let index = 0;
-                    for (const textureAtlasImage of textureAtlasImages) {
-                        if (fs.existsSync(textureAtlasImage)) {
-                            const outputFile = path.join(
-                                path.dirname(textureAtlasImage.replace(input, output)),
-                                dragonBonesData.name + (output ? "" : "_spine") + (textureAtlasImages.length > 1 ? "_" + index : "") + ".png"
-                            );
+                let index = 0;
+                for (const textureAtlasImage of textureAtlasImages) {
+                    if (fs.existsSync(textureAtlasImage)) {
+                        const outputFile = path.join(
+                            path.dirname(output ? textureAtlasImage.replace(input, output) : textureAtlasImage),
+                            dragonBonesData.name + (output ? "" : "_spine") + (textureAtlasImages.length > 1 ? "_" + index : "") + ".png"
+                        );
 
-                            if (deleteRaw) {
-                                fs.moveSync(textureAtlasImage, outputFile);
-                            }
-                            else {
-                                fs.copySync(textureAtlasImage, outputFile);
-                            }
-
-                            console.log(outputFile);
+                        if (deleteRaw) {
+                            fs.moveSync(textureAtlasImage, outputFile);
                         }
-                        index++;
+                        else {
+                            fs.copySync(textureAtlasImage, outputFile);
+                        }
+
+                        console.log(outputFile);
                     }
+                    index++;
                 }
                 break;
             }

@@ -145,7 +145,6 @@ export class MeshAttachment extends Attachment {
 }
 
 export class LinkedMeshAttachment extends Attachment {
-    type: AttachmentType = "linkedmesh";
     deform: boolean = true;
     width: number = 0; // Nonessential.
     height: number = 0; // Nonessential.
@@ -162,7 +161,6 @@ export class LinkedMeshAttachment extends Attachment {
 }
 
 export class BoundingBoxAttachment extends Attachment {
-    type: AttachmentType = "boundingbox";
     vertexCount: number = 0;
     color: string = "60F000FF";
     vertices: number[] = [];
@@ -176,7 +174,6 @@ export class BoundingBoxAttachment extends Attachment {
 }
 
 export class PathAttachment extends Attachment {
-    type: AttachmentType = "path";
     color: string = "FF7F00FF";
     closed: boolean = false;
     constantSpeed: boolean = true;
@@ -193,7 +190,6 @@ export class PathAttachment extends Attachment {
 }
 
 export class PointAttachment extends Attachment {
-    type: AttachmentType = "point";
     x: number = 0.0;
     y: number = 0.0;
     color: string = "F1F100FF";
@@ -208,7 +204,6 @@ export class PointAttachment extends Attachment {
 }
 
 export class ClippingAttachment extends Attachment {
-    type: AttachmentType = "clipping";
     vertexCount: number = 0.0;
     end: string = "";
     color: string = "CE3A3AFF";

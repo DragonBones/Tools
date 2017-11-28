@@ -192,7 +192,14 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                         const spAttachment = new spft.BoundingBoxAttachment();
                         spAttachment.vertexCount = display.vertices.length / 2;
                         spAttachment.name = display.name;
-                        spAttachment.vertices = display.vertices;
+                        display.transform.toMatrix(geom.helpMatrixA);
+
+                        for (let i = 0, l = display.vertices.length; i < l; i += 2) {
+                            geom.helpMatrixA.transformPoint(display.vertices[i], display.vertices[i + 1], geom.helpPoint);
+                            spAttachment.vertices[i] = geom.helpPoint.x;
+                            spAttachment.vertices[i + 1] = -geom.helpPoint.y;
+                        }
+
                         spSlots[spAttachment.name] = spAttachment;
                     }
                 }
@@ -521,11 +528,11 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
 
         for (const texture of textureAtlas.SubTexture) {
             result.textureAtlas += `${texture.name}\n`;
-            result.textureAtlas += `  rotate: ${texture.rotated}\n`; // TODO
+            result.textureAtlas += `  rotate: ${texture.rotated}\n`; // TODO db rotate is reverse to spine 
             result.textureAtlas += `  xy: ${texture.x}, ${texture.y}\n`;
             result.textureAtlas += `  size: ${texture.width}, ${texture.height}\n`;
             result.textureAtlas += `  orig: ${texture.frameWidth || texture.width}, ${texture.frameHeight || texture.height}\n`;
-            result.textureAtlas += `  offset: ${texture.frameX || 0}, ${texture.frameY || 0}\n`;
+            result.textureAtlas += `  offset: ${-(texture.frameX || 0)}, ${texture.frameHeight > 0 ? texture.frameHeight + texture.frameY - (texture.rotated ? texture.width : texture.height) : 0}\n`;
             result.textureAtlas += `  index: ${index}\n`;
         }
 
