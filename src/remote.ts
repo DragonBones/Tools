@@ -246,10 +246,10 @@ function execute(): void {
             const url = `http://${utils.findIP()}:${port}/dragonbones`;
 
             gate.actions["/working_directory"] = (request, response) => {
-                let jsonString = "";
+                // let jsonString = "";
 
-                request.addListener("data", (data: any) => {
-                    jsonString += data;
+                request.addListener("data", () => {
+                    // jsonString += data;
                 });
 
                 request.addListener("end", () => {

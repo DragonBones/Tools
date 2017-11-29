@@ -46,10 +46,10 @@ gate.actions["/modify_spine_textureatlas"] = (request, response) => {
 };
 
 gate.actions["/get_input"] = (request, response) => {
-    let jsonString = "";
+    // let jsonString = "";
 
-    request.addListener("data", (data: any) => {
-        jsonString += data;
+    request.addListener("data", () => {
+        // jsonString += data;
     });
 
     request.addListener("end", () => {
