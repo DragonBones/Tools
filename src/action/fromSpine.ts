@@ -252,7 +252,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                 }
                 else if (attachment instanceof spft.LinkedMeshAttachment) {
                     const display = new dbft.SharedMeshDisplay();
-                    display.inheritFFD = attachment.deform;
+                    display.inheritDeform = attachment.deform;
                     display.name = attachment.name || attachmentName;
                     display.share = attachment.parent;
                     display.skin = attachment.skin;
@@ -318,6 +318,17 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
         armature.skin.push(skin);
     }
+
+    // TODO
+    // const defaultSkin = armature.getSkin("default");
+    // if (defaultSkin) {
+    //     for (const slot of defaultSkin.slot) {
+    //         const displayNames = slotDisplays[slot.name];
+    //         if (slot.display.length === displayNames.length) {
+
+    //         }
+    //     }
+    // }
 
     for (const spSlot of data.data.slots) {
         const slot = new dbft.Slot();
@@ -473,7 +484,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                         continue;
                     }
 
-                    const timeline = new dbft.FFDTimeline();
+                    const timeline = new dbft.MeshDeformTimeline();
                     const spFrames = timelines[timelineName];
                     timeline.name = meshName;
                     timeline.skin = skinName;
@@ -481,7 +492,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
                     iF = 0;
                     for (const spFrame of spFrames) {
-                        const frame = new dbft.FFDFrame();
+                        const frame = new dbft.DeformFrame();
                         frame._position = Math.round(spFrame.time * result.frameRate);
                         setTweenFormSP(frame, spFrame, iF++ === spFrames.length - 1);
                         timeline.frame.push(frame);

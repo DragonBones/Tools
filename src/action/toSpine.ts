@@ -182,7 +182,7 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                     }
                     else if (display instanceof dbft.SharedMeshDisplay) {
                         const spAttachment = new spft.LinkedMeshAttachment();
-                        spAttachment.deform = display.inheritFFD;
+                        spAttachment.deform = display.inheritDeform;
                         spAttachment.name = display.name;
                         spAttachment.parent = display.share;
                         spAttachment.skin = skinName;

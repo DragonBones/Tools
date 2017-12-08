@@ -34,17 +34,28 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     bone.parent = "";
                 }
 
-                bone.transform.skX = geom.normalizeDegree(bone.transform.skX);
-                bone.transform.skY = geom.normalizeDegree(bone.transform.skY);
-                if (bone.transform.scX === 0.0) {
-                    bone.transform.scX = 0.0001;
-                }
+                switch (bone.type) {
+                    case dbft.BoneType.Bone:
+                        bone.transform.skX = geom.normalizeDegree(bone.transform.skX);
+                        bone.transform.skY = geom.normalizeDegree(bone.transform.skY);
+                        if (bone.transform.scX === 0.0) {
+                            bone.transform.scX = 0.0001;
+                        }
 
-                if (bone.transform.scY === 0.0) {
-                    bone.transform.scY = 0.0001;
-                }
+                        if (bone.transform.scY === 0.0) {
+                            bone.transform.scY = 0.0001;
+                        }
 
-                bone.transform.toFixed();
+                        bone.transform.toFixed();
+                        break;
+
+                    case dbft.BoneType.Surface:
+                        const vertices = (bone as dbft.Surface).vertices;
+                        for (let i = 0, l = vertices.length; i < l; ++i) {
+                            vertices[i] = Number(vertices[i].toFixed(2));
+                        }
+                        break;
+                }
             }
 
             for (const slot of armature.slot) {
@@ -68,8 +79,6 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
             armature.sortBones();
 
             for (const skin of armature.skin) {
-                skin.name = skin.name || "default";
-
                 for (const skinSlot of skin.slot) {
                     if (!armature.getSlot(skinSlot.name)) {
                         skinSlot.display.length = 0;
@@ -134,6 +143,14 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     continue;
                 }
 
+                if (animation.zOrder) {
+                    cleanFrame(animation.zOrder.frame);
+
+                    if (animation.zOrder.frame.length === 0) {
+                        animation.zOrder = null;
+                    }
+                }
+
                 for (const timeline of animation.bone) {
                     for (const frame of timeline.frame) {
                         frame.transform.skX = Number(geom.normalizeDegree(frame.transform.skX).toFixed(2));
@@ -157,6 +174,12 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     }
                 }
 
+                for (const timeline of animation.surface) {
+                    for (const frame of timeline.frame) {
+                        frame.offset += formatDeform(frame.vertices);
+                    }
+                }
+
                 for (const timeline of animation.slot) {
                     for (const frame of timeline.frame) {
                         frame.color.toFixed();
@@ -169,30 +192,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
                 for (const timeline of animation.ffd) {
                     for (const frame of timeline.frame) {
-                        for (let i = 0, l = frame.vertices.length; i < l; ++i) {
-                            frame.vertices[i] = Number(frame.vertices[i].toFixed(2));
-                        }
-
-                        let begin = 0;
-                        while (frame.vertices[begin] === 0.0) {
-                            begin++;
-                            if (begin === frame.vertices.length - 1) {
-                                break;
-                            }
-                        }
-
-                        let end = frame.vertices.length - 1;
-                        while (end > begin && frame.vertices[end] === 0.0) {
-                            end--;
-                        }
-
-                        let index = 0;
-                        for (let i = begin; i < end + 1; ++i) {
-                            frame.vertices[index++] = frame.vertices[i];
-                        }
-
-                        frame.offset += begin;
-                        frame.vertices.length = end - begin + 1;
+                        frame.offset += formatDeform(frame.vertices);
                     }
                 }
 
@@ -250,6 +250,30 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     l--;
                 }
 
+                for (let i = 0, l = animation.surface.length; i < l; ++i) {
+                    const timeline = animation.surface[i];
+                    const surface = armature.getBone(timeline.name);
+
+                    if (surface) {
+                        cleanFrame(timeline.frame);
+
+                        if (timeline.frame.length === 1) {
+                            const frame = timeline.frame[0];
+                            if (frame.vertices.length === 0) {
+                                timeline.frame.length = 0;
+                            }
+                        }
+
+                        if (timeline.frame.length > 0) {
+                            continue;
+                        }
+                    }
+
+                    animation.surface.splice(i, 1);
+                    i--;
+                    l--;
+                }
+
                 for (let i = 0, l = animation.slot.length; i < l; ++i) {
                     const timeline = animation.slot[i];
                     const slot = armature.getSlot(timeline.name);
@@ -298,7 +322,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                 for (let i = 0, l = animation.ffd.length; i < l; ++i) {
                     const timeline = animation.ffd[i];
                     const slot = armature.getSlot(timeline.slot);
-                    const mesh = armature.getMesh(timeline.skin = timeline.skin || "default", timeline.slot, timeline.name);
+                    const mesh = armature.getMesh(timeline.skin, timeline.slot, timeline.name);
 
                     if (slot && mesh) {
                         cleanFrame(timeline.frame);
@@ -319,14 +343,6 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     i--;
                     l--;
                 }
-
-                if (animation.zOrder) {
-                    cleanFrame(animation.zOrder.frame);
-
-                    if (animation.zOrder.frame.length === 0) {
-                        animation.zOrder = null;
-                    }
-                }
             }
         }
 
@@ -340,6 +356,34 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
             formatTextureAtlas(textureAtlas);
         }
     }
+}
+
+function formatDeform(deform: number[]): number {
+    for (let i = 0, l = deform.length; i < l; ++i) {
+        deform[i] = Number(deform[i].toFixed(2));
+    }
+
+    let begin = 0;
+    while (deform[begin] === 0.0) {
+        begin++;
+        if (begin === deform.length - 1) {
+            break;
+        }
+    }
+
+    let end = deform.length - 1;
+    while (end > begin && deform[end] === 0.0) {
+        end--;
+    }
+
+    let index = 0;
+    for (let i = begin; i < end + 1; ++i) {
+        deform[index++] = deform[i];
+    }
+
+    deform.length = end - begin + 1;
+
+    return begin;
 }
 
 function formatTextureAtlas(textureAtlas: dbft.TextureAtlas): void {

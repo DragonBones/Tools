@@ -56,11 +56,11 @@ export enum BinaryOffset {
     ActionFrameActionCount = 1,
     ActionFrameActionIndices = 2,
 
-    FFDTimelineMeshOffset = 0,
-    FFDTimelineFFDCount = 1,
-    FFDTimelineValueCount = 2,
-    FFDTimelineValueOffset = 3,
-    FFDTimelineFloatOffset = 4
+    DeformMeshOffset = 0,
+    DeformCount = 1,
+    DeformValueCount = 2,
+    DeformValueOffset = 3,
+    DeformFloatOffset = 4
 }
 
 export enum ArmatureType {
@@ -68,6 +68,11 @@ export enum ArmatureType {
     MovieClip = 1,
     Stage = 2,
     ImageSequences = 3
+}
+
+export enum BoneType {
+    Bone = 0,
+    Surface = 1
 }
 
 export enum DisplayType {
@@ -115,9 +120,11 @@ export enum TimelineType {
     BoneRotate = 12,
     BoneScale = 13,
 
+    Surface = 50,
+
     SlotDisplay = 20,
     SlotColor = 21,
-    SlotFFD = 22,
+    MeshDeform = 22,
 
     IKConstraint = 30,
 
@@ -627,6 +634,7 @@ export class Armature {
 }
 
 export class Bone {
+    type: BoneType | string = BoneType[BoneType.Bone].toLowerCase();
     inheritTranslation: boolean = true;
     inheritRotation: boolean = true;
     inheritScale: boolean = true;
@@ -638,6 +646,18 @@ export class Bone {
     userData: UserData | null = null;
 
     _global: Transform | null = null;
+}
+
+export class Surface extends Bone {
+    segmentX: number = 0;
+    segmentY: number = 0;
+    readonly vertices: number[] = [];
+
+    constructor() {
+        super();
+
+        this.type = BoneType[BoneType.Surface].toLowerCase();
+    }
 }
 
 export class Slot {
@@ -708,6 +728,7 @@ export class ImageDisplay extends Display {
 
     constructor(isDefault: boolean = false) {
         super();
+
         if (!isDefault) {
             this.type = DisplayType[DisplayType.Image].toLowerCase();
         }
@@ -780,10 +801,10 @@ export class MeshDisplay extends Display {
 }
 
 export class SharedMeshDisplay extends Display {
-    inheritFFD: boolean = true;
+    inheritDeform: boolean = true;
     path: string = "";
     share: string = "";
-    skin: string = "";
+    skin: string = "default";
 
     constructor(isDefault: boolean = false) {
         super();
@@ -839,9 +860,11 @@ export class Animation {
     name: string = "default";
     readonly frame: ActionFrame[] = [];
     readonly bone: BoneTimeline[] = [];
+    readonly surface: SurfaceTimeline[] = [];
     readonly slot: SlotTimeline[] = [];
-    readonly ffd: FFDTimeline[] = [];
+    readonly ffd: MeshDeformTimeline[] = [];
     readonly ik: IKConstraintTimeline[] = [];
+    readonly animation: AnimationTimeline[] = [];
     zOrder: ZOrderTimeline | null = null;
 
     getSlotTimeline(name: string): SlotTimeline | null {
@@ -876,6 +899,7 @@ export class AnimationBinary {
     zOrder: number = -1;
     readonly offset: number[] = [];
     readonly bone: Map<number[]> = {};
+    readonly surface: Map<number[]> = {};
     readonly slot: Map<number[]> = {};
     readonly constraint: Map<number[]> = {};
 }
@@ -1067,6 +1091,10 @@ export class BoneTimeline extends Timeline {
     }
 }
 
+export class SurfaceTimeline extends Timeline {
+    readonly frame: DeformFrame[] = [];
+}
+
 export class SlotTimeline extends Timeline {
     readonly frame: SlotAllFrame[] = []; // Deprecated.
     readonly displayFrame: SlotDisplayFrame[] = [];
@@ -1181,85 +1209,20 @@ export class SlotTimeline extends Timeline {
 
         return index;
     }
-
-    insertFrameaaa(from: Frame, progress: number): Frame | null {
-        if (progress === 0.0) {
-            return null;
-        }
-
-        if (progress >= 1.0) {
-            return null;
-        }
-
-        let frames: Frame[];
-        let insert: Frame;
-        if (from instanceof SlotAllFrame) {
-            frames = this.frame;
-            insert = new SlotAllFrame();
-        }
-        else if (from instanceof SlotColorFrame) {
-            frames = this.colorFrame;
-            insert = new SlotColorFrame();
-        }
-        else {
-            return null;
-        }
-
-        const index = frames.indexOf(from) + 1;
-        if (index < 1 || index >= frames.length) {
-            return null;
-        }
-
-        const to = frames[index];
-        insert.duration = Math.floor(from.duration * progress);
-        from.duration -= insert.duration;
-        progress = from.getTweenProgress(progress);
-
-        if (from instanceof TweenFrame && insert instanceof TweenFrame) {
-            // TODO
-            insert.tweenEasing = from.tweenEasing;
-            //to.curve; 
-        }
-
-        frames.splice(index, 0, insert);
-
-        if (from instanceof SlotAllFrame && insert instanceof SlotAllFrame && to instanceof SlotAllFrame) {
-            insert.displayIndex = from.displayIndex;
-            insert.color.aM = from.color.aM + (to.color.aM - from.color.aM) * progress;
-            insert.color.rM = from.color.rM + (to.color.rM - from.color.rM) * progress;
-            insert.color.gM = from.color.gM + (to.color.gM - from.color.gM) * progress;
-            insert.color.bM = from.color.bM + (to.color.bM - from.color.bM) * progress;
-            insert.color.aO = from.color.aO + (to.color.aO - from.color.aO) * progress;
-            insert.color.rO = from.color.rO + (to.color.rO - from.color.rO) * progress;
-            insert.color.gO = from.color.gO + (to.color.gO - from.color.gO) * progress;
-            insert.color.bO = from.color.bO + (to.color.bO - from.color.bO) * progress;
-        }
-        else if (from instanceof SlotColorFrame && insert instanceof SlotColorFrame && to instanceof SlotColorFrame) {
-            insert.value.aM = from.value.aM + (to.value.aM - from.value.aM) * progress;
-            insert.value.rM = from.value.rM + (to.value.rM - from.value.rM) * progress;
-            insert.value.gM = from.value.gM + (to.value.gM - from.value.gM) * progress;
-            insert.value.bM = from.value.bM + (to.value.bM - from.value.bM) * progress;
-            insert.value.aO = from.value.aO + (to.value.aO - from.value.aO) * progress;
-            insert.value.rO = from.value.rO + (to.value.rO - from.value.rO) * progress;
-            insert.value.gO = from.value.gO + (to.value.gO - from.value.gO) * progress;
-            insert.value.bO = from.value.bO + (to.value.bO - from.value.bO) * progress;
-        }
-        else {
-            return null;
-        }
-
-        return insert;
-    }
 }
 
-export class FFDTimeline extends Timeline {
-    skin: string = "";
+export class MeshDeformTimeline extends Timeline {
+    skin: string = "default";
     slot: string = "";
-    readonly frame: FFDFrame[] = [];
+    readonly frame: DeformFrame[] = [];
 }
 
 export class IKConstraintTimeline extends Timeline {
     readonly frame: IKConstraintFrame[] = [];
+}
+
+export class AnimationTimeline extends Timeline {
+    readonly frame: AnimationFrame[] = [];
 }
 
 export abstract class Frame {
@@ -1410,6 +1373,25 @@ export class BoneScaleFrame extends TweenFrame {
     }
 }
 
+export class DeformFrame extends TweenFrame {
+    offset: number = 0;
+    vertices: number[] = [];
+
+    equal(value: this): boolean {
+        if (this.offset === value.offset && this.vertices.length === value.vertices.length) {
+            for (let i = 0, l = this.vertices.length; i < l; ++i) {
+                if (this.vertices[i] !== value.vertices[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+}
+
 export class SlotAllFrame extends TweenFrame {
     displayIndex: number = 0;
     readonly color: ColorTransform = new ColorTransform();
@@ -1438,31 +1420,21 @@ export class SlotColorFrame extends TweenFrame {
     }
 }
 
-export class FFDFrame extends TweenFrame {
-    offset: number = 0;
-    vertices: number[] = [];
-
-    equal(value: this): boolean {
-        if (this.offset === value.offset && this.vertices.length === value.vertices.length) {
-            for (let i = 0, l = this.vertices.length; i < l; ++i) {
-                if (this.vertices[i] !== value.vertices[i]) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-}
-
 export class IKConstraintFrame extends TweenFrame {
     bendPositive: boolean = true;
     weight: number = 1.0;
 
     equal(value: this): boolean {
         return this.bendPositive === value.bendPositive && this.weight === value.weight;
+    }
+}
+
+export class AnimationFrame extends TweenFrame {
+    value: number = -1;
+    weight: number = 1.0;
+
+    equal(value: this): boolean {
+        return this.weight === value.weight && this.value === value.value;
     }
 }
 
@@ -1505,7 +1477,30 @@ export const copyConfig = [
         userData: UserData
     },
     Armature, {
-        bone: Bone,
+        bone: [
+            function (bone: any): { new(): (Bone | Surface) } | null {
+                let type = bone.type;
+                if (type !== undefined) {
+                    if (typeof type === "string") {
+                        type = utils.getEnumFormString(BoneType, type, BoneType.Bone);
+                    }
+                }
+                else {
+                    type = BoneType.Bone;
+                }
+
+                switch (type) {
+                    case BoneType.Bone:
+                        return Bone;
+
+                    case BoneType.Surface:
+                        return Surface;
+                }
+
+                return null;
+            },
+            Function
+        ],
         slot: Slot,
         ik: IKConstraint,
         skin: Skin,
@@ -1592,9 +1587,11 @@ export const copyConfig = [
         frame: ActionFrame,
         zOrder: ZOrderTimeline,
         bone: BoneTimeline,
+        surface: SurfaceTimeline,
         slot: SlotTimeline,
-        ffd: FFDTimeline,
-        ik: IKConstraintTimeline
+        ffd: MeshDeformTimeline,
+        ik: IKConstraintTimeline,
+        animation: AnimationTimeline
     },
     ZOrderTimeline, {
         frame: ZOrderFrame
@@ -1605,16 +1602,22 @@ export const copyConfig = [
         rotateFrame: BoneRotateFrame,
         scaleFrame: BoneScaleFrame,
     },
+    SurfaceTimeline, {
+        frame: DeformFrame,
+    },
     SlotTimeline, {
         frame: SlotAllFrame,
         displayFrame: SlotDisplayFrame,
         colorFrame: SlotColorFrame,
     },
-    FFDTimeline, {
-        frame: FFDFrame
+    MeshDeformTimeline, {
+        frame: DeformFrame
     },
     IKConstraintTimeline, {
         frame: IKConstraintFrame
+    },
+    AnimationTimeline, {
+        frame: AnimationFrame
     },
     ActionFrame, {
         actions: Action,
@@ -1643,6 +1646,7 @@ export const compressConfig = [
     new Canvas(),
     new Armature(),
     new Bone(),
+    new Surface(),
     new Slot(),
     new IKConstraint(),
     new Skin(),
@@ -1660,20 +1664,23 @@ export const compressConfig = [
     new AnimationBinary(),
     new ZOrderTimeline(),
     new BoneTimeline(),
+    new SurfaceTimeline(),
     new SlotTimeline(),
-    new FFDTimeline(),
+    new MeshDeformTimeline(),
     new IKConstraintTimeline(),
+    new AnimationTimeline(),
     new ActionFrame(),
     new ZOrderFrame(),
     new BoneAllFrame(),
     new BoneTranslateFrame(),
     new BoneRotateFrame(),
     new BoneScaleFrame(),
+    new DeformFrame(),
     new SlotAllFrame(),
     new SlotDisplayFrame(),
     new SlotColorFrame(),
-    new FFDFrame(),
     new IKConstraintFrame(),
+    new AnimationFrame(),
 
     new TextureAtlas(),
     new Texture()
