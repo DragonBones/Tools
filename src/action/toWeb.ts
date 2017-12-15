@@ -47,7 +47,7 @@ export default function (data: Input, isPlayer: boolean): string {
         }
 
         if (data.config.backgroundColor || data.config.backgroundColor === 0) {
-            if (data.config.backgroundColor || data.config.backgroundColor >= 0) {
+            if (data.config.backgroundColor >= 0) {
                 htmlString = htmlString.replace(`background: #333333;`, `background: #${data.config.backgroundColor.toString(16)};`);
             }
             else {

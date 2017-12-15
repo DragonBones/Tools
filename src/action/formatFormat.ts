@@ -1,5 +1,7 @@
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
+import { Map } from "common/types";
+import { MeshDisplay } from "../format/dragonBonesFormat";
 
 export default function (data: dbft.DragonBones | null, textureAtlases: dbft.TextureAtlas[] | null = null): void {
     if (data) {
@@ -78,6 +80,8 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
             armature.sortBones();
 
+            const meshMatrices: Map<geom.Matrix> = {};
+
             for (const skin of armature.skin) {
                 for (const skinSlot of skin.slot) {
                     if (!armature.getSlot(skinSlot.name)) {
@@ -88,10 +92,6 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     skinSlot.actions.length = 0; // Fix data bug.
 
                     for (const display of skinSlot.display) {
-                        display.transform.skX = geom.normalizeDegree(display.transform.skX);
-                        display.transform.skY = geom.normalizeDegree(display.transform.skY);
-                        display.transform.toFixed();
-
                         if (
                             display instanceof dbft.ImageDisplay ||
                             display instanceof dbft.MeshDisplay ||
@@ -104,20 +104,36 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                         }
 
                         if (display instanceof dbft.MeshDisplay) {
+                            if (display.weights.length > 0) {
+                                for (let i = 0, l = display.uvs.length; i < l; ++i) {
+                                    display.uvs[i] = Number(display.uvs[i].toFixed(6));
+                                }
+
+                                for (let i = 0, l = display.weights.length; i < l; ++i) {
+                                    display.weights[i] = Number(display.weights[i].toFixed(6));
+                                }
+
+                                for (let i = 0, l = display.bonePose.length; i < l; ++i) {
+                                    display.bonePose[i] = Number(display.bonePose[i].toFixed(6));
+                                }
+
+                                display.transform.identity();
+                            }
+                            else {
+                                const matrix = new geom.Matrix();
+                                display.transform.toMatrix(matrix);
+                                display.transform.identity();
+                                meshMatrices[skin.name + "_" + skinSlot.name + "_" + display.name] = matrix;
+
+                                for (let i = 0, l = display.vertices.length; i < l; i += 2) {
+                                    matrix.transformPoint(display.vertices[i], display.vertices[i + 1], geom.helpPointA);
+                                    display.vertices[i] = geom.helpPointA.x;
+                                    display.vertices[i + 1] = geom.helpPointA.y;
+                                }
+                            }
+
                             for (let i = 0, l = display.vertices.length; i < l; ++i) {
                                 display.vertices[i] = Number(display.vertices[i].toFixed(2));
-                            }
-
-                            for (let i = 0, l = display.uvs.length; i < l; ++i) {
-                                display.uvs[i] = Number(display.uvs[i].toFixed(6));
-                            }
-
-                            for (let i = 0, l = display.weights.length; i < l; ++i) {
-                                display.weights[i] = Number(display.weights[i].toFixed(6));
-                            }
-
-                            for (let i = 0, l = display.bonePose.length; i < l; ++i) {
-                                display.bonePose[i] = Number(display.bonePose[i].toFixed(6));
                             }
                         }
 
@@ -130,10 +146,19 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                         }
 
                         if (display instanceof dbft.PolygonBoundingBoxDisplay) {
-                            for (let i = 0, l = display.vertices.length; i < l; ++i) {
-                                display.vertices[i] = Number(display.vertices[i].toFixed(2));
+                            display.transform.toMatrix(geom.helpMatrixA);
+                            display.transform.identity();
+
+                            for (let i = 0, l = display.vertices.length; i < l; i += 2) {
+                                geom.helpMatrixA.transformPoint(display.vertices[i], display.vertices[i + 1], geom.helpPointA);
+                                display.vertices[i] = Number(geom.helpPointA.x.toFixed(2));
+                                display.vertices[i + 1] = Number(geom.helpPointA.y.toFixed(2));
                             }
                         }
+
+                        display.transform.skX = geom.normalizeDegree(display.transform.skX);
+                        display.transform.skY = geom.normalizeDegree(display.transform.skY);
+                        display.transform.toFixed();
                     }
                 }
             }
@@ -191,7 +216,48 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                 }
 
                 for (const timeline of animation.ffd) {
+                    const meshName = timeline.skin + "_" + timeline.slot + "_" + timeline.name;
+                    const mesh = armature.getMesh(timeline.skin, timeline.slot, timeline.name) as MeshDisplay;
+                    const matrix = meshMatrices[meshName];
+
                     for (const frame of timeline.frame) {
+                        if (matrix) {
+                            let inSide = 0;
+                            let x = 0.0;
+                            let y = 0.0;
+                            for (let i = 0, l = mesh.vertices.length; i < l; i += 2) {
+                                inSide = 0;
+                                if (i < frame.offset || i - frame.offset >= frame.vertices.length) {
+                                    x = 0.0;
+                                }
+                                else {
+                                    inSide = 1;
+                                    x = frame.vertices[i - frame.offset];
+                                }
+
+                                if (i + 1 < frame.offset || i + 1 - frame.offset >= frame.vertices.length) {
+                                    y = 0.0;
+                                }
+                                else {
+                                    if (inSide === 0) {
+                                        inSide = -1;
+                                    }
+
+                                    y = frame.vertices[i + 1 - frame.offset];
+                                }
+
+                                if (inSide !== 0) {
+                                    matrix.transformPoint(x, y, geom.helpPointA, true);
+
+                                    if (inSide === 1) {
+                                        frame.vertices[i - frame.offset] = geom.helpPointA.x;
+                                    }
+
+                                    frame.vertices[i + 1 - frame.offset] = geom.helpPointA.y;
+                                }
+                            }
+                        }
+
                         frame.offset += formatDeform(frame.vertices);
                     }
                 }

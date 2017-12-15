@@ -385,4 +385,6 @@ export class Rectangle implements Position {
 export const helpMatrixA: Matrix = new Matrix();
 export const helpMatrixB: Matrix = new Matrix();
 export const helpTransformA: Transform = new Transform();
-export const helpPoint: Point = new Point();
+export const helpTransformB: Transform = new Transform();
+export const helpPointA: Point = new Point();
+export const helpPointB: Point = new Point();

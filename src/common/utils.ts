@@ -164,7 +164,7 @@ function _copyFromObject(parent: any, key: string | number, data: any, object: a
         }
         else if (dataType === "string") {
             // console.warn(`${key}: ${objectType} is not a string.`);
-            if (object) {
+            if (object || object === object) {
                 parent[key] = String(object);
             }
             else {

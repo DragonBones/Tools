@@ -219,9 +219,9 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                                 if (bone && bone._global) {
                                     const boneIndex = armature.bone.indexOf(bone);
                                     bone._global.toMatrix(geom.helpMatrixA);
-                                    geom.helpMatrixA.transformPoint(xL, yL, geom.helpPoint);
-                                    xG += geom.helpPoint.x * weight;
-                                    yG += geom.helpPoint.y * weight;
+                                    geom.helpMatrixA.transformPoint(xL, yL, geom.helpPointA);
+                                    xG += geom.helpPointA.x * weight;
+                                    yG += geom.helpPointA.y * weight;
                                     display.weights.push(boneIndex, weight);
 
                                     if (bones.indexOf(boneIndex) < 0) {
@@ -284,9 +284,9 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                                 const bone = armature.getBone(data.data.bones[boneIndex].name);
                                 if (bone && bone._global) {
                                     bone._global.toMatrix(geom.helpMatrixA);
-                                    geom.helpMatrixA.transformPoint(xL, yL, geom.helpPoint);
-                                    xG += geom.helpPoint.x * weight;
-                                    yG += geom.helpPoint.y * weight;
+                                    geom.helpMatrixA.transformPoint(xL, yL, geom.helpPointA);
+                                    xG += geom.helpPointA.x * weight;
+                                    yG += geom.helpPointA.y * weight;
                                 }
                             }
 
@@ -520,14 +520,14 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                                         const xL = spFrame.vertices[iV++] || 0.0;
                                         const yL = -spFrame.vertices[iV++] || 0.0;
                                         bone._global.toMatrix(geom.helpMatrixA);
-                                        geom.helpMatrixA.transformPoint(xL, yL, geom.helpPoint, true);
+                                        geom.helpMatrixA.transformPoint(xL, yL, geom.helpPointA, true);
 
                                         if (xL !== 0.0) {
-                                            xG += geom.helpPoint.x * weight;
+                                            xG += geom.helpPointA.x * weight;
                                         }
 
                                         if (yL !== 0.0) {
-                                            yG += geom.helpPoint.y * weight;
+                                            yG += geom.helpPointA.y * weight;
                                         }
                                     }
                                 }

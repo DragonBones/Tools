@@ -1,7 +1,7 @@
 # DragonBones tools
 
 ## JSON format
-* [5.5](./doc/dragonbones_json_format_5.5.md)
+* [V 5.5](./doc/dragonbones_json_format_5.5.md)
 
 ## Installation
 $ `npm install dragonbones-tools --global`
@@ -15,6 +15,9 @@ $ `npm install dragonbones-tools --global`
     $ `db2 --help`
 
 ## How to use
+* Convert old DragonBones json format files to new DragonBones json format files in current path.
+    
+    $ `2db -t new`
 * Convert Spine json format files to DragonBones json format files in current path.
     
     $ `2db -t spine`
@@ -29,7 +32,7 @@ $ `npm install dragonbones-tools --global`
     $ `db2 -t binary -i d:/input -o d:/output -d`
 
 ## Notice
-* Make sure you have installed node 6.x.
+* Make sure you have installed [nodeJS](https://nodejs.org/https://nodejs.org/).
 * Make sure you have installed a browser that supports html5.
 * Make sure backup your raw resources before convert.
 

@@ -1,6 +1,6 @@
 import { Map } from "../common/types";
 import * as utils from "../common/utils";
-import { Matrix, Transform, ColorTransform, Point, Rectangle, helpPoint } from "./geom";
+import { Matrix, Transform, ColorTransform, Point, Rectangle, helpPointA } from "./geom";
 import * as geom from "./geom";
 import * as dbftV23 from "./dragonBonesFormatV23";
 /**
@@ -222,8 +222,8 @@ export function getCurveEasingValue(t: number, curve: number[]): number {
     let higher = 1.0;
     while (higher - lower > 0.01) {
         const percentage = (higher + lower) / 2.0;
-        getCurvePoint(x1, y1, x2, y2, x3, y3, x4, y4, percentage, helpPoint);
-        if (t - helpPoint.x > 0.0) {
+        getCurvePoint(x1, y1, x2, y2, x3, y3, x4, y4, percentage, helpPointA);
+        if (t - helpPointA.x > 0.0) {
             lower = percentage;
         }
         else {
@@ -231,7 +231,7 @@ export function getCurveEasingValue(t: number, curve: number[]): number {
         }
     }
 
-    return helpPoint.y;
+    return helpPointA.y;
 }
 
 export function samplingEasingCurve(curve: Array<number>, samples: Array<number>): void {
@@ -760,6 +760,8 @@ export class MeshDisplay extends Display {
     readonly weights: number[] = [];
     readonly slotPose: number[] = [];
     readonly bonePose: number[] = [];
+    readonly glueWeights: number[] = [];
+    readonly glueMeshes: string[] = [];
 
     edges: number[] = []; // Nonessential.
     userEdges: number[] = []; // Nonessential.
@@ -808,6 +810,7 @@ export class SharedMeshDisplay extends Display {
 
     constructor(isDefault: boolean = false) {
         super();
+
         if (!isDefault) {
             this.type = DisplayType[DisplayType.Mesh].toLowerCase();
         }
@@ -1434,7 +1437,7 @@ export class AnimationFrame extends TweenFrame {
     weight: number = 1.0;
 
     equal(value: this): boolean {
-        return this.weight === value.weight && this.value === value.value;
+        return this.value === value.value && this.weight === value.weight;
     }
 }
 
