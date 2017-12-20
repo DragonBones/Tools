@@ -775,6 +775,9 @@ export class MeshDisplay extends Display {
         if (!isDefault) {
             this.type = DisplayType[DisplayType.Mesh].toLowerCase();
         }
+        else {
+            this.userEdges = null as any; // Fixed DragonBones Pro bug.
+        }
     }
 
     clearToBinary(): void {
@@ -1645,6 +1648,7 @@ export const compressConfig = [
 
     new DragonBones(),
     new UserData(),
+    new OldAction(),
     new Action(),
     new Canvas(),
     new Armature(),

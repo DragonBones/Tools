@@ -175,6 +175,8 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
 
                     position += frame.duration;
                 }
+                
+                timeline.frame.length = 0;
             }
         }
     }

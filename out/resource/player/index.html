@@ -9,7 +9,8 @@
     <meta name="screen-orientation" content="portrait"/>
     <meta name="x5-fullscreen" content="true"/>
     <meta name="360-fullscreen" content="true"/>
-	<meta name="renderer" content="webkit"/>
+    <meta name="renderer" content="webkit"/>
+
     <style>
         html, body {
             padding: 0;
@@ -20,6 +21,20 @@
             -ms-touch-action: none;
         }
     </style>
+
+    <base en="" zh=""/>
+
+    <script>
+        var base = document.getElementsByTagName("base")[0];
+        var language = (navigator.language || navigator["browserLanguage"]).toLowerCase();
+        if (language.indexOf("zh") < 0) {
+            base.href = base.getAttribute("en");
+        }
+        else {
+            base.href = base.getAttribute("zh");
+        }
+    </script>
+
 	<!--script_begin-->
     <!--modules_files_start-->
 	<script egret="lib" src="libs/modules/egret/egret.min.js"></script>
@@ -31,6 +46,8 @@
 	<script egret="lib" src="main.min.js"></script>
 	<!--game_files_end-->
 	<!--script_end-->
+	<!--ta-->
+	<script type="text/javascript" src="https://tajs.qq.com/stats?sId=62452554" charset="UTF-8"></script>
 </head>
 <body>
 	<div style="display: none">
@@ -53,7 +70,9 @@
     </div>
     
     <script>
-        egret.runEgret({ renderMode: "webgl", audioType: 0 });
+		window.onload = function() {
+            egret.runEgret({ renderMode: "webgl", audioType: 0 });
+        }
     </script>
 </body>
 </html>

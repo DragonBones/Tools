@@ -363,7 +363,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
                         if (timeline.displayFrame.length === 1) {
                             const frame = timeline.displayFrame[0];
-                            if (frame.value === slot.displayIndex) {
+                            if (frame.actions.length === 0 && frame.value === slot.displayIndex) {
                                 timeline.displayFrame.length = 0;
                             }
                         }
