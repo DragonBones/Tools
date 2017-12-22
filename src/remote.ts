@@ -144,6 +144,16 @@ gate.actions["/convert"] = (request, response) => {
                                 "string"
                             )
                         );
+                        // TODO
+                        for (const armature of dragonBonesData.armature) {
+                            if (armature.ik) {
+                                for (const ik of armature.ik) {
+                                    if (ik.bendPositive === false) {
+                                        ik.bendPositive = "false" as any;
+                                    }
+                                }
+                            }
+                        }
                         break;
                     }
 

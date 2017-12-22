@@ -768,15 +768,13 @@ export class MeshDisplay extends Display {
 
     _boneCount: number = 0;
     _weightCount: number = 0;
+    _userEdges: boolean = true; // TODO
 
     constructor(isDefault: boolean = false) {
         super();
 
         if (!isDefault) {
             this.type = DisplayType[DisplayType.Mesh].toLowerCase();
-        }
-        else {
-            this.userEdges = null as any; // Fixed DragonBones Pro bug.
         }
     }
 

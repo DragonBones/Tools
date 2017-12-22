@@ -274,7 +274,10 @@ export function compress(data: any, config: any[]): boolean {
                 }
                 else if (valueType === "object") {
                     if (compress(value, config)) {
-                        delete data[k];
+                        if ((value instanceof Array) ? !(data["_" + k]) : true) {
+                            delete data[k];
+                        }
+
                         continue;
                     }
                 }

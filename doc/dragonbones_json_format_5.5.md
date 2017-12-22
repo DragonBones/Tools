@@ -129,8 +129,8 @@
                     // The name of the shared mesh. (Optional property, default: null)
                     "share": "meshName",
 
-                    // Whether to inherit the FFD animations of the shared mesh. (Optional property, default: true)
-                    "inheritFFD": true,
+                    // Whether to inherit the deform animations of the shared mesh. (Optional property, default: true)
+                    "inheritDeform": true,
 
                     // The sub type of the display.
                     // If the display is a bounding box: (Optional property, default: "rectangle")
@@ -160,17 +160,17 @@
                     "width": 100,
                     "height": 100,
 
-                    "vertices": [-64.00, -64.00, 64.00, -64.00, 64.00, 64.00, -64.00, 64.00],
+                    "vertices": [-64.0, -64.0, 64.0, -64.0, 64.0, 64.0, -64.0, 64.0],
 
-                    "uvs": [0.0000, 0.0000, 1.0000, 0.0000, 1.0000, 1.0000, 0.0000, 1.0000],
+                    "uvs": [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0],
 
                     "triangles": [0, 1, 2, 2, 3, 0],
 
-                    "weights": [1, 0, 1.00, 2, 0, 0.50, 1, 0.50],
+                    "weights": [1, 0, 1.0, 2, 0, 0.5, 1, 0.5],
 
-                    "slotPose": [1.0000, 0.0000, 0.0000, 1.0000, 0.00, 0.00],
+                    "slotPose": [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
 
-                    "bonePose": [0, 1.0000, 0.0000, 0.0000, 1.0000, 0.00, 0.00],
+                    "bonePose": [0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
 
                     // Override the default actions of the nested child armature. (Optional property, default: null)
                     "actions": [
