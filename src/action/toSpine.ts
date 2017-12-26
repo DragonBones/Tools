@@ -35,7 +35,20 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
             spBone.scaleY = bone.transform.scY;
             spBone.name = bone.name;
             spBone.parent = bone.parent;
-            // spBone.transform; // TODO
+
+            if (spBone.inheritRotation && spBone.inheritScale) {
+                spBone.transform = "normal";
+            }
+            else if (spBone.inheritRotation && !spBone.inheritScale) {
+                spBone.transform = "noScale";
+            }
+            else if (!spBone.inheritRotation && spBone.inheritScale) {
+                spBone.transform = "noRotationOrReflection";
+            }
+            else {
+                spBone.transform = "onlyTranslation";
+            }
+
             spine.bones.push(spBone);
         }
 
@@ -146,35 +159,36 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                         }
 
                         if (display.weights.length > 0) {
-                            geom.helpMatrixA.copyFromArray(display.slotPose);
-
                             for (let i = 0, iW = 0, l = display.vertices.length;
                                 i < l;
                                 i += 2
                             ) {
-                                let x = display.vertices[i];
-                                let y = display.vertices[i + 1];
-                                geom.helpMatrixA.transformPoint(x, y, geom.helpPointA);
-                                x = geom.helpPointA.x;
-                                y = geom.helpPointA.y;
+                                const x = display.vertices[i];
+                                const y = display.vertices[i + 1];
                                 const boneCount = display.weights[iW++];
                                 spAttachment.vertices.push(boneCount);
                                 for (let j = 0; j < boneCount; ++j) {
                                     const boneIndex = display.weights[iW++];
                                     const boneWeight = display.weights[iW++];
-                                    geom.helpMatrixB.copyFromArray(display.bonePose, display.getBonePoseOffset(boneIndex) + 1);
-                                    geom.helpMatrixB.invert();
-                                    geom.helpMatrixB.transformPoint(x, y, geom.helpPointA);
+                                    geom.helpMatrixA.copyFromArray(display.bonePose, display.getBonePoseOffset(boneIndex) + 1);
+                                    geom.helpMatrixA.invert();
+                                    geom.helpMatrixA.transformPoint(x, y, geom.helpPointA);
 
-                                    spAttachment.vertices.push(boneIndex, Number(geom.helpPointA.x.toFixed(2)), -Number((geom.helpPointA.y).toFixed(2)), boneWeight);
+                                    spAttachment.vertices.push(
+                                        boneIndex,
+                                        Number(geom.helpPointA.x.toFixed(2)),
+                                        -Number((geom.helpPointA.y).toFixed(2)),
+                                        boneWeight
+                                    );
                                 }
                             }
                         }
                         else {
-                            display.transform.toMatrix(geom.helpMatrixA);
                             for (let i = 0, l = display.vertices.length; i < l; i += 2) {
-                                geom.helpMatrixA.transformPoint(display.vertices[i], display.vertices[i + 1], geom.helpPointA);
-                                spAttachment.vertices.push(Number(geom.helpPointA.x.toFixed(2)), -Number((geom.helpPointA.y).toFixed(2)));
+                                spAttachment.vertices.push(
+                                    Number(display.vertices[i].toFixed(2)),
+                                    -Number(display.vertices[i + 1].toFixed(2))
+                                );
                             }
                         }
 
@@ -192,12 +206,10 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                         const spAttachment = new spft.BoundingBoxAttachment();
                         spAttachment.vertexCount = display.vertices.length / 2;
                         spAttachment.name = display.name;
-                        display.transform.toMatrix(geom.helpMatrixA);
 
                         for (let i = 0, l = display.vertices.length; i < l; i += 2) {
-                            geom.helpMatrixA.transformPoint(display.vertices[i], display.vertices[i + 1], geom.helpPointA);
-                            spAttachment.vertices[i] = geom.helpPointA.x;
-                            spAttachment.vertices[i + 1] = -geom.helpPointA.y;
+                            spAttachment.vertices[i] = display.vertices[i];
+                            spAttachment.vertices[i + 1] = -display.vertices[i + 1];
                         }
 
                         spSlots[spAttachment.name] = spAttachment;
@@ -434,7 +446,6 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                 }
 
                 slots[timeline.name] = deformFrames;
-                meshDisplay.transform.toMatrix(geom.helpMatrixA);
 
                 iF = 0;
                 position = 0.0;
@@ -456,20 +467,8 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                         spFrame.vertices.push(0.0);
                     }
 
-                    if (meshDisplay.weights.length > 0) {
-                        //TODO
-                    }
-                    else {
-                        for (let j = 0, lJ = spFrame.vertices.length; j < lJ; j += 2) {
-                            const x = meshDisplay.vertices[j];
-                            const y = meshDisplay.vertices[j + 1];
-                            geom.helpMatrixA.transformPoint(x, y, geom.helpPointA);
-                            const xP = geom.helpPointA.x;
-                            const yP = geom.helpPointA.y;
-                            geom.helpMatrixA.transformPoint(x + spFrame.vertices[j], y + spFrame.vertices[j + 1], geom.helpPointA);
-                            spFrame.vertices[j] = Number((geom.helpPointA.x - xP).toFixed(2));
-                            spFrame.vertices[j + 1] = -Number((geom.helpPointA.y - yP).toFixed(2));
-                        }
+                    for (let i = 0, l = spFrame.vertices.length; i < l; i += 2) {
+                        spFrame.vertices[i + 1] = -spFrame.vertices[i + 1];
                     }
 
                     let begin = 0;
