@@ -368,6 +368,7 @@ export function mergeActionToAnimation(
     }
 
     let position = 0;
+    let frameIndex = 0;
     let insertFrame: ActionFrame | null = null;
     let prevFrame: ActionFrame | null = null;
     for (let i = 0, l = frames.length; i < l; ++i) {
@@ -386,6 +387,14 @@ export function mergeActionToAnimation(
 
         position += eachFrame.duration;
         prevFrame = eachFrame;
+        frameIndex++;
+    }
+
+    if (insertFrame == null && prevFrame != null) {
+        prevFrame.duration = framePosition;
+        insertFrame = new ActionFrame();
+        insertFrame.duration = position - framePosition;
+        frames.splice(frameIndex, 0, insertFrame);
     }
 
     if (insertFrame !== null) {
@@ -1103,7 +1112,7 @@ export class SlotTimeline extends Timeline {
     readonly frame: SlotAllFrame[] = []; // Deprecated.
     readonly displayFrame: SlotDisplayFrame[] = [];
     readonly colorFrame: SlotColorFrame[] = [];
-
+    
     insertFrame(frames: Frame[], position: number): number {
         let index = 0;
         let fromPosition = 0;

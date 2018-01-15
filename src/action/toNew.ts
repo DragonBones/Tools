@@ -175,8 +175,24 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
 
                     position += frame.duration;
                 }
-                
+
                 timeline.frame.length = 0;
+
+                if (forRuntime) {
+                    position = 0;
+                    for (let i = 0, l = timeline.displayFrame.length; i < l; ++i) {
+                        const frame = timeline.displayFrame[i];
+
+                        if (frame.actions.length > 0) {
+                            if (forRuntime) {
+                                dbft.mergeActionToAnimation(animation, frame, position, null, slot, true);
+                            }
+                        }
+
+                        position += frame.duration;
+                    }
+                    timeline.displayFrame.length = 0;
+                }
             }
         }
     }
