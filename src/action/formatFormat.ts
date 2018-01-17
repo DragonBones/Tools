@@ -17,6 +17,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
             if (armature.bone.length === 0) {
                 armature.slot.length = 0;
                 armature.ik.length = 0;
+                armature.path.length = 0;
                 armature.skin.length = 0;
                 armature.animation.length = 0;
                 armature.defaultActions.length = 0;
@@ -75,6 +76,20 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                 // TODO check recurrence
 
                 ikConstraint.weight = Number(ikConstraint.weight.toFixed(2));
+            }
+
+            for (const pathConstraint of armature.path) {
+                if (!pathConstraint.pathSlot || !pathConstraint.bones) {
+                    // TODO
+                }
+
+                // TODO check recurrence
+
+                pathConstraint.position = Number(pathConstraint.position.toFixed(2));
+                pathConstraint.spacing = Number(pathConstraint.spacing.toFixed(2));
+                pathConstraint.rotateOffset = Number(pathConstraint.rotateOffset.toFixed(2));
+                pathConstraint.rotateMix = Number(pathConstraint.rotateMix.toFixed(2));
+                pathConstraint.translateMix = Number(pathConstraint.translateMix.toFixed(2));
             }
 
             armature.sortBones();
@@ -141,6 +156,24 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                                 display.vertices[i] = Number(geom.helpPointA.x.toFixed(2));
                                 display.vertices[i + 1] = Number(geom.helpPointA.y.toFixed(2));
                             }
+                        }
+
+                        if (display instanceof dbft.PathDisplay) {
+                            //lengths
+                            for (let i = 0, l = display.lengths.length; i < l; ++i) {
+                                display.lengths[i] = Number(display.lengths[i].toFixed(6));
+                            }
+
+                            //vertices
+                            for (let i = 0, l = display.vertices.length; i < l; ++i) {
+                                display.vertices[i] = Number(display.vertices[i].toFixed(6));
+                            }
+
+                            //weights
+                            for (let i = 0, l = display.weights.length; i < l; ++i) {
+                                display.weights[i] = Number(display.weights[i].toFixed(6));
+                            }
+
                         }
 
                         if (

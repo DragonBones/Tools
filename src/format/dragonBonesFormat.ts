@@ -79,7 +79,8 @@ export enum DisplayType {
     Image = 0,
     Armature = 1,
     Mesh = 2,
-    BoundingBox = 3
+    BoundingBox = 3,
+    Path = 4
 }
 
 export enum BoundingBoxType {
@@ -499,6 +500,7 @@ export class Armature {
     readonly bone: Bone[] = [];
     readonly slot: Slot[] = [];
     readonly ik: IKConstraint[] = [];
+    readonly path : PathConstraint[] = [];
     readonly skin: Skin[] = [];
     readonly animation: (Animation | AnimationBinary)[] = []; // Binary.
     readonly defaultActions: (OldAction | Action)[] = [];
@@ -688,6 +690,22 @@ export class IKConstraint {
     target: string = "";
 }
 
+export class PathConstraint {
+    name: string = "";
+    pathSlot : string = "";
+    bones : string[] = [];
+
+    positionMode: "fixed" | "percent" = "percent";
+    spacingMode: "length" | "fixed" | "percent" = "length";
+    rotateMode: "tangent" | "chain" | "chain scale" = "tangent";
+
+    position : number;
+    spacing : number;
+    rotateOffset : number;
+    rotateMix : number;
+    translateMix : number;
+}
+
 export class Skin {
     name: string = "default";
     readonly slot: SkinSlot[] = [];
@@ -823,6 +841,25 @@ export class SharedMeshDisplay extends Display {
 
         if (!isDefault) {
             this.type = DisplayType[DisplayType.Mesh].toLowerCase();
+        }
+    }
+}
+
+export class PathDisplay extends Display {
+    offset: number = -1; // Binary.
+
+    closed : boolean;
+    constantSpeed : boolean;
+    vertexCount : number;
+    vertices : number[] = [];
+    lengths : number[] = [];
+    weights : number[] = [];
+
+    constructor(isDefault: boolean = false) {
+        super();
+
+        if (!isDefault) {
+            this.type = DisplayType[DisplayType.Path].toLowerCase();
         }
     }
 }
@@ -1516,6 +1553,7 @@ export const copyConfig = [
         ],
         slot: Slot,
         ik: IKConstraint,
+        path : PathConstraint,
         skin: Skin,
         animation: Animation,
         defaultActions: OldAction,
