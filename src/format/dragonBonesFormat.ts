@@ -79,7 +79,8 @@ export enum DisplayType {
     Image = 0,
     Armature = 1,
     Mesh = 2,
-    BoundingBox = 3
+    BoundingBox = 3,
+    Path = 4
 }
 
 export enum BoundingBoxType {
@@ -368,6 +369,7 @@ export function mergeActionToAnimation(
     }
 
     let position = 0;
+    let frameIndex = 0;
     let insertFrame: ActionFrame | null = null;
     let prevFrame: ActionFrame | null = null;
     for (let i = 0, l = frames.length; i < l; ++i) {
@@ -386,6 +388,14 @@ export function mergeActionToAnimation(
 
         position += eachFrame.duration;
         prevFrame = eachFrame;
+        frameIndex++;
+    }
+
+    if (insertFrame == null && prevFrame != null) {
+        prevFrame.duration = framePosition;
+        insertFrame = new ActionFrame();
+        insertFrame.duration = position - framePosition;
+        frames.splice(frameIndex, 0, insertFrame);
     }
 
     if (insertFrame !== null) {
@@ -490,6 +500,7 @@ export class Armature {
     readonly bone: Bone[] = [];
     readonly slot: Slot[] = [];
     readonly ik: IKConstraint[] = [];
+    readonly path : PathConstraint[] = [];
     readonly skin: Skin[] = [];
     readonly animation: (Animation | AnimationBinary)[] = []; // Binary.
     readonly defaultActions: (OldAction | Action)[] = [];
@@ -679,6 +690,22 @@ export class IKConstraint {
     target: string = "";
 }
 
+export class PathConstraint {
+    name: string = "";
+    target : string = "";
+    bones : string[] = [];
+
+    positionMode: "fixed" | "percent" = "percent";
+    spacingMode: "length" | "fixed" | "percent" = "length";
+    rotateMode: "tangent" | "chain" | "chain scale" = "tangent";
+
+    position : number;
+    spacing : number;
+    rotateOffset : number;
+    rotateMix : number;
+    translateMix : number;
+}
+
 export class Skin {
     name: string = "default";
     readonly slot: SkinSlot[] = [];
@@ -814,6 +841,27 @@ export class SharedMeshDisplay extends Display {
 
         if (!isDefault) {
             this.type = DisplayType[DisplayType.Mesh].toLowerCase();
+        }
+    }
+}
+
+export class PathDisplay extends Display {
+    offset: number = -1; // Binary.
+
+    closed : boolean;
+    constantSpeed : boolean;
+    vertexCount : number;
+    readonly vertices : number[] = [];
+    readonly slotPose: number[] = [];
+    readonly bonePose: number[] = [];
+    lengths : number[] = [];
+    readonly weights : number[] = [];
+
+    constructor(isDefault: boolean = false) {
+        super();
+
+        if (!isDefault) {
+            this.type = DisplayType[DisplayType.Path].toLowerCase();
         }
     }
 }
@@ -1103,7 +1151,7 @@ export class SlotTimeline extends Timeline {
     readonly frame: SlotAllFrame[] = []; // Deprecated.
     readonly displayFrame: SlotDisplayFrame[] = [];
     readonly colorFrame: SlotColorFrame[] = [];
-
+    
     insertFrame(frames: Frame[], position: number): number {
         let index = 0;
         let fromPosition = 0;
@@ -1507,6 +1555,7 @@ export const copyConfig = [
         ],
         slot: Slot,
         ik: IKConstraint,
+        path : PathConstraint,
         skin: Skin,
         animation: Animation,
         defaultActions: OldAction,

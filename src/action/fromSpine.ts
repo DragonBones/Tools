@@ -3,6 +3,7 @@ import { Map } from "../common/types";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 import * as spft from "../format/spineFormat";
+// import { spawn } from "child_process";
 
 type Input = {
     name: string;
@@ -274,6 +275,56 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                         textureAtlasScale = modifyTextureAtlasScale(display.path || display.name, attachment, result.textureAtlas);
                     }
                 }
+                else if (attachment instanceof spft.PathAttachment) {
+                    const display = new dbft.PathDisplay();
+                    display.name = attachment.name || attachmentName;
+
+                    display.closed = attachment.closed;
+                    display.constantSpeed = attachment.constantSpeed;
+
+                    display.vertexCount = attachment.vertexCount;
+                    display.lengths = attachment.lengths;
+
+                    //
+                    // const slotPos = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
+                    // geom.helpMatrixA.copyFromArray(slotPos, 0);
+
+                    const bones = new Array<number>();
+                    // weight
+                    for (let iW = 0; iW < attachment.vertices.length;) {
+                        const boneCount = attachment.vertices[iW++];
+
+                        display.weights.push(boneCount);
+
+                        let xG: number = 0.0;
+                        let yG: number = 0.0;
+                        for (let j = 0; j < boneCount; j++) {
+                            const boneIndex = attachment.vertices[iW++];
+                            const xL = attachment.vertices[iW++];
+                            const yL = -attachment.vertices[iW++];
+                            const weight = attachment.vertices[iW++];
+                            const bone = armature.getBone(data.data.bones[boneIndex].name);
+                            if (bone && bone._global) {
+                                const boneIndex = armature.bone.indexOf(bone);
+                                bone._global.toMatrix(geom.helpMatrixA);
+                                geom.helpMatrixA.transformPoint(xL, yL, geom.helpPointA);
+                                xG += geom.helpPointA.x * weight;
+                                yG += geom.helpPointA.y * weight;
+                                display.weights.push(boneIndex);
+                                display.weights.push(weight);
+                                if (bones.indexOf(boneIndex) < 0) {
+                                    bones.push(boneIndex);
+                                    display.bonePose.push(boneIndex, geom.helpMatrixA.a, geom.helpMatrixA.b, geom.helpMatrixA.c, geom.helpMatrixA.d, geom.helpMatrixA.tx, geom.helpMatrixA.ty);
+                                }
+                            }
+                        }
+
+                        display.vertices.push(xG, yG);
+                    }
+                    display.slotPose.push(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+
+                    slot.display.push(display);
+                }
                 else if (attachment instanceof spft.BoundingBoxAttachment) {
                     const display = new dbft.PolygonBoundingBoxDisplay();
                     display.name = attachmentName;
@@ -378,6 +429,26 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
         ik.bone = spIK.bones[spIK.bones.length - 1];
         ik.target = spIK.target;
         armature.ik.push(ik);
+    }
+
+    for (const spPath of data.data.path) {
+        const path = new dbft.PathConstraint();
+        path.name = spPath.name;
+
+        path.positionMode = spPath.positionMode;
+        path.spacingMode = spPath.spacingMode;
+        path.rotateMode = spPath.rotateMode;
+
+        path.position = spPath.position;
+        path.spacing = spPath.spacing;
+        path.rotateOffset = spPath.rotation;
+        path.rotateMix = spPath.rotateMix;
+        path.translateMix = spPath.translateMix;
+
+        path.target = spPath.target;
+        path.bones = spPath.bones;
+
+        armature.path.push(path);
     }
 
     for (const animationName in data.data.animations) {
