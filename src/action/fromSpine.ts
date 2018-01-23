@@ -99,7 +99,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
         bone.name = sfBone.name;
         bone.parent = sfBone.parent;
 
-        switch (sfBone.transform) { // TODO
+        switch (sfBone.transform) {
             case "onlyTranslation":
                 bone.inheritRotation = false;
                 bone.inheritScale = false;
@@ -138,6 +138,17 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
     armature.localToGlobal();
 
     const slotDisplays: Map<string[]> = {}; // Create attachments sort.
+    const addDisplayToSlot = (rawDisplays: string[], display: dbft.Display, displays: (dbft.Display | null)[]) => {
+        // tslint:disable-next-line:no-unused-expression
+        rawDisplays;
+        
+        // const index = rawDisplays.indexOf(display.name); TODO
+        // while (displays.length < index) {
+        //     displays.push(null);
+        // }
+
+        displays.push(display);
+    };
 
     for (const skinName in data.data.skins) {
         const spSkin = data.data.skins[skinName];
@@ -158,26 +169,26 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
                 if (attachment instanceof spft.RegionAttachment) {
                     const display = new dbft.ImageDisplay();
-                    display.name = attachment.name || attachmentName;
-                    display.path = attachment.path;
+                    display.name = attachmentName;
+                    display.path = attachment.path || attachment.name;
                     display.transform.x = attachment.x;
                     display.transform.y = -attachment.y;
                     display.transform.skX = -attachment.rotation;
                     display.transform.skY = -attachment.rotation;
                     display.transform.scX = attachment.scaleX;
                     display.transform.scY = attachment.scaleY;
-                    slot.display.push(display);
+                    addDisplayToSlot(displays, display, slot.display);
 
                     if (textureAtlasScale < 0.0) {
-                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
+                        textureAtlasScale = modifyTextureAtlasScale(display.path || display.name, attachment, result.textureAtlas);
                     }
                 }
                 else if (attachment instanceof spft.MeshAttachment) {
                     const display = new dbft.MeshDisplay();
-                    display.name = attachment.name || attachmentName;
+                    display.name = attachmentName;
                     display.width = attachment.width;
                     display.height = attachment.height;
-                    display.path = attachment.path || (attachment.name || attachmentName);
+                    display.path = attachment.path || attachment.name;
 
                     for (const v of attachment.uvs) {
                         display.uvs.push(v);
@@ -244,28 +255,28 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                         }
                     }
 
-                    slot.display.push(display);
+                    addDisplayToSlot(displays, display, slot.display);
 
                     if (textureAtlasScale < 0.0) {
-                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
+                        textureAtlasScale = modifyTextureAtlasScale(display.path || display.name, attachment, result.textureAtlas);
                     }
                 }
                 else if (attachment instanceof spft.LinkedMeshAttachment) {
                     const display = new dbft.SharedMeshDisplay();
                     display.inheritDeform = attachment.deform;
-                    display.name = attachment.name || attachmentName;
+                    display.name = attachmentName;
                     display.share = attachment.parent;
                     display.skin = attachment.skin;
-                    display.path = attachment.path || (attachment.name || attachmentName);
-                    slot.display.push(display);
+                    display.path = attachment.path || attachment.name;
+                    addDisplayToSlot(displays, display, slot.display);
 
                     if (textureAtlasScale < 0.0) {
-                        textureAtlasScale = modifyTextureAtlasScale(attachment.path || display.name, attachment, result.textureAtlas);
+                        textureAtlasScale = modifyTextureAtlasScale(display.path || display.name, attachment, result.textureAtlas);
                     }
                 }
                 else if (attachment instanceof spft.BoundingBoxAttachment) {
                     const display = new dbft.PolygonBoundingBoxDisplay();
-                    display.name = attachment.name || attachmentName;
+                    display.name = attachmentName;
                     if (attachment.vertexCount < attachment.vertices.length / 2) { // Check
                         for (
                             let i = 0, iW = 0;
@@ -305,11 +316,11 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                         }
                     }
 
-                    slot.display.push(display);
+                    addDisplayToSlot(displays, display, slot.display);
                 }
                 else {
                     const display = new dbft.ImageDisplay();
-                    slot.display.push(display);
+                    addDisplayToSlot(displays, display, slot.display);
                 }
             }
 
@@ -319,13 +330,11 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
         armature.skin.push(skin);
     }
 
-    // TODO
-    // const defaultSkin = armature.getSkin("default");
-    // if (defaultSkin) {
-    //     for (const slot of defaultSkin.slot) {
-    //         const displayNames = slotDisplays[slot.name];
-    //         if (slot.display.length === displayNames.length) {
-
+    // for (const skin of armature.skin) { TODO
+    //     for (const slot of skin.slot) {
+    //         const displays = slotDisplays[slot.name];
+    //         while (slot.display.length !== displays.length) {
+    //             slot.display.push(null);
     //         }
     //     }
     // }

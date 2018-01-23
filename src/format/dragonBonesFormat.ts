@@ -697,12 +697,12 @@ export class Skin {
 
 export class SkinSlot {
     name: string = "";
-    readonly display: Display[] = [];
+    readonly display: (Display | null)[] = [];
     readonly actions: OldAction[] = []; // Deprecated.
 
     getDisplay(name: string): Display | null {
         for (const display of this.display) {
-            if (display.name === name) {
+            if (display && display.name === name) {
                 return display;
             }
         }
