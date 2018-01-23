@@ -1,13 +1,22 @@
 {
   "name": "dragonbones-tools",
-  "version": "0.0.44",
+  "version": "0.0.47",
   "author": "dragonbones",
+  "description": "Dragonbones tools.",
+  "license": "MIT",
   "keywords": [
     "dragonbones",
     "convert"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DragonBones/Tools"
+  },
+  "bugs": {
+    "url": "https://github.com/DragonBones/Tools/issues"
+  },
   "scripts": {
-    "build": "tsc & dbp -t tools"
+    "build": "tsc"
   },
   "bin": {
     "db2": "./out/convertTo.js",
