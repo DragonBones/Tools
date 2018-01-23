@@ -79,7 +79,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
             }
 
             for (const pathConstraint of armature.path) {
-                if (!pathConstraint.pathSlot || !pathConstraint.bones) {
+                if (!pathConstraint.target || !pathConstraint.bones) {
                     // TODO
                 }
 

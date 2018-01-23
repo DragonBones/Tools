@@ -692,7 +692,7 @@ export class IKConstraint {
 
 export class PathConstraint {
     name: string = "";
-    pathSlot : string = "";
+    target : string = "";
     bones : string[] = [];
 
     positionMode: "fixed" | "percent" = "percent";
@@ -851,9 +851,11 @@ export class PathDisplay extends Display {
     closed : boolean;
     constantSpeed : boolean;
     vertexCount : number;
-    vertices : number[] = [];
+    readonly vertices : number[] = [];
+    readonly slotPose: number[] = [];
+    readonly bonePose: number[] = [];
     lengths : number[] = [];
-    weights : number[] = [];
+    readonly weights : number[] = [];
 
     constructor(isDefault: boolean = false) {
         super();
