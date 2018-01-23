@@ -274,7 +274,12 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                     display.vertexCount = attachment.vertexCount;
                     display.lengths = attachment.lengths;
 
-                    //weight
+                    //
+                    // const slotPos = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
+                    // geom.helpMatrixA.copyFromArray(slotPos, 0);
+
+                    const bones = new Array<number>();
+                    // weight
                     for (let iW = 0; iW < attachment.vertices.length;) {
                         const boneCount = attachment.vertices[iW++];
 
@@ -296,11 +301,16 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                                 yG += geom.helpPointA.y * weight;
                                 display.weights.push(boneIndex);
                                 display.weights.push(weight);
+                                if (bones.indexOf(boneIndex) < 0) {
+                                    bones.push(boneIndex);
+                                    display.bonePose.push(boneIndex, geom.helpMatrixA.a, geom.helpMatrixA.b, geom.helpMatrixA.c, geom.helpMatrixA.d, geom.helpMatrixA.tx, geom.helpMatrixA.ty);
+                                }
                             }
                         }
 
                         display.vertices.push(xG, yG);
                     }
+                    display.slotPose.push(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
 
                     slot.display.push(display);
                 }
@@ -412,8 +422,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
         armature.ik.push(ik);
     }
 
-    for(const spPath of data.data.path)
-    {
+    for (const spPath of data.data.path) {
         const path = new dbft.PathConstraint();
         path.name = spPath.name;
 
@@ -427,7 +436,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
         path.rotateMix = spPath.rotateMix;
         path.translateMix = spPath.translateMix;
 
-        path.pathSlot = spPath.target;
+        path.target = spPath.target;
         path.bones = spPath.bones;
 
         armature.path.push(path);
