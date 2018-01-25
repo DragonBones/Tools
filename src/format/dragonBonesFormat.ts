@@ -500,7 +500,7 @@ export class Armature {
     readonly bone: Bone[] = [];
     readonly slot: Slot[] = [];
     readonly ik: IKConstraint[] = [];
-    readonly path : PathConstraint[] = [];
+    readonly path: PathConstraint[] = [];
     readonly skin: Skin[] = [];
     readonly animation: (Animation | AnimationBinary)[] = []; // Binary.
     readonly defaultActions: (OldAction | Action)[] = [];
@@ -565,6 +565,11 @@ export class Armature {
     getSkin(name: string): Skin | null {
         for (const skin of this.skin) {
             if (skin.name === name) {
+                return skin;
+            }
+
+            //
+            if (skin.name === "" && name === "default") {
                 return skin;
             }
         }
@@ -692,18 +697,18 @@ export class IKConstraint {
 
 export class PathConstraint {
     name: string = "";
-    target : string = "";
-    bones : string[] = [];
+    target: string = "";
+    bones: string[] = [];
 
     positionMode: "fixed" | "percent" = "percent";
     spacingMode: "length" | "fixed" | "percent" = "length";
     rotateMode: "tangent" | "chain" | "chain scale" = "tangent";
 
-    position : number;
-    spacing : number;
-    rotateOffset : number;
-    rotateMix : number;
-    translateMix : number;
+    position: number;
+    spacing: number;
+    rotateOffset: number;
+    rotateMix: number;
+    translateMix: number;
 }
 
 export class Skin {
@@ -848,14 +853,14 @@ export class SharedMeshDisplay extends Display {
 export class PathDisplay extends Display {
     offset: number = -1; // Binary.
 
-    closed : boolean;
-    constantSpeed : boolean;
-    vertexCount : number;
-    readonly vertices : number[] = [];
+    closed: boolean;
+    constantSpeed: boolean;
+    vertexCount: number;
+    readonly vertices: number[] = [];
     readonly slotPose: number[] = [];
     readonly bonePose: number[] = [];
-    lengths : number[] = [];
-    readonly weights : number[] = [];
+    lengths: number[] = [];
+    readonly weights: number[] = [];
 
     constructor(isDefault: boolean = false) {
         super();
@@ -1151,7 +1156,7 @@ export class SlotTimeline extends Timeline {
     readonly frame: SlotAllFrame[] = []; // Deprecated.
     readonly displayFrame: SlotDisplayFrame[] = [];
     readonly colorFrame: SlotColorFrame[] = [];
-    
+
     insertFrame(frames: Frame[], position: number): number {
         let index = 0;
         let fromPosition = 0;
@@ -1555,7 +1560,7 @@ export const copyConfig = [
         ],
         slot: Slot,
         ik: IKConstraint,
-        path : PathConstraint,
+        path: PathConstraint,
         skin: Skin,
         animation: Animation,
         defaultActions: OldAction,
