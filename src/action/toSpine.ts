@@ -87,7 +87,10 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                 if (defaultSkin !== null) {
                     const skinSlot = defaultSkin.getSlot(slot.name);
                     if (skinSlot !== null) {
-                        spSlot.attachment = skinSlot.display[slot.displayIndex].name; //
+                        const display = skinSlot.display[slot.displayIndex];
+                        if (display) {
+                            spSlot.attachment = display.name;
+                        }
                     }
                 }
             }
@@ -409,7 +412,10 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                         spFrame.name = "";
                     }
                     else {
-                        spFrame.name = skinSlot.display[frame.value].name;
+                        const display = skinSlot.display[frame.value];
+                        if (display) {
+                            spFrame.name = display.name;
+                        }
                     }
 
                     position += frame.duration / frameRate;

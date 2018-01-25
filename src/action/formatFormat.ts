@@ -108,6 +108,10 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     skinSlot.actions.length = 0; // Fix data bug.
 
                     for (const display of skinSlot.display) {
+                        if (!display) {
+                            continue;
+                        }
+
                         if (
                             display instanceof dbft.ImageDisplay ||
                             display instanceof dbft.MeshDisplay ||

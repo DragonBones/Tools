@@ -237,7 +237,9 @@ export function compress(data: any, config: any[]): boolean {
     if (data instanceof Array) {
         const array = data as any[];
         for (const item of array) {
-            compress(item, config);
+            if (item !== null) {
+                compress(item, config);
+            }
         }
 
         if (array.length === 0) {
