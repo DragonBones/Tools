@@ -35,6 +35,7 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     }
 
     const binaryDatas = new Array<dbft.MeshDisplay>();
+    const pathBinaryDatas = new Array<dbft.PathDisplay>();
     for (currentArmature of data.armature) {
         for (const skin of currentArmature.skin) {
             for (const slot of skin.slot) {
@@ -42,6 +43,10 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
                     if (display instanceof dbft.MeshDisplay) {
                         display.offset = createMesh(display);
                         binaryDatas.push(display);
+                    }
+                    else if (display instanceof dbft.PathDisplay) {
+                        display.offset = createPath(display);
+                        pathBinaryDatas.push(display);
                     }
                 }
             }
@@ -106,7 +111,12 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
             data.clearToBinary();
         }
 
+        for (const data of pathBinaryDatas) {
+            data.clearToBinary();
+        }
+
         binaryDatas.length = 0;
+        pathBinaryDatas.length = 0;
     }
 
     // Align.
@@ -208,6 +218,62 @@ function createColor(value: geom.ColorTransform): number {
     intArray[offset + 5] = value.rO;
     intArray[offset + 6] = value.gO;
     intArray[offset + 7] = value.bO;
+
+    return offset;
+}
+
+function createPath(value: dbft.PathDisplay): number {
+    const vertexCount = value.vertexCount;
+    const offset = intArray.length;
+    const vertexOffset = floatArray.length;
+
+    intArray.length += 1 + 1 + 1;
+    intArray[offset + dbft.BinaryOffset.PathVertexCount] = vertexCount;
+    intArray[offset + dbft.BinaryOffset.PathFloatOffset] = vertexOffset;
+
+    if (value.weights.length === 0) {
+        floatArray.length += value.vertices.length;
+
+        for (let i = 0, l = value.vertices.length; i < l; i++) {
+            floatArray[vertexOffset + i] = value.vertices[i];
+        }
+
+        intArray[offset + dbft.BinaryOffset.PathWeightOffset] = -1;
+    }
+    else {
+        const weightBoneCount = value.bones.length;
+        const weightCount = Math.floor(value.weights.length - vertexCount) / 2; // uint
+        const weightOffset = intArray.length;
+        const floatOffset = floatArray.length;
+
+        intArray.length += 1 + 1 + weightBoneCount;
+        intArray[weightOffset + dbft.BinaryOffset.WeigthBoneCount] = weightBoneCount;
+        intArray[weightOffset + dbft.BinaryOffset.WeigthFloatOffset] = floatOffset;
+
+        for (let i = 0; i < weightBoneCount; i++) {
+            intArray[weightOffset + dbft.BinaryOffset.WeigthBoneIndices + i] = value.bones[i];
+        }
+
+        floatArray.length += weightCount * 3;
+
+        for (let i = 0, iV = 0, iW = 0, iB = weightOffset + dbft.BinaryOffset.WeigthBoneIndices + weightBoneCount, iF = floatOffset; i < weightCount; i++) {
+            const boneCount = value.weights[iW++];
+            intArray[iB++] = boneCount;
+
+            for (let j = 0; j < boneCount; j++) {
+                const boneIndex = value.weights[iW++];
+                const boneWeight = value.weights[iW++];
+
+                intArray[iB++] = value.bones.indexOf(boneIndex);
+                floatArray[iF++] = boneWeight;
+                floatArray[iF++] = value.vertices[iV++];
+                floatArray[iF++] = value.vertices[iV++];
+            }
+        }
+
+        intArray[offset + dbft.BinaryOffset.PathWeightOffset] = weightOffset;
+    }
+
 
     return offset;
 }

@@ -60,7 +60,11 @@ export enum BinaryOffset {
     DeformCount = 1,
     DeformValueCount = 2,
     DeformValueOffset = 3,
-    DeformFloatOffset = 4
+    DeformFloatOffset = 4,
+
+    PathVertexCount = 0,
+    PathFloatOffset = 1,
+    PathWeightOffset = 2,
 }
 
 export enum ArmatureType {
@@ -704,11 +708,11 @@ export class PathConstraint {
     spacingMode: "length" | "fixed" | "percent" = "length";
     rotateMode: "tangent" | "chain" | "chain scale" = "tangent";
 
-    position: number;
-    spacing: number;
-    rotateOffset: number;
-    rotateMix: number;
-    translateMix: number;
+    position: number = 0;
+    spacing: number = 0;
+    rotateOffset: number = 0;
+    rotateMix: number = 0;
+    translateMix: number = 0;
 }
 
 export class Skin {
@@ -850,16 +854,36 @@ export class SharedMeshDisplay extends Display {
     }
 }
 
+// export class PathDisplay extends Display {
+//     offset: number = -1; // Binary.
+
+//     closed: boolean;
+//     constantSpeed: boolean;
+//     vertexCount: number;
+//     readonly vertices: number[] = [];
+//     readonly slotPose: number[] = [];
+//     readonly bonePose: number[] = [];
+//     lengths: number[] = [];
+//     readonly weights: number[] = [];
+
+//     constructor(isDefault: boolean = false) {
+//         super();
+
+//         if (!isDefault) {
+//             this.type = DisplayType[DisplayType.Path].toLowerCase();
+//         }
+//     }
+// }
+
 export class PathDisplay extends Display {
     offset: number = -1; // Binary.
 
-    closed: boolean;
-    constantSpeed: boolean;
-    vertexCount: number;
+    closed: boolean = false;
+    constantSpeed: boolean = false;
+    vertexCount: number = 0;
     readonly vertices: number[] = [];
-    readonly slotPose: number[] = [];
-    readonly bonePose: number[] = [];
-    lengths: number[] = [];
+    readonly bones : number[] = [];
+    readonly lengths: number[] = [];
     readonly weights: number[] = [];
 
     constructor(isDefault: boolean = false) {
@@ -868,6 +892,11 @@ export class PathDisplay extends Display {
         if (!isDefault) {
             this.type = DisplayType[DisplayType.Path].toLowerCase();
         }
+    }
+
+    clearToBinary(): void {
+        this.vertices.length = 0;
+        this.weights.length = 0;
     }
 }
 
@@ -1605,6 +1634,9 @@ export const copyConfig = [
                         else {
                             return MeshDisplay;
                         }
+                    
+                    case DisplayType.Path:
+                        return PathDisplay;
 
                     case DisplayType.BoundingBox:
                         {
@@ -1708,6 +1740,7 @@ export const compressConfig = [
     new Surface(),
     new Slot(),
     new IKConstraint(),
+    new PathConstraint(),
     new Skin(),
     new SkinSlot(),
 
@@ -1715,6 +1748,7 @@ export const compressConfig = [
     new ArmatureDisplay(true),
     new MeshDisplay(true),
     new SharedMeshDisplay(true),
+    new PathDisplay(true),
     new RectangleBoundingBoxDisplay(true),
     new EllipseBoundingBoxDisplay(true),
     new PolygonBoundingBoxDisplay(true),
