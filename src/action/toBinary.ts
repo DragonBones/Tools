@@ -4,9 +4,6 @@ import { Endian, ByteArray } from "../common/byteArray";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
-const helpMatrixA: geom.Matrix = new geom.Matrix();
-const helpMatrixB: geom.Matrix = new geom.Matrix();
-const helpPoint: geom.Point = new geom.Point();
 const byteArray: ByteArray = new ByteArray();
 
 const intArray: Array<number> = [];
@@ -20,7 +17,9 @@ const colors: Map<number> = {};
 let currentArmature: dbft.Armature;
 let currentAnimationBinary: dbft.AnimationBinary;
 // let currentTimeline: dbft.Timeline<any>;
-
+/**
+ * Convert DragonBones format to binary.
+ */
 export default function (data: dbft.DragonBones): ArrayBuffer {
     // Clean helper.
     byteArray.clear();
@@ -141,7 +140,7 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     data.offset[11] = timelineArray.length * Uint16Array.BYTES_PER_ELEMENT;
     utils.compress(data, dbft.compressConfig);
 
-    // Write bytes.
+    // Write DragonBones format tag.
     byteArray.endian = Endian.LITTLE_ENDIAN;
     byteArray.writeByte("D".charCodeAt(0));
     byteArray.writeByte("B".charCodeAt(0));
@@ -247,7 +246,7 @@ function createMesh(value: dbft.MeshDisplay): number {
         }
 
         floatArray.length += value._weightCount * 3;
-        helpMatrixA.copyFromArray(value.slotPose, 0);
+        geom.helpMatrixA.copyFromArray(value.slotPose, 0);
 
         for (
             let i = 0, iW = 0, iB = weightOffset + dbft.BinaryOffset.WeigthBoneIndices + value._boneCount, iV = floatOffset;
@@ -259,20 +258,20 @@ function createMesh(value: dbft.MeshDisplay): number {
 
             let x = floatArray[vertexOffset + iD];
             let y = floatArray[vertexOffset + iD + 1];
-            helpMatrixA.transformPoint(x, y, helpPoint);
-            x = helpPoint.x;
-            y = helpPoint.y;
+            geom.helpMatrixA.transformPoint(x, y, geom.helpPointA);
+            x = geom.helpPointA.x;
+            y = geom.helpPointA.y;
 
             for (let j = 0; j < vertexBoneCount; ++j) {
                 const rawBoneIndex = value.weights[iW++]; // uint
                 const bonePoseOffset = value.getBonePoseOffset(rawBoneIndex);
-                helpMatrixB.copyFromArray(value.bonePose, bonePoseOffset + 1);
-                helpMatrixB.invert();
-                helpMatrixB.transformPoint(x, y, helpPoint);
+                geom.helpMatrixB.copyFromArray(value.bonePose, bonePoseOffset + 1);
+                geom.helpMatrixB.invert();
+                geom.helpMatrixB.transformPoint(x, y, geom.helpPointA);
                 intArray[iB++] = bonePoseOffset / 7; // 
                 floatArray[iV++] = value.weights[iW++];
-                floatArray[iV++] = helpPoint.x;
-                floatArray[iV++] = helpPoint.y;
+                floatArray[iV++] = geom.helpPointA.x;
+                floatArray[iV++] = geom.helpPointA.y;
             }
         }
 
@@ -725,7 +724,7 @@ function createMeshDeformTimeline(value: dbft.MeshDeformTimeline): number[] {
         let y = 0.0;
         let iB = 0;
         if (mesh.weights.length > 0) {
-            helpMatrixA.copyFromArray(mesh.slotPose, 0);
+            geom.helpMatrixA.copyFromArray(mesh.slotPose, 0);
             // frameFloatArray.length += mesh._weightCount * 2; // TODO CK
         }
         else {
@@ -761,17 +760,17 @@ function createMeshDeformTimeline(value: dbft.MeshDeformTimeline): number[] {
             if (mesh.weights.length > 0) { // If mesh is skinned, transform point by bone bind pose.
                 const vertexBoneCount = mesh.weights[iB++];
 
-                helpMatrixA.transformPoint(x, y, helpPoint, true);
-                x = helpPoint.x;
-                y = helpPoint.y;
+                geom.helpMatrixA.transformPoint(x, y, geom.helpPointA, true);
+                x = geom.helpPointA.x;
+                y = geom.helpPointA.y;
 
                 for (let j = 0; j < vertexBoneCount; ++j) {
                     const rawBoneIndex = mesh.weights[iB];
-                    helpMatrixB.copyFromArray(mesh.bonePose, mesh.getBonePoseOffset(rawBoneIndex) + 1);
-                    helpMatrixB.invert();
-                    helpMatrixB.transformPoint(x, y, helpPoint, true);
+                    geom.helpMatrixB.copyFromArray(mesh.bonePose, mesh.getBonePoseOffset(rawBoneIndex) + 1);
+                    geom.helpMatrixB.invert();
+                    geom.helpMatrixB.transformPoint(x, y, geom.helpPointA, true);
 
-                    vertices.push(helpPoint.x, helpPoint.y);
+                    vertices.push(geom.helpPointA.x, geom.helpPointA.y);
                     iB += 2;
                 }
             }

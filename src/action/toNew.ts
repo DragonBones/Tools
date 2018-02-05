@@ -1,6 +1,8 @@
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
+const normalColor = new geom.ColorTransform();
+
 export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.DragonBones {
     data.version = dbft.DATA_VERSION_5_5;
     data.compatibleVersion = dbft.DATA_VERSION_5_5;
@@ -85,7 +87,7 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                     frame.events.length = 0;
                 }
             }
-
+            // Modify bone timelines.
             for (const timeline of animation.bone) {
                 const bone = armature.getBone(timeline.name);
                 if (!bone) {
@@ -94,6 +96,7 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
 
                 let position = 0;
                 const slot = armature.getSlot(timeline.name);
+                // Bone frame to transform frame.
                 for (let i = 0, l = timeline.frame.length; i < l; ++i) {
                     const frame = timeline.frame[i];
                     const translateFrame = new dbft.BoneTranslateFrame();
@@ -122,11 +125,11 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                     scaleFrame.x = frame.transform.scX;
                     scaleFrame.y = frame.transform.scY;
 
-                    if (frame.action && !slot) {
+                    if (frame.action && !slot) { // Error data.
                         frame.action = "";
                     }
 
-                    if (frame.event || frame.sound || frame.action) {
+                    if (frame.event || frame.sound || frame.action) { // Merge bone action frame to action timeline.
                         dbft.mergeActionToAnimation(animation, frame, position, bone, slot, forRuntime);
                         frame.event = "";
                         frame.sound = "";
@@ -138,7 +141,7 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
 
                 timeline.frame.length = 0;
             }
-
+            // Modify slot timelines.
             for (const timeline of animation.slot) {
                 const slot = armature.getSlot(timeline.name);
                 if (!slot) {
@@ -146,6 +149,7 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                 }
 
                 let position = 0;
+                // Slot frame to display frame and color frame.
                 for (let i = 0, l = timeline.frame.length; i < l; ++i) {
                     const frame = timeline.frame[i];
                     const displayFrame = new dbft.SlotDisplayFrame();
@@ -177,18 +181,24 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                 }
 
                 timeline.frame.length = 0;
-
+                // Merge slot action to action timeline.
                 if (forRuntime) {
                     position = 0;
+
                     for (let i = 0, l = timeline.displayFrame.length; i < l; ++i) {
                         const frame = timeline.displayFrame[i];
-
                         dbft.mergeActionToAnimation(animation, frame, position, null, slot, true);
-
-                        position += frame.duration;
-
                         frame.actions.length = 0;
-                    }   
+                        position += frame.duration;
+                    }
+                }
+                // Color to value.
+                for (const colorFrame of timeline.colorFrame) {
+                    if (!colorFrame.color.equal(normalColor) && colorFrame.value.equal(normalColor)) {
+                        colorFrame.value.copyFrom(colorFrame.color);
+                    }
+
+                    colorFrame.color.identity();
                 }
             }
         }

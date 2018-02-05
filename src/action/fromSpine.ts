@@ -3,19 +3,20 @@ import { Map } from "../common/types";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 import * as spft from "../format/spineFormat";
-// import { spawn } from "child_process";
 
 type Input = {
     name: string;
     data: spft.Spine;
     textureAtlas: string;
 };
-
+/**
+ * Convert Spine format to DragonBones format.
+ */
 export default function (data: Input, forPro: boolean = false): dbft.DragonBones {
     let textureAtlasScale = -1.0;
     const result: dbft.DragonBones = new dbft.DragonBones();
 
-    {
+    { // Convert texture atlas.
         const lines = data.textureAtlas.split(/\r\n|\r|\n/);
         const tuple = new Array<string>(4);
         let textureAtlas: dbft.TextureAtlas | null = null;
@@ -142,7 +143,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
     const addDisplayToSlot = (rawDisplays: string[], display: dbft.Display, displays: (dbft.Display | null)[]) => {
         // tslint:disable-next-line:no-unused-expression
         rawDisplays;
-        
+
         // const index = rawDisplays.indexOf(display.name); TODO
         // while (displays.length < index) {
         //     displays.push(null);

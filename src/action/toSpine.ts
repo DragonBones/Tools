@@ -6,7 +6,9 @@ import * as dbft from "../format/dragonBonesFormat";
 import * as spft from "../format/spineFormat";
 
 type ResultType = { spines: spft.Spine[], textureAtlas: string };
-
+/**
+ * Convert DragonBones format to Spine format.
+ */
 export default function (data: dbft.DragonBones, version: string, addTextureAtlasSuffix: boolean): ResultType {
     const result: ResultType = { spines: [], textureAtlas: "" };
 
