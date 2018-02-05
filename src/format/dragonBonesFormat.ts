@@ -567,6 +567,11 @@ export class Armature {
             if (skin.name === name) {
                 return skin;
             }
+
+            //
+            if (skin.name === "" && name === "default") {
+                return skin;
+            }
         }
 
         return null;
