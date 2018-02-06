@@ -17,6 +17,10 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
             armature.canvas.height = armature.aabb.height;
         }
 
+        for (const skin of armature.skin) {
+            skin.name = skin.name || "default";
+        }
+
         if (forRuntime) { // Old action to new action.
             if (armature.defaultActions.length > 0) {
                 for (let i = 0, l = armature.defaultActions.length; i < l; ++i) {
@@ -37,10 +41,9 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                         if (skinSlot !== null && skinSlot instanceof dbft.SkinSlot) {
                             for (const action of slot.actions) {
                                 if (action instanceof dbft.OldAction) {
-                                    for (const display of skinSlot.display) {
-                                        if (display instanceof dbft.ArmatureDisplay) {
-                                            display.actions.push(dbft.oldActionToNewAction(action));
-                                        }
+                                    const display = skinSlot.display[slot.displayIndex];
+                                    if (display instanceof dbft.ArmatureDisplay) {
+                                        display.actions.push(dbft.oldActionToNewAction(action));
                                     }
                                 }
                             }
@@ -187,9 +190,11 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
 
                     for (let i = 0, l = timeline.displayFrame.length; i < l; ++i) {
                         const frame = timeline.displayFrame[i];
-                        dbft.mergeActionToAnimation(animation, frame, position, null, slot, true);
-                        frame.actions.length = 0;
-                        position += frame.duration;
+                        if (frame.actions.length > 0) {
+                            dbft.mergeActionToAnimation(animation, frame, position, null, slot, true);
+                            frame.actions.length = 0;
+                            position += frame.duration;
+                        }
                     }
                 }
                 // Color to value.

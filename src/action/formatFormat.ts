@@ -97,8 +97,6 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
             const meshMatrices: Map<geom.Matrix> = {};
 
             for (const skin of armature.skin) {
-                skin.name = skin.name || "default";
-
                 for (const skinSlot of skin.slot) {
                     if (!armature.getSlot(skinSlot.name)) {
                         skinSlot.display.length = 0;
