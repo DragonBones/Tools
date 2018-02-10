@@ -180,6 +180,8 @@ gate.actions["/convert"] = (request, response) => {
                     case "player":
                     case "viewer": {
                         toNew(dragonBonesData, true);
+                        format(dragonBonesData);
+                        
                         const result = toWeb(
                             {
                                 data: new Buffer(toBinary(dragonBonesData)),

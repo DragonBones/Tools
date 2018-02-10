@@ -462,6 +462,7 @@ export class DragonBones {
     compatibleVersion: string = "";
     readonly armature: Armature[] = [];
     readonly offset: number[] = []; // Binary.
+    readonly tag: number[] = []; // Binary.
     readonly textureAtlas: TextureAtlas[] = [];
     userData: UserData | null = null;
 }
@@ -742,6 +743,9 @@ export abstract class Display {
     type: DisplayType | string = DisplayType[DisplayType.Image].toLowerCase();
     name: string = "";
     readonly transform: Transform = new Transform();
+
+    clearToBinary(): void {
+    }
 }
 
 export abstract class BoundingBoxDisplay extends Display {
@@ -790,8 +794,8 @@ export class MeshDisplay extends Display {
     readonly glueWeights: number[] = [];
     readonly glueMeshes: string[] = [];
 
-    edges: number[] = []; // Nonessential.
-    userEdges: number[] = []; // Nonessential.
+    readonly edges: number[] = []; // Nonessential.
+    readonly userEdges: number[] = []; // Nonessential.
 
     _boneCount: number = 0;
     _weightCount: number = 0;
@@ -872,6 +876,7 @@ export class RectangleBoundingBoxDisplay extends BoundingBoxDisplay {
 
     constructor(isDefault: boolean = false) {
         super();
+
         if (!isDefault) {
             this.type = DisplayType[DisplayType.BoundingBox].toLowerCase();
             this.subType = BoundingBoxType[BoundingBoxType.Rectangle].toLowerCase();
@@ -885,6 +890,7 @@ export class EllipseBoundingBoxDisplay extends BoundingBoxDisplay {
 
     constructor(isDefault: boolean = false) {
         super();
+
         if (!isDefault) {
             this.type = DisplayType[DisplayType.BoundingBox].toLowerCase();
             this.subType = BoundingBoxType[BoundingBoxType.Ellipse].toLowerCase();
@@ -893,14 +899,20 @@ export class EllipseBoundingBoxDisplay extends BoundingBoxDisplay {
 }
 
 export class PolygonBoundingBoxDisplay extends BoundingBoxDisplay {
-    vertices: number[] = [];
+    offset: number = -1; // Binary.
+    readonly vertices: number[] = []; // Deprecated.
 
     constructor(isDefault: boolean = false) {
         super();
+
         if (!isDefault) {
             this.type = DisplayType[DisplayType.BoundingBox].toLowerCase();
             this.subType = BoundingBoxType[BoundingBoxType.Polygon].toLowerCase();
         }
+    }
+
+    clearToBinary(): void {
+        // this.vertices.length = 0;
     }
 }
 

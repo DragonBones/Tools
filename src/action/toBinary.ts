@@ -12,6 +12,7 @@ const timelineArray: Array<number> = [];
 const frameArray: Array<number> = [];
 const frameIntArray: Array<number> = [];
 const frameFloatArray: Array<number> = [];
+const colorArray: Array<number> = [];
 const colors: Map<number> = {};
 
 let currentArmature: dbft.Armature;
@@ -29,11 +30,13 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     frameArray.length = 0;
     frameIntArray.length = 0;
     frameFloatArray.length = 0;
+    colorArray.length = 0;
     for (let k in colors) {
         delete colors[k];
     }
 
     const binaryDatas = new Array<dbft.MeshDisplay>();
+
     for (currentArmature of data.armature) {
         for (const skin of currentArmature.skin) {
             for (const slot of skin.slot) {
@@ -99,13 +102,11 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
         for (const animation of animationBinarys) {
             currentArmature.animation.push(animation);
         }
+    }
 
-        // Clear binary data. 
-        for (const data of binaryDatas) {
-            data.clearToBinary();
-        }
-
-        binaryDatas.length = 0;
+    // Clear binary data. 
+    for (const data of binaryDatas) {
+        data.clearToBinary();
     }
 
     // Align.
@@ -125,6 +126,10 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
         timelineArray.push(0);
     }
 
+    if ((colorArray.length % Int16Array.BYTES_PER_ELEMENT) !== 0) {
+        colorArray.push(0);
+    }
+
     // Offset.
     data.offset[0] = 0;
     data.offset[1] = intArray.length * Int16Array.BYTES_PER_ELEMENT;
@@ -138,6 +143,8 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     data.offset[9] = frameArray.length * Int16Array.BYTES_PER_ELEMENT;
     data.offset[10] = data.offset[8] + data.offset[9];
     data.offset[11] = timelineArray.length * Uint16Array.BYTES_PER_ELEMENT;
+    data.offset[12] = data.offset[10] + data.offset[11];
+    data.offset[13] = colorArray.length * Int16Array.BYTES_PER_ELEMENT;
     utils.compress(data, dbft.compressConfig);
 
     // Write DragonBones format tag.
@@ -149,7 +156,7 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     byteArray.writeByte(0);
     byteArray.writeByte(0);
     byteArray.writeByte(0);
-    byteArray.writeByte(1);
+    byteArray.writeByte(2);
 
     const jsonString = JSON.stringify(data);
     byteArray.writeUTF(jsonString, true);
@@ -167,7 +174,8 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
         frameIntArray.length * Int16Array.BYTES_PER_ELEMENT +
         frameFloatArray.length * Float32Array.BYTES_PER_ELEMENT +
         frameArray.length * Int16Array.BYTES_PER_ELEMENT +
-        timelineArray.length * Uint16Array.BYTES_PER_ELEMENT;
+        timelineArray.length * Uint16Array.BYTES_PER_ELEMENT +
+        colorArray.length * Int16Array.BYTES_PER_ELEMENT;
 
     for (const value of intArray) {
         byteArray.writeShort(value);
@@ -193,6 +201,10 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
         byteArray.writeUnsignedShort(value);
     }
 
+    for (const value of colorArray) {
+        byteArray.writeShort(value);
+    }
+
     return byteArray.buffer;
 }
 
@@ -207,6 +219,10 @@ function createColor(value: geom.ColorTransform): number {
     intArray[offset + 5] = value.rO;
     intArray[offset + 6] = value.gO;
     intArray[offset + 7] = value.bO;
+
+    if (offset >= 65536) {
+        // TODO
+    }
 
     return offset;
 }
@@ -350,9 +366,9 @@ function createTweenFrame(frame: dbft.TweenFrame, frameStart: number): number {
 
             frameArray.length += 1 + 1 + samples.length;
             frameArray[frameOffset + dbft.BinaryOffset.FrameTweenType] = dbft.TweenType.Curve;
-            frameArray[frameOffset + dbft.BinaryOffset.FrameTweenEasingOrCurveSampleCount] = sampleCount;
+            frameArray[frameOffset + dbft.BinaryOffset.FrameTweenEasingOrCurveSampleCount] = sampleCount; //
             for (let i = 0; i < sampleCount; ++i) {
-                frameArray[frameOffset + dbft.BinaryOffset.FrameCurveSamples + i] = Math.round(samples[i] * 10000.0);
+                frameArray[frameOffset + dbft.BinaryOffset.FrameCurveSamples + i] = Math.round(samples[i] * 10000.0); // 速率极值 [-3.00~3.00]
             }
         }
         else {
