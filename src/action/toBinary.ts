@@ -227,7 +227,7 @@ function createPath(value: dbft.PathDisplay): number {
     const offset = intArray.length;
     const vertexOffset = floatArray.length;
 
-    intArray.length += 1 + 1 + 1;
+    intArray.length += 1 + 1 + 1 + 1;
     intArray[offset + dbft.BinaryOffset.PathVertexCount] = vertexCount;
     intArray[offset + dbft.BinaryOffset.PathFloatOffset] = vertexOffset;
 

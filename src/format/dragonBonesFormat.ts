@@ -63,8 +63,8 @@ export enum BinaryOffset {
     DeformFloatOffset = 4,
 
     PathVertexCount = 0,
-    PathFloatOffset = 1,
-    PathWeightOffset = 2,
+    PathFloatOffset = 2,
+    PathWeightOffset = 3,
 }
 
 export enum ArmatureType {
