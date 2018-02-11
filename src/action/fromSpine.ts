@@ -250,7 +250,12 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                         display.slotPose.push(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
                     }
 
-                    display.edges = dbft.getEdgeFormTriangles(display.triangles);
+                    const edges = dbft.getEdgeFormTriangles(display.triangles);
+                    display.edges.length = edges.length;
+                    for (const value of edges) {
+                        display.edges.push(value);
+                    }
+
                     if (attachment.edges.length !== attachment.hull * 2) {
                         for (let i = attachment.hull * 2; i < attachment.edges.length; ++i) {
                             display.userEdges.push(attachment.edges[i] / 2);
@@ -284,45 +289,76 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                     display.constantSpeed = attachment.constantSpeed;
 
                     display.vertexCount = attachment.vertexCount;
-                    display.lengths = attachment.lengths;
+                    display.lengths.length = attachment.lengths.length;
+
+                    for (let i = 0, l = attachment.lengths.length; i < l; i++) {
+                        display.lengths[i] = attachment.lengths[i];
+                    }
 
                     //
-                    // const slotPos = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
-                    // geom.helpMatrixA.copyFromArray(slotPos, 0);
+                    // const bones = new Array<number>();
+                    // // weight
+                    // for (let iW = 0; iW < attachment.vertices.length;) {
+                    //     const boneCount = attachment.vertices[iW++];
 
-                    const bones = new Array<number>();
-                    // weight
-                    for (let iW = 0; iW < attachment.vertices.length;) {
-                        const boneCount = attachment.vertices[iW++];
+                    //     display.weights.push(boneCount);
 
-                        display.weights.push(boneCount);
+                    //     let xG: number = 0.0;
+                    //     let yG: number = 0.0;
+                    //     for (let j = 0; j < boneCount; j++) {
+                    //         const boneIndex = attachment.vertices[iW++];
+                    //         const xL = attachment.vertices[iW++];
+                    //         const yL = -attachment.vertices[iW++];
+                    //         const weight = attachment.vertices[iW++];
+                    //         const bone = armature.getBone(data.data.bones[boneIndex].name);
+                    //         if (bone && bone._global) {
+                    //             const boneIndex = armature.bone.indexOf(bone);
+                    //             bone._global.toMatrix(geom.helpMatrixA);
+                    //             geom.helpMatrixA.transformPoint(xL, yL, geom.helpPointA);
+                    //             xG += geom.helpPointA.x * weight;
+                    //             yG += geom.helpPointA.y * weight;
+                    //             display.weights.push(boneIndex);
+                    //             display.weights.push(weight);
+                    //             if (bones.indexOf(boneIndex) < 0) {
+                    //                 bones.push(boneIndex);
+                    //                 display.bonePose.push(boneIndex, geom.helpMatrixA.a, geom.helpMatrixA.b, geom.helpMatrixA.c, geom.helpMatrixA.d, geom.helpMatrixA.tx, geom.helpMatrixA.ty);
+                    //             }
+                    //         }
+                    //     }
 
-                        let xG: number = 0.0;
-                        let yG: number = 0.0;
-                        for (let j = 0; j < boneCount; j++) {
-                            const boneIndex = attachment.vertices[iW++];
-                            const xL = attachment.vertices[iW++];
-                            const yL = -attachment.vertices[iW++];
-                            const weight = attachment.vertices[iW++];
-                            const bone = armature.getBone(data.data.bones[boneIndex].name);
-                            if (bone && bone._global) {
-                                const boneIndex = armature.bone.indexOf(bone);
-                                bone._global.toMatrix(geom.helpMatrixA);
-                                geom.helpMatrixA.transformPoint(xL, yL, geom.helpPointA);
-                                xG += geom.helpPointA.x * weight;
-                                yG += geom.helpPointA.y * weight;
+                    //     display.vertices.push(xG, yG);
+                    // }
+                    // display.slotPose.push(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+
+                    //没有权重数据，这么这些就是曲线顶点数据
+                    if (attachment.vertexCount * 2 === attachment.vertices.length) {
+                        display.vertices.length = attachment.vertices.length;
+                        for (let i = 0, l = attachment.vertices.length; i < l; i++) {
+                            display.vertices[i] = attachment.vertices[i];
+                        }
+                    }
+                    else {//有权重数据(boneCount:boneIndex:boneX:boneY:weight...)
+                        for (let iW = 0; iW < attachment.vertices.length;) {
+                            const boneCount = attachment.vertices[iW++];
+                            display.weights.push(boneCount);
+
+                            for (let j = 0; j < boneCount; j++) {
+                                const boneIndex = attachment.vertices[iW++];
+                                const xL = attachment.vertices[iW++];
+                                const yL = -attachment.vertices[iW++];
+                                const weight = attachment.vertices[iW++];
+
                                 display.weights.push(boneIndex);
                                 display.weights.push(weight);
-                                if (bones.indexOf(boneIndex) < 0) {
-                                    bones.push(boneIndex);
-                                    display.bonePose.push(boneIndex, geom.helpMatrixA.a, geom.helpMatrixA.b, geom.helpMatrixA.c, geom.helpMatrixA.d, geom.helpMatrixA.tx, geom.helpMatrixA.ty);
+
+                                display.vertices.push(xL, yL);
+
+                                if (display.bones.indexOf(boneIndex) < 0) {
+                                    display.bones.push(boneIndex);
                                 }
                             }
                         }
-
-                        display.vertices.push(xG, yG);
                     }
-                    display.slotPose.push(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
 
                     slot.display.push(display);
                 }

@@ -35,7 +35,7 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
         delete colors[k];
     }
 
-    const binaryDatas = new Array<dbft.MeshDisplay>();
+    const binaryDatas = new Array<dbft.Display>();
 
     for (currentArmature of data.armature) {
         for (const skin of currentArmature.skin) {
@@ -43,6 +43,14 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
                 for (const display of slot.display) {
                     if (display instanceof dbft.MeshDisplay) {
                         display.offset = createMesh(display);
+                        binaryDatas.push(display);
+                    }
+                    else if (display instanceof dbft.PathDisplay) {
+                        display.offset = createVertices(display);
+                        binaryDatas.push(display);
+                    }
+                    else if (display instanceof dbft.PolygonBoundingBoxDisplay) {
+                        display.offset = createVertices(display);
                         binaryDatas.push(display);
                     }
                 }
@@ -227,6 +235,62 @@ function createColor(value: geom.ColorTransform): number {
     return offset;
 }
 
+function createVertices(value: dbft.VerticesData): number {
+    const vertexCount = value.vertexCount;
+    const offset = intArray.length;
+    const vertexOffset = floatArray.length;
+
+    intArray.length += 1 + 1 + 1 + 1;
+    intArray[offset + dbft.BinaryOffset.MeshVertexCount] = vertexCount;
+    intArray[offset + dbft.BinaryOffset.MeshTriangleCount] = 0;
+    intArray[offset + dbft.BinaryOffset.MeshFloatOffset] = vertexOffset;
+
+    if (value.weights.length === 0) {
+        floatArray.length += value.vertices.length;
+
+        for (let i = 0, l = value.vertices.length; i < l; i++) {
+            floatArray[vertexOffset + i] = value.vertices[i];
+        }
+
+        intArray[offset + dbft.BinaryOffset.MeshWeightOffset] = -1;
+    }
+    else {
+        const weightBoneCount = value.bones.length;
+        const weightCount = Math.floor(value.weights.length - vertexCount) / 2; // uint
+        const weightOffset = intArray.length;
+        const floatOffset = floatArray.length;
+
+        intArray.length += 1 + 1 + weightBoneCount;
+        intArray[weightOffset + dbft.BinaryOffset.WeigthBoneCount] = weightBoneCount;
+        intArray[weightOffset + dbft.BinaryOffset.WeigthFloatOffset] = floatOffset;
+
+        for (let i = 0; i < weightBoneCount; i++) {
+            intArray[weightOffset + dbft.BinaryOffset.WeigthBoneIndices + i] = value.bones[i];
+        }
+
+        floatArray.length += weightCount * 3;
+
+        for (let i = 0, iV = 0, iW = 0, iB = weightOffset + dbft.BinaryOffset.WeigthBoneIndices + weightBoneCount, iF = floatOffset; i < weightCount; i++) {
+            const boneCount = value.weights[iW++];
+            intArray[iB++] = boneCount;
+
+            for (let j = 0; j < boneCount; j++) {
+                const boneIndex = value.weights[iW++];
+                const boneWeight = value.weights[iW++];
+
+                intArray[iB++] = value.bones.indexOf(boneIndex);
+                floatArray[iF++] = boneWeight;
+                floatArray[iF++] = value.vertices[iV++];
+                floatArray[iF++] = value.vertices[iV++];
+            }
+        }
+
+        intArray[offset + dbft.BinaryOffset.MeshWeightOffset] = weightOffset;
+    }
+
+    return offset;
+}
+
 function createMesh(value: dbft.MeshDisplay): number {
     const vertexCount = Math.floor(value.vertices.length / 2); // uint
     const triangleCount = Math.floor(value.triangles.length / 3); // uint
@@ -362,13 +426,14 @@ function createTweenFrame(frame: dbft.TweenFrame, frameStart: number): number {
         if (frame.curve.length > 0) {
             const sampleCount = frame.duration + 1;
             const samples = new Array<number>(sampleCount);
-            dbft.samplingEasingCurve(frame.curve, samples);
+            const isOmited = dbft.samplingEasingCurve(frame.curve, samples);
 
             frameArray.length += 1 + 1 + samples.length;
             frameArray[frameOffset + dbft.BinaryOffset.FrameTweenType] = dbft.TweenType.Curve;
-            frameArray[frameOffset + dbft.BinaryOffset.FrameTweenEasingOrCurveSampleCount] = sampleCount; //
+            frameArray[frameOffset + dbft.BinaryOffset.FrameTweenEasingOrCurveSampleCount] = isOmited ? sampleCount : -sampleCount; // Notice: If not omit data, the count is negative number.
+
             for (let i = 0; i < sampleCount; ++i) {
-                frameArray[frameOffset + dbft.BinaryOffset.FrameCurveSamples + i] = Math.round(samples[i] * 10000.0); // 速率极值 [-3.00~3.00]
+                frameArray[frameOffset + dbft.BinaryOffset.FrameCurveSamples + i] = Math.round(samples[i] * 10000.0); // Min ~ Max [-3.00~3.00]
             }
         }
         else {
