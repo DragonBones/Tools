@@ -1,6 +1,6 @@
 import { Map } from "../common/types";
 import * as utils from "../common/utils";
-import { Matrix, Transform, ColorTransform, Point, Rectangle, helpPointA } from "./geom";
+import { Transform, ColorTransform, Point, Rectangle, helpMatrixA, helpMatrixB, helpPointA } from "./geom";
 import * as geom from "./geom";
 import * as dbftV23 from "./dragonBonesFormatV23";
 /**
@@ -155,47 +155,6 @@ export function isDragonBonesString(string: string): boolean {
     return testString.indexOf("armature") > 0 || testString.indexOf("textureAtlas") > 0;
 }
 
-export function getFrameByPosition<T extends Frame>(frames: T[], position: number): T {
-    let index = 0;
-    let currentPosition = 0;
-
-    for (const frame of frames) {
-        if (frame._position >= 0) {
-            if (frame._position === position) {
-                return frame;
-            }
-            else if (frame._position > position) {
-                return frames[index - 1];
-            }
-        }
-        else {
-            if (currentPosition === position) {
-                return frame;
-            }
-            else if (currentPosition > position) {
-                return frames[index - 1];
-            }
-
-            currentPosition += frame.duration;
-        }
-
-        index++;
-    }
-
-    return frames[0];
-}
-
-export function getTextureFormTextureAtlases(name: string, textureAtlases: TextureAtlas[]): Texture | null {
-    for (const textureAtlas of textureAtlases) {
-        const texture = textureAtlas.getTexture(name);
-        if (texture !== null) {
-            return texture;
-        }
-    }
-
-    return null;
-}
-
 export function getCurvePoint(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, t: number, result: Point): void {
     const l_t = 1 - t;
     const powA = l_t * l_t;
@@ -277,10 +236,9 @@ export function getCurveEasingValue(t: number, curve: number[]): number {
     }
 }
 
-export function samplingEasingCurve(curve: Array<number>, samples: Array<number>): boolean {
+export function samplingEasingCurve(curve: Array<number>, samples: Array<number>, isOmited: boolean): void {
     const curveCount = curve.length;
-
-    if (curveCount % 3 === 1) {
+    if (isOmited) { // The beginning and end vertices are omitted. (0.0, 0.0, ..., 1.0, 1.0)
         let stepIndex = -2;
         for (let i = 0, l = samples.length; i < l; ++i) {
             let t = (i + 1) / (l + 1);
@@ -302,9 +260,9 @@ export function samplingEasingCurve(curve: Array<number>, samples: Array<number>
             let higher = 1.0;
             while (higher - lower > 0.0001) {
                 const percentage = (higher + lower) / 2.0;
-                getCurvePoint(x1, y1, x2, y2, x3, y3, x4, y4, percentage, geom.helpPointA);
+                getCurvePoint(x1, y1, x2, y2, x3, y3, x4, y4, percentage, helpPointA);
 
-                if (t - geom.helpPointA.x > 0.0) {
+                if (t - helpPointA.x > 0.0) {
                     lower = percentage;
                 }
                 else {
@@ -312,15 +270,22 @@ export function samplingEasingCurve(curve: Array<number>, samples: Array<number>
                 }
             }
 
-            samples[i] = geom.helpPointA.y;
+            samples[i] = helpPointA.y;
         }
-
-        return true;
     }
-    else {
+    else { // Full vertices.
         let stepIndex = 0;
         for (let i = 0, l = samples.length; i < l; ++i) {
-            let t = (i + 1) / (l + 1);
+            if (i === 0) {
+                samples[i] = curve[1];
+                continue;
+            }
+            else if (i === l - 1) {
+                samples[i] = curve[curveCount - 1];
+                continue;
+            }
+
+            let t = i / (l - 1);
             while (curve[stepIndex + 6] < t) { // stepIndex + 3 * 2
                 stepIndex += 6;
             }
@@ -338,8 +303,9 @@ export function samplingEasingCurve(curve: Array<number>, samples: Array<number>
             let higher = 1.0;
             while (higher - lower > 0.0001) {
                 const percentage = (higher + lower) / 2.0;
-                getCurvePoint(x1, y1, x2, y2, x3, y3, x4, y4, percentage, geom.helpPointA);
-                if (t - geom.helpPointA.x > 0.0) {
+                getCurvePoint(x1, y1, x2, y2, x3, y3, x4, y4, percentage, helpPointA);
+
+                if (t - helpPointA.x > 0.0) {
                     lower = percentage;
                 }
                 else {
@@ -347,10 +313,8 @@ export function samplingEasingCurve(curve: Array<number>, samples: Array<number>
                 }
             }
 
-            samples[i] = geom.helpPointA.y;
+            samples[i] = helpPointA.y;
         }
-
-        return false;
     }
 }
 
@@ -426,6 +390,47 @@ export function getEdgeFormTriangles(triangles: number[]): number[] {
     }
 
     return result;
+}
+
+export function getFrameByPosition<T extends Frame>(frames: T[], position: number): T {
+    let index = 0;
+    let currentPosition = 0;
+
+    for (const frame of frames) {
+        if (frame._position >= 0) {
+            if (frame._position === position) {
+                return frame;
+            }
+            else if (frame._position > position) {
+                return frames[index - 1];
+            }
+        }
+        else {
+            if (currentPosition === position) {
+                return frame;
+            }
+            else if (currentPosition > position) {
+                return frames[index - 1];
+            }
+
+            currentPosition += frame.duration;
+        }
+
+        index++;
+    }
+
+    return frames[0];
+}
+
+export function getTextureFormTextureAtlases(name: string, textureAtlases: TextureAtlas[]): Texture | null {
+    for (const textureAtlas of textureAtlases) {
+        const texture = textureAtlas.getTexture(name);
+        if (texture !== null) {
+            return texture;
+        }
+    }
+
+    return null;
 }
 
 export function oldActionToNewAction(oldAction: OldAction): Action {
@@ -667,11 +672,6 @@ export class Armature {
     }
 
     localToGlobal(): void {
-        this.sortBones();
-
-        const helpMatrixA = new Matrix();
-        const helpMatrixB = new Matrix();
-
         for (const bone of this.bone) {
             if (!bone._global) {
                 bone._global = new Transform();

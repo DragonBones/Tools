@@ -224,6 +224,7 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
         }
 
         if (data.isGlobal) {
+            armature.sortBones();
             globalToLocal(armature);
         }
     }
@@ -236,7 +237,6 @@ function sortSkinSlot(a: dbftV23.Slot, b: dbftV23.Slot): number {
 }
 
 function globalToLocal(armature: dbft.Armature): void {
-    armature.sortBones();
     const bones = armature.bone.concat().reverse();
     for (const bone of bones) {
         const parent = armature.getBone(bone.parent);

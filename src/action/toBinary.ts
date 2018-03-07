@@ -424,9 +424,10 @@ function createTweenFrame(frame: dbft.TweenFrame, frameStart: number): number {
 
     if (frame.duration > 0) {
         if (frame.curve.length > 0) {
-            const sampleCount = frame.duration + 1;
+            const isOmited = (frame.curve.length % 3) === 1;
+            const sampleCount = frame.duration + (isOmited ? 1 : 3);
             const samples = new Array<number>(sampleCount);
-            const isOmited = dbft.samplingEasingCurve(frame.curve, samples);
+            dbft.samplingEasingCurve(frame.curve, samples);
 
             frameArray.length += 1 + 1 + samples.length;
             frameArray[frameOffset + dbft.BinaryOffset.FrameTweenType] = dbft.TweenType.Curve;

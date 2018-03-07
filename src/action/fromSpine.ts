@@ -136,7 +136,8 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
         armature.bone.push(bone);
     }
-
+    
+    armature.sortBones();
     armature.localToGlobal();
 
     const slotDisplays: Map<string[]> = {}; // Create attachments sort.
