@@ -43,7 +43,7 @@ const helpPoint = new geom.Point();
 function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
     const result = new dbft.DragonBones();
 
-    result.frameRate = result.frameRate;
+    result.frameRate = data.frameRate;
     result.name = data.name;
     result.version = dbft.DATA_VERSION_4_5;
     result.compatibleVersion = dbft.DATA_VERSION_4_0;
