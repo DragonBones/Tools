@@ -918,7 +918,7 @@ function createMeshDeformTimeline(value: dbft.MeshDeformTimeline): number[] {
         frameFloatArray.push(firstValues[i]);
     }
 
-    for (let i = count - 1; i > end; --i) {
+    for (let i = end + 1; i < count; i++) {
         frameFloatArray.push(firstValues[i]);
     }
 
