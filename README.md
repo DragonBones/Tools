@@ -15,12 +15,12 @@ $ `npm install dragonbones-tools --global`
     $ `db2 --help`
 
 ## How to use
-* Convert old DragonBones json format files to new DragonBones json format files in current path.
-    
-    $ `2db -t new`
 * Convert Spine json format files to DragonBones json format files in current path.
     
     $ `2db -t spine`
+* Convert old DragonBones json format files to new DragonBones json format files in current path.
+    
+    $ `db2 -t new`
 * Convert DragonBones json format files to Spine json format files in current path.
     
     $ `db2 -t spine`
