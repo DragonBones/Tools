@@ -1,4 +1,4 @@
-import * as dbft from "../format/dragonBonesFormat";
+import * as dbft from "format/dragonBonesFormat";
 
 export default function (data: dbft.DragonBones): dbft.DragonBones {
     data.version = dbft.DATA_VERSION_4_5;

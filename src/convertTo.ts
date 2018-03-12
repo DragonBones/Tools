@@ -2,21 +2,22 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as commander from "commander";
-import * as utils from "./common/utils";
-import * as dbft from "./format/dragonBonesFormat";
-import * as spft from "./format/spineFormat";
-import * as dbUtils from "./format/utils";
-import toFormat from "./action/toFormat";
-import toV45 from "./action/toV45";
-import toNew from "./action/toNew";
-import toBinary from "./action/toBinary";
-import toWeb from "./action/toWeb";
-import toSpine from "./action/toSpine";
-import format from "./action/formatFormat";
+import * as object from "common/object";
+import * as nodeUtils from "common/nodeUtils";
+import * as dbft from "format/dragonBonesFormat";
+import * as spft from "format/spineFormat";
+import * as dbUtils from "format/utils";
+import toFormat from "action/toFormat";
+import toV45 from "action/toV45";
+import toNew from "action/toNew";
+import toBinary from "action/toBinary";
+import toWeb from "action/toWeb";
+import toSpine from "action/toSpine";
+import format from "action/formatFormat";
 
 function execute(): void {
     const commands = commander
-        .version("0.0.14")
+        .version("0.0.51")
         .option("-i, --input [path]", "Input path")
         .option("-o, --output [path]", "Output path")
         .option("-t, --type [type]", "Convert to type [binary, new, v45, player, viewer, spine]", /^(binary|new|v45|player|viewer|spine|none)$/i, "none")
@@ -62,7 +63,7 @@ function execute(): void {
             return;
     }
 
-    const files = utils.filterFileList(input, /\.(json)$/i);
+    const files = nodeUtils.filterFileList(input, /\.(json)$/i);
     for (const file of files) {
         if (filter && file.indexOf(filter) < 0) {
             continue;
@@ -184,7 +185,7 @@ function execute(): void {
             case "new": {
                 toNew(dragonBonesData, false);
                 format(dragonBonesData);
-                utils.compress(dragonBonesData, dbft.compressConfig);
+                object.compress(dragonBonesData, dbft.compressConfig);
 
                 const result = JSON.stringify(dragonBonesData);
                 const outputFile = output ? file.replace(input, output) : file;
@@ -248,7 +249,7 @@ function execute(): void {
             case "v45": {
                 toV45(dragonBonesData);
                 format(dragonBonesData);
-                utils.compress(dragonBonesData, dbft.compressConfig);
+                object.compress(dragonBonesData, dbft.compressConfig);
 
                 const result = JSON.stringify(dragonBonesData);
                 const outputFile = output ? file.replace(input, output) : file;
@@ -361,7 +362,7 @@ function execute(): void {
                 console.log(dragonBonesData.name);
 
                 for (const spine of result.spines) {
-                    utils.compress(spine, spft.compressConfig);
+                    object.compress(spine, spft.compressConfig);
                     const outputFile = (result.spines.length > 1 ? base + "_" + spine.skeleton.name : base) + (output ? ".json" : "_spine.json");
                     delete spine.skeleton.name; // delete keep name.
                     if (!fs.existsSync(path.dirname(outputFile))) {
@@ -421,7 +422,7 @@ function execute(): void {
 
 function getTextureAtlas(textureAtlasFile: string): dbft.TextureAtlas {
     const textureAtlas = new dbft.TextureAtlas();
-    utils.copyFromObject(textureAtlas, JSON.parse(fs.readFileSync(textureAtlasFile, "utf-8")), dbft.copyConfig);
+    object.copyObjectFrom(textureAtlas, JSON.parse(fs.readFileSync(textureAtlasFile, "utf-8")), dbft.copyConfig);
 
     return textureAtlas;
 }

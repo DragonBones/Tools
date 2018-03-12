@@ -1,6 +1,6 @@
-export interface Map<T> {
+type Map<T> = {
     [key: string]: T;
-}
+};
 
 export const MineContentTypes: Map<string> = {
     "css": "text/css",

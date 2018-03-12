@@ -1,9 +1,9 @@
-import { Map } from "../common/types";
-// import * as utils from "../common/utils";
-import * as geom from "../format/geom";
-import * as dbft from "../format/dragonBonesFormat";
-import * as spft from "../format/spineFormat";
-
+import * as geom from "format/geom";
+import * as dbft from "format/dragonBonesFormat";
+import * as spft from "format/spineFormat";
+type Map<T> = {
+    [key: string]: T;
+};
 type Input = {
     name: string;
     data: spft.Spine;
@@ -136,7 +136,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
         armature.bone.push(bone);
     }
-    
+
     armature.sortBones();
     armature.localToGlobal();
 

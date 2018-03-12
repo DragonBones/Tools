@@ -1,7 +1,5 @@
-import { Map } from "../common/types";
-import * as utils from "../common/utils";
-import { Transform, ColorTransform, Point, Rectangle, helpMatrixA, helpMatrixB, helpPointA } from "./geom";
-import * as geom from "./geom";
+import * as utils from "common/utils";
+import { normalizeDegree, Transform, ColorTransform, Point, Rectangle, helpMatrixA, helpMatrixB, helpPointA } from "./geom";
 import * as dbftV23 from "./dragonBonesFormatV23";
 /**
  * DragonBones format.
@@ -141,6 +139,10 @@ export enum TweenType {
     QuadOut = 4,
     QuadInOut = 5
 }
+
+type Map<T> = {
+    [key: string]: T;
+};
 
 export interface VerticesData {
     offset: number;
@@ -540,7 +542,11 @@ export function mergeActionToAnimation(
     }
 }
 
-export class DragonBones {
+export class BaseData {
+    extra: Map<any> | null = null;
+}
+
+export class DragonBones extends BaseData {
     frameRate: number = 0;
     name: string = "";
     stage: string = "";
@@ -553,13 +559,13 @@ export class DragonBones {
     userData: UserData | null = null;
 }
 
-export class UserData {
+export class UserData extends BaseData {
     readonly ints: number[] = [];
     readonly floats: number[] = [];
     readonly strings: string[] = [];
 }
 
-export class OldAction {
+export class OldAction extends BaseData {
     gotoAndPlay: string = "";
 }
 
@@ -570,7 +576,7 @@ export class Action extends UserData {
     slot: string = "";
 }
 
-export class Canvas {
+export class Canvas extends BaseData {
     hasBackground: boolean = false;
     color: number = -1;
     x: number = 0;
@@ -579,7 +585,7 @@ export class Canvas {
     height: number = 0;
 }
 
-export class Armature {
+export class Armature extends BaseData {
     type: ArmatureType | string = ArmatureType[ArmatureType.Armature].toLowerCase();
     frameRate: number = 0;
     name: string = "";
@@ -726,7 +732,7 @@ export class Armature {
     }
 }
 
-export class Bone {
+export class Bone extends BaseData {
     type: BoneType | string = BoneType[BoneType.Bone].toLowerCase();
     inheritTranslation: boolean = true;
     inheritRotation: boolean = true;
@@ -753,7 +759,7 @@ export class Surface extends Bone {
     }
 }
 
-export class Slot {
+export class Slot extends BaseData {
     blendMode: BlendMode | string = BlendMode[BlendMode.Normal].toLowerCase();
     displayIndex: number = 0;
     name: string = "";
@@ -763,7 +769,7 @@ export class Slot {
     userData: UserData | null = null;
 }
 
-export class IKConstraint {
+export class IKConstraint extends BaseData {
     bendPositive: boolean = true;
     chain: number = 0;
     weight: number = 1.00;
@@ -772,7 +778,7 @@ export class IKConstraint {
     target: string = "";
 }
 
-export class PathConstraint {
+export class PathConstraint extends BaseData {
     name: string = "";
     target: string = "";
     bones: string[] = [];
@@ -788,7 +794,7 @@ export class PathConstraint {
     translateMix: number = 0;
 }
 
-export class Skin {
+export class Skin extends BaseData {
     name: string = "default";
     readonly slot: SkinSlot[] = [];
     userData: UserData | null = null;
@@ -804,7 +810,7 @@ export class Skin {
     }
 }
 
-export class SkinSlot {
+export class SkinSlot extends BaseData {
     name: string = "";
     readonly display: (Display | null)[] = [];
     readonly actions: OldAction[] = []; // Deprecated.
@@ -820,7 +826,7 @@ export class SkinSlot {
     }
 }
 
-export abstract class Display {
+export abstract class Display extends BaseData {
     type: DisplayType | string = DisplayType[DisplayType.Image].toLowerCase();
     name: string = "";
     readonly transform: Transform = new Transform();
@@ -1009,7 +1015,7 @@ export class PolygonBoundingBoxDisplay extends BoundingBoxDisplay implements Ver
     }
 }
 
-export class Animation {
+export class Animation extends BaseData {
     duration: number = 1;
     playTimes: number = 1;
     scale: number = 1.0;
@@ -1045,7 +1051,7 @@ export class Animation {
     }
 }
 
-export class AnimationBinary {
+export class AnimationBinary extends BaseData {
     duration: number = 0;
     playTimes: number = 1;
     scale: number = 1.0;
@@ -1061,7 +1067,7 @@ export class AnimationBinary {
     readonly constraint: Map<number[]> = {};
 }
 
-export abstract class Timeline {
+export abstract class Timeline extends BaseData {
     scale: number = 1.0;
     offset: number = 0.0;
     name: string = "";
@@ -1161,8 +1167,8 @@ export class BoneTimeline extends Timeline {
 
                 if (from.tweenRotate === 0) {
                     insert.tweenRotate = 0;
-                    insert.transform.skX = from.transform.skX + geom.normalizeDegree(to.transform.skX - from.transform.skX) * progress;
-                    insert.transform.skY = from.transform.skY + geom.normalizeDegree(to.transform.skY - from.transform.skY) * progress;
+                    insert.transform.skX = from.transform.skX + normalizeDegree(to.transform.skX - from.transform.skX) * progress;
+                    insert.transform.skY = from.transform.skY + normalizeDegree(to.transform.skY - from.transform.skY) * progress;
                 }
                 else {
                     let tweenRotate = from.tweenRotate;
@@ -1180,8 +1186,8 @@ export class BoneTimeline extends Timeline {
                         tweenRotate = tweenRotate > 0 ? tweenRotate - 1 : tweenRotate + 1;
                     }
 
-                    insert.transform.skX = from.transform.skX + geom.normalizeDegree(to.transform.skX - from.transform.skX + 360.0 * tweenRotate) * progress;
-                    insert.transform.skY = from.transform.skY + geom.normalizeDegree(to.transform.skY - from.transform.skY + 360.0 * tweenRotate) * progress;
+                    insert.transform.skX = from.transform.skX + normalizeDegree(to.transform.skX - from.transform.skX + 360.0 * tweenRotate) * progress;
+                    insert.transform.skY = from.transform.skY + normalizeDegree(to.transform.skY - from.transform.skY + 360.0 * tweenRotate) * progress;
                 }
             }
             else {
@@ -1202,7 +1208,7 @@ export class BoneTimeline extends Timeline {
             if (to instanceof BoneRotateFrame) {
                 if (from.clockwise === 0) {
                     insert.clockwise = 0;
-                    insert.rotate = from.rotate + geom.normalizeDegree(to.rotate - from.rotate) * progress;
+                    insert.rotate = from.rotate + normalizeDegree(to.rotate - from.rotate) * progress;
                 }
                 else {
                     let clockwise = from.clockwise;
@@ -1382,7 +1388,7 @@ export class AnimationTimeline extends Timeline {
     readonly frame: AnimationFrame[] = [];
 }
 
-export abstract class Frame {
+export abstract class Frame extends BaseData {
     duration: number = 1;
     _position: number = -1;
 
@@ -1504,7 +1510,7 @@ export class BoneRotateFrame extends TweenFrame {
         const frame = new BoneRotateFrame();
 
         if (this.clockwise === 0) {
-            frame.rotate = this.rotate + geom.normalizeDegree(to.rotate - this.rotate) * progress;
+            frame.rotate = this.rotate + normalizeDegree(to.rotate - this.rotate) * progress;
         }
         else {
             let clockwise = this.clockwise;
@@ -1595,7 +1601,7 @@ export class AnimationFrame extends TweenFrame {
     }
 }
 
-export class TextureAtlas {
+export class TextureAtlas extends BaseData {
     width: number = 0;
     height: number = 0;
     scale: number = 1.00;
@@ -1614,7 +1620,7 @@ export class TextureAtlas {
     }
 }
 
-export class Texture {
+export class Texture extends BaseData {
     rotated: boolean = false;
     x: number = 0;
     y: number = 0;

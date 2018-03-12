@@ -1,7 +1,7 @@
-import * as utils from "../common/utils";
-import * as geom from "../format/geom";
-import * as dbft from "../format/dragonBonesFormat";
-import * as dbftV23 from "../format/dragonBonesFormatV23";
+import * as object from "common/object";
+import * as geom from "format/geom";
+import * as dbft from "format/dragonBonesFormat";
+import * as dbftV23 from "format/dragonBonesFormatV23";
 /**
  * Convert json string to DragonBones format.
  */
@@ -17,13 +17,13 @@ export default function (jsonString: string, getTextureAtlases: () => dbft.Textu
         if (dbft.DATA_VERSIONS.indexOf(version) < dbft.DATA_VERSIONS.indexOf(dbft.DATA_VERSION_4_0)) {
             textureAtlases = getTextureAtlases();
             const data = new dbftV23.DragonBones();
-            utils.copyFromObject(data, json, dbftV23.copyConfig);
+            object.copyObjectFrom(data, json, dbftV23.copyConfig);
 
             return V23ToV45(data);
         }
 
         const result = new dbft.DragonBones();
-        utils.copyFromObject(result, json, dbft.copyConfig);
+        object.copyObjectFrom(result, json, dbft.copyConfig);
 
         return result;
     }

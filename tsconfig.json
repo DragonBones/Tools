@@ -11,13 +11,13 @@
 		"strictNullChecks": true,
 		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
-		"target": "es5",
+		"target": "es6",
 		"module": "commonjs",
 		"newLine": "LF",
 		"baseUrl": "./src",
 		"outDir": "./out",
 		"lib": [
-			"es5",
+			"es6",
 			"dom",
 			"es2015.promise"
 		]

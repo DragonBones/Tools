@@ -32,7 +32,7 @@ $ `npm install dragonbones-tools --global`
     $ `db2 -t binary -i d:/input -o d:/output -d`
 
 ## Notice
-* Make sure you have installed [nodeJS](https://nodejs.org/https://nodejs.org/).
+* Make sure you have installed [nodeJS](https://nodejs.org/).
 * Make sure you have installed a browser that supports html5.
 * Make sure backup your raw resources before convert.
 

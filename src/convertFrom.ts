@@ -2,16 +2,17 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as commander from "commander";
-import * as utils from "./common/utils";
-import * as dbft from "./format/dragonBonesFormat";
-import * as spft from "./format/spineFormat";
-import fromSpine from "./action/fromSpine";
-import format from "./action/formatFormat";
-import * as helper from "./helper/helperRemote";
+import * as object from "common/object";
+import * as nodeUtils from "common/nodeUtils";
+import * as dbft from "format/dragonBonesFormat";
+import * as spft from "format/spineFormat";
+import fromSpine from "action/fromSpine";
+import format from "action/formatFormat";
+import * as helper from "helper/helperRemote";
 
 function execute(): void {
     const commands = commander
-        .version("0.0.14")
+        .version("0.0.51")
         .option("-i, --input [path]", "Input path")
         .option("-o, --output [path]", "Output path")
         .option("-t, --type [type]", "Convert from type [spine, cocos]", /^(spine|cocos)$/i, "none")
@@ -30,7 +31,7 @@ function execute(): void {
     switch (type) {
         case "spine":
             {
-                const files = utils.filterFileList(input, /\.(json)$/i);
+                const files = nodeUtils.filterFileList(input, /\.(json)$/i);
 
                 for (const file of files) {
                     if (filter && file.indexOf(filter) < 0) {
@@ -50,7 +51,7 @@ function execute(): void {
                     }
 
                     const spine = new spft.Spine();
-                    utils.copyFromObject(spine, JSON.parse(fileString), spft.copyConfig);
+                    object.copyObjectFrom(spine, JSON.parse(fileString), spft.copyConfig);
                     const result = fromSpine({ name: fileName, data: spine, textureAtlas: textureAtlasString });
                     const outputFile = (output ? file.replace(input, output) : file).replace(".json", "_ske.json");
                     format(result);
@@ -58,7 +59,7 @@ function execute(): void {
                     const textureAtlases = result.textureAtlas.concat(); // TODO
                     result.textureAtlas.length = 0;
 
-                    utils.compress(result, dbft.compressConfig);
+                    object.compress(result, dbft.compressConfig);
                     if (!fs.existsSync(path.dirname(outputFile))) {
                         fs.mkdirsSync(path.dirname(outputFile));
                     }
@@ -86,7 +87,7 @@ function execute(): void {
                             fs.mkdirsSync(path.dirname(imageOutputFile));
                         }
 
-                        utils.compress(textureAtlas, dbft.compressConfig);
+                        object.compress(textureAtlas, dbft.compressConfig);
                         if (!fs.existsSync(path.dirname(outputFile))) {
                             fs.mkdirsSync(path.dirname(outputFile));
                         }

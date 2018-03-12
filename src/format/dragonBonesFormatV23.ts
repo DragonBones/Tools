@@ -1,5 +1,5 @@
+import * as utils from "common/utils";
 import { Transform, ColorTransform } from "./geom";
-import * as utils from "../common/utils";
 import * as dbft from "./dragonBonesFormat";
 /**
  * DragonBones format v23.

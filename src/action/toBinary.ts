@@ -1,8 +1,11 @@
-import { Map } from "../common/types";
-import * as utils from "../common/utils";
-import { Endian, ByteArray } from "../common/byteArray";
-import * as geom from "../format/geom";
-import * as dbft from "../format/dragonBonesFormat";
+import * as object from "common/object";
+import { Endian, ByteArray } from "common/byteArray";
+import * as geom from "format/geom";
+import * as dbft from "format/dragonBonesFormat";
+
+type Map<T> = {
+    [key: string]: T;
+};
 
 const byteArray: ByteArray = new ByteArray();
 
@@ -153,7 +156,7 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     data.offset[11] = timelineArray.length * Uint16Array.BYTES_PER_ELEMENT;
     data.offset[12] = data.offset[10] + data.offset[11];
     data.offset[13] = colorArray.length * Int16Array.BYTES_PER_ELEMENT;
-    utils.compress(data, dbft.compressConfig);
+    object.compress(data, dbft.compressConfig);
 
     // Write DragonBones format tag.
     byteArray.endian = Endian.LITTLE_ENDIAN;
