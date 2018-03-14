@@ -2,13 +2,13 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as commander from "commander";
-import * as object from "common/object";
-import * as nodeUtils from "common/nodeUtils";
-import * as dbft from "format/dragonBonesFormat";
-import * as spft from "format/spineFormat";
-import fromSpine from "action/fromSpine";
-import format from "action/formatFormat";
-import * as helper from "helper/helperRemote";
+import * as object from "./common/object";
+import * as nodeUtils from "./common/nodeUtils";
+import * as dbft from "./format/dragonBonesFormat";
+import * as spft from "./format/spineFormat";
+import fromSpine from "./action/fromSpine";
+import format from "./action/formatFormat";
+import * as helper from "./helper/helperRemote";
 
 function execute(): void {
     const commands = commander
@@ -51,7 +51,7 @@ function execute(): void {
                     }
 
                     const spine = new spft.Spine();
-                    object.copyObjectFrom(spine, JSON.parse(fileString), spft.copyConfig);
+                    object.copyObjectFrom(JSON.parse(fileString), spine, spft.copyConfig);
                     const result = fromSpine({ name: fileName, data: spine, textureAtlas: textureAtlasString });
                     const outputFile = (output ? file.replace(input, output) : file).replace(".json", "_ske.json");
                     format(result);

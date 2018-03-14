@@ -1,5 +1,5 @@
-import * as geom from "format/geom";
-import * as dbft from "format/dragonBonesFormat";
+import * as geom from "../format/geom";
+import * as dbft from "../format/dragonBonesFormat";
 
 const normalColor = new geom.ColorTransform();
 

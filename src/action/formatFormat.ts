@@ -1,5 +1,5 @@
-import * as geom from "format/geom";
-import * as dbft from "format/dragonBonesFormat";
+import * as geom from "../format/geom";
+import * as dbft from "../format/dragonBonesFormat";
 
 type Map<T> = {
     [key: string]: T;

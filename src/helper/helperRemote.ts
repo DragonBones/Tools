@@ -1,7 +1,7 @@
 import * as fs from "fs-extra";
 import * as http from "http";
-import * as nodeUtils from "common/nodeUtils";
-import { Code, Gate } from "common/server";
+import * as nodeUtils from "../common/nodeUtils";
+import { Code, Gate } from "../common/server";
 
 type Input = {
     id?: number;

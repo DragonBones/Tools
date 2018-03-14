@@ -1,17 +1,17 @@
 import * as http from "http";
-import * as object from "common/object";
-import * as nodeUtils from "common/nodeUtils";
-import { Code, Gate } from "common/server";
-import * as dbft from "format/dragonBonesFormat";
-import * as spft from "format/spineFormat";
-import fromSpine from "action/fromSpine";
-import toFormat from "action/toFormat";
-import toV45 from "action/toV45";
-import toNew from "action/toNew";
-import toBinary from "action/toBinary";
-import toWeb from "action/toWeb";
-import toSpine from "action/toSpine";
-import format from "action/formatFormat";
+import * as object from "./common/object";
+import * as nodeUtils from "./common/nodeUtils";
+import { Code, Gate } from "./common/server";
+import * as dbft from "./format/dragonBonesFormat";
+import * as spft from "./format/spineFormat";
+import fromSpine from "./action/fromSpine";
+import toFormat from "./action/toFormat";
+import toV45 from "./action/toV45";
+import toNew from "./action/toNew";
+import toBinary from "./action/toBinary";
+import toWeb from "./action/toWeb";
+import toSpine from "./action/toSpine";
+import format from "./action/formatFormat";
 
 type Input = {
     from: "spine" | "cocos";
@@ -76,7 +76,7 @@ gate.actions["/convert"] = (request, response) => {
                         }
 
                         const spine = new spft.Spine();
-                        object.copyObjectFrom(spine, JSON.parse(spineInput.data), spft.copyConfig);
+                        object.copyObjectFrom(JSON.parse(spineInput.data), spine, spft.copyConfig);
                         const result = fromSpine({ name: spineInput.name, data: spine, textureAtlas: spineInput.textureAtlas }, true);
                         format(result);
                         object.compress(result, dbft.compressConfig);

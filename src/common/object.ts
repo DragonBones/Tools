@@ -1,10 +1,4 @@
-﻿let defaultMaxCount: number = 3000;
-let hashCode: number = 0;
-const instances: Map<Function, any> = new Map();
-const maxCountMap: Map<Function, number> = new Map();
-const poolsMap: Map<Function, BaseObject[]> = new Map();
-
-export function copyObjectFrom(from: any, to: any, config: any[] | null): void {
+﻿export function copyObjectFrom(from: any, to: any, config: any[] | null): void {
     let dataConfig: any = null;
     if (config !== null) {
         const index = config.indexOf(to.constructor);
@@ -93,7 +87,7 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
                 }
             }
             else {
-                copyObjectFrom(data, object, config);
+                copyObjectFrom(object, data, config);
             }
         }
         else if (creater) {
@@ -101,7 +95,7 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
                 if (creater[1] === Function) {
                     const clazz = creater[0](object);
                     parent[key] = data = new clazz();
-                    copyObjectFrom(data, object, config);
+                    copyObjectFrom(object, data, config);
                 }
                 else {
                     parent[key] = data = creater[1] === Array ? [] : {};
@@ -112,7 +106,7 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
             }
             else if (creater) {
                 parent[key] = data = new creater();
-                copyObjectFrom(data, object, config);
+                copyObjectFrom(object, data, config);
             }
             else {
                 console.warn(`${key}: shallow copy.`);
@@ -192,111 +186,4 @@ export function compress(data: any, config: any[]): boolean {
     }
 
     return false;
-}
-
-export function getInstance<T extends BaseObject>(clazz: { new(): T }, arg: any = undefined): T {
-    let instance = instances.get(clazz);
-    if (!instance) {
-        instance = create(clazz, arg);
-        instances.set(clazz, instance);
-    }
-
-    return instance;
-}
-
-export function create<T extends BaseObject>(clazz: { new(...arg: any[]): T }, arg: any = undefined): T {
-    const pool = poolsMap.get(clazz);
-    if (pool && pool.length > 0) {
-        const object = pool.pop() as T;
-
-        return object;
-    }
-
-    const object = arg !== undefined ? new clazz(arg) : new clazz();
-    (object as any)._onClear(); // protected.
-
-    return object;
-}
-
-export function setMaxCount(clazz: { new(): BaseObject }, maxCount: number): void {
-    if (maxCount < 0 || maxCount !== maxCount) {
-        maxCount = 0;
-    }
-
-    if (clazz) {
-        const pool = poolsMap.get(clazz);
-        maxCountMap.set(clazz, maxCount);
-
-        if (pool && pool.length > maxCount) {
-            pool.length = maxCount;
-        }
-    }
-    else {
-        defaultMaxCount = maxCount;
-
-        for (const pair of poolsMap) {
-            const pool = poolsMap.get(pair[0]);
-            if (!pool) {
-                throw new Error();
-            }
-
-            if (pool.length > maxCount) {
-                pool.length = maxCount;
-            }
-
-            if (maxCountMap.has(pair[0])) {
-                maxCountMap.set(pair[0], maxCount);
-            }
-        }
-    }
-}
-
-export function clear(clazz: { new(): BaseObject } | null): void {
-    if (clazz) {
-        const pool = poolsMap.get(clazz);
-        if (pool && pool.length) {
-            pool.length = 0;
-        }
-    }
-    else {
-        for (const pair of poolsMap) {
-            pair[1].length = 0;
-        }
-    }
-}
-
-export abstract class BaseObject {
-    public static toString(): string {
-        throw new Error();
-    }
-
-    public readonly hashCode: number = hashCode++;
-
-    protected abstract _onClear(): void;
-
-    public release(): void {
-        this._onClear();
-
-        const clazz = this.constructor;
-        const maxCount = maxCountMap.has(clazz) ? maxCountMap.get(clazz) as number : defaultMaxCount;
-
-        if (!poolsMap.has(clazz)) {
-            poolsMap.set(clazz, []);
-        }
-
-        const pool = poolsMap.get(clazz);
-
-        if (!pool) {
-            throw new Error();
-        }
-
-        if (pool.length < maxCount) {
-            console.assert(pool.indexOf(this) < 0);
-            pool.push(this);
-        }
-    }
-
-    public dispose(): void {
-        this._onClear();
-    }
 }

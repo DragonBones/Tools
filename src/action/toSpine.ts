@@ -1,7 +1,7 @@
-import * as utils from "common/utils";
-import * as geom from "format/geom";
-import * as dbft from "format/dragonBonesFormat";
-import * as spft from "format/spineFormat";
+import * as utils from "../common/utils";
+import * as geom from "../format/geom";
+import * as dbft from "../format/dragonBonesFormat";
+import * as spft from "../format/spineFormat";
 
 type ResultType = { spines: spft.Spine[], textureAtlas: string };
 /**

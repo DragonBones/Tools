@@ -1,10 +1,10 @@
 #! /usr/bin/env node
 import * as fs from "fs";
 import * as path from "path";
-import * as nodeUtils from "common/nodeUtils";
-import * as dbft from "format/dragonBonesFormat";
-import * as resft from "format/resFormat";
-import * as dbUtils from "format/utils";
+import * as nodeUtils from "../common/nodeUtils";
+import * as dbft from "../format/dragonBonesFormat";
+import * as resft from "../format/resFormat";
+import * as dbUtils from "../format/utils";
 
 const RESOURCE_PATH = "resource";
 const RESOURCE_NAME = "base_test.res.json";

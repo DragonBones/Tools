@@ -2,18 +2,18 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as commander from "commander";
-import * as object from "common/object";
-import * as nodeUtils from "common/nodeUtils";
-import * as dbft from "format/dragonBonesFormat";
-import * as spft from "format/spineFormat";
-import * as dbUtils from "format/utils";
-import toFormat from "action/toFormat";
-import toV45 from "action/toV45";
-import toNew from "action/toNew";
-import toBinary from "action/toBinary";
-import toWeb from "action/toWeb";
-import toSpine from "action/toSpine";
-import format from "action/formatFormat";
+import * as object from "./common/object";
+import * as nodeUtils from "./common/nodeUtils";
+import * as dbft from "./format/dragonBonesFormat";
+import * as spft from "./format/spineFormat";
+import * as dbUtils from "./format/utils";
+import toFormat from "./action/toFormat";
+import toV45 from "./action/toV45";
+import toNew from "./action/toNew";
+import toBinary from "./action/toBinary";
+import toWeb from "./action/toWeb";
+import toSpine from "./action/toSpine";
+import format from "./action/formatFormat";
 
 function execute(): void {
     const commands = commander
@@ -422,7 +422,7 @@ function execute(): void {
 
 function getTextureAtlas(textureAtlasFile: string): dbft.TextureAtlas {
     const textureAtlas = new dbft.TextureAtlas();
-    object.copyObjectFrom(textureAtlas, JSON.parse(fs.readFileSync(textureAtlasFile, "utf-8")), dbft.copyConfig);
+    object.copyObjectFrom(JSON.parse(fs.readFileSync(textureAtlasFile, "utf-8")), textureAtlas, dbft.copyConfig);
 
     return textureAtlas;
 }

@@ -1,7 +1,7 @@
-import * as object from "common/object";
-import { Endian, ByteArray } from "common/byteArray";
-import * as geom from "format/geom";
-import * as dbft from "format/dragonBonesFormat";
+import * as object from "../common/object";
+import { Endian, ByteArray } from "../common/byteArray";
+import * as geom from "../format/geom";
+import * as dbft from "../format/dragonBonesFormat";
 
 type Map<T> = {
     [key: string]: T;

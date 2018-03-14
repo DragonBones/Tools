@@ -1,6 +1,6 @@
-import * as geom from "format/geom";
-import * as dbft from "format/dragonBonesFormat";
-import * as spft from "format/spineFormat";
+import * as geom from "../format/geom";
+import * as dbft from "../format/dragonBonesFormat";
+import * as spft from "../format/spineFormat";
 type Map<T> = {
     [key: string]: T;
 };
