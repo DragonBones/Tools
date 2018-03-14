@@ -6,6 +6,7 @@ import * as utils from "./common/utils";
 import * as dbft from "./format/dragonBonesFormat";
 import * as spft from "./format/spineFormat";
 import fromSpine from "./action/fromSpine";
+import fromLive2D from "./action/fromLive2D";
 import format from "./action/formatFormat";
 import * as helper from "./helper/helperRemote";
 
@@ -14,7 +15,7 @@ function execute(): void {
         .version("0.0.14")
         .option("-i, --input [path]", "Input path")
         .option("-o, --output [path]", "Output path")
-        .option("-t, --type [type]", "Convert from type [spine, cocos]", /^(spine|cocos)$/i, "none")
+        .option("-t, --type [type]", "Convert from type [spine, cocos, live2d]", /^(spine|cocos|live2d)$/i, "none")
         .option("-f, --filter [keyword]", "Filter")
         .option("-d, --delete", "Delete raw files after convert complete.")
         .parse(process.argv);
@@ -129,6 +130,117 @@ function execute(): void {
                 }
                 break;
             }
+
+        case "live2d":
+            const files = utils.filterFileList(input, /\.(moc)$/i);
+
+            for (const file of files) {
+                if (filter && file.indexOf(filter) < 0) {
+                    continue;
+                }
+                const fileBuffer = fs.readFileSync(file);
+                const fileName = path.basename(file).replace(".moc", "");
+
+                const textureAtlasFile = path.join(path.dirname(file), fileName + ".png");
+                let textureWidth = 0;
+                let textureHeight = 0;
+                if (fs.existsSync(textureAtlasFile)) {
+                    const textureAtlasBuffer = fs.readFileSync(textureAtlasFile);
+                    if (textureAtlasBuffer.toString('ascii', 12, 16) === "CgBI") {
+                        textureWidth = textureAtlasBuffer.readUInt32BE(32);
+                        textureHeight = textureAtlasBuffer.readUInt32BE(36);
+                    }
+                    else {
+                        textureWidth = textureAtlasBuffer.readUInt32BE(16);
+                        textureHeight = textureAtlasBuffer.readUInt32BE(20);
+                    }
+
+                    console.log("w:" + textureWidth + " h:" + textureHeight);
+                }
+
+                const result = fromLive2D({ name: fileName, data: fileBuffer.buffer, textureAtlas: fileName, textureAtlasWidth: textureWidth, textureAtlasHeight: textureHeight });
+                if (result === null) {
+                    continue;
+                }
+                const outputFile = (output ? file.replace(input, output) : file).replace(".moc", "_ske.json");
+                format(result);
+                //create textureAtlas
+                const textureAtlases = result.textureAtlas.concat(); // TODO
+                result.textureAtlas.length = 0;
+                
+                utils.compress(result, dbft.compressConfig);
+                if (!fs.existsSync(path.dirname(outputFile))) {
+                    fs.mkdirsSync(path.dirname(outputFile));
+                }
+                fs.writeFileSync(
+                    outputFile,
+                    JSON.stringify(result)
+                );
+
+                if (deleteRaw) {
+                    fs.removeSync(file);
+                    fs.removeSync(textureAtlasFile);
+                }
+
+                let index = 0;
+                for (const textureAtlas of textureAtlases) {
+                    const pageName = `_tex${textureAtlases.length > 1 ? index++ : ""}`;
+                    const outputFile = (output ? file.replace(input, output) : file).replace(".moc", pageName + ".json");
+                    const textureAtlasImage = path.join(path.dirname(file), textureAtlas.imagePath);
+
+                    textureAtlas.imagePath = path.basename(outputFile).replace(".json", ".png");
+
+                    const imageOutputFile = path.join(path.dirname(outputFile), textureAtlas.imagePath);
+                    if (!fs.existsSync(path.dirname(imageOutputFile))) {
+                        fs.mkdirsSync(path.dirname(imageOutputFile));
+                    }
+
+                    utils.compress(textureAtlas, dbft.compressConfig);
+                    if (!fs.existsSync(path.dirname(outputFile))) {
+                        fs.mkdirsSync(path.dirname(outputFile));
+                    }
+
+                    fs.writeFileSync(
+                        outputFile,
+                        JSON.stringify(textureAtlas)
+                    );
+
+                    let hasRotated = false;
+                    for (const texture of textureAtlas.SubTexture) {
+                        if (texture.rotated) {
+                            hasRotated = true;
+                        }
+                    }
+
+                    if (deleteRaw) {
+                        fs.moveSync(textureAtlasImage, imageOutputFile);
+                    }
+                    else {
+                        fs.copySync(textureAtlasImage, imageOutputFile);
+                    }
+
+                    if (hasRotated) {
+                        const input = {
+                            type: "modify_spine_textureatlas",
+                            data: {
+                                file: imageOutputFile,
+                                config: textureAtlas,
+                                texture: fs.readFileSync(imageOutputFile, "base64")
+                            }
+                        };
+
+                        helper.addInput(input);
+                    }
+
+                    console.log(outputFile);
+                    console.log(imageOutputFile);
+                }
+
+                console.log(outputFile);
+
+                ///
+            }
+            break;
 
         case "cocos":
             // loadTextureAtlasToData = true;

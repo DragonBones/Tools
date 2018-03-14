@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"watch": false,
-		"sourceMap": false,
+		"sourceMap": true,
 		"declaration": false,
 		"alwaysStrict": true,
 		"noImplicitAny": true,
