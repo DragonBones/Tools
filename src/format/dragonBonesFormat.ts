@@ -666,6 +666,16 @@ export class Armature {
         return null;
     }
 
+    getAnimation(animationName: string): Animation | AnimationBinary | null {
+        for (const animation of this.animation) {
+            if (animation.name === animationName) {
+                return animation;
+            }
+        }
+
+        return null;
+    }
+
     localToGlobal(): void {
         this.sortBones();
 
@@ -1021,11 +1031,22 @@ export class Animation {
     readonly slot: SlotTimeline[] = [];
     readonly ffd: MeshDeformTimeline[] = [];
     readonly ik: IKConstraintTimeline[] = [];
-    readonly animation: AnimationTimeline[] = [];
+    readonly time: AnimationTimeline[] = [];
+    readonly weight: AnimationTimeline[] = [];
     zOrder: ZOrderTimeline | null = null;
 
     getSlotTimeline(name: string): SlotTimeline | null {
         for (const timeline of this.slot) {
+            if (timeline.name === name) {
+                return timeline;
+            }
+        }
+
+        return null;
+    }
+
+    getDeformTimeline(name: string): MeshDeformTimeline | null {
+        for (const timeline of this.ffd) {
             if (timeline.name === name) {
                 return timeline;
             }
@@ -1587,14 +1608,11 @@ export class IKConstraintFrame extends TweenFrame {
 }
 
 export class AnimationFrame extends TweenFrame {
-    value: number = -1;
-    weight: number = 1.0;
-
+    value: number = 0.0;
     equal(value: this): boolean {
-        return this.value === value.value && this.weight === value.weight;
+        return this.value === value.value;
     }
 }
-
 export class TextureAtlas {
     width: number = 0;
     height: number = 0;
@@ -1752,7 +1770,8 @@ export const copyConfig = [
         slot: SlotTimeline,
         ffd: MeshDeformTimeline,
         ik: IKConstraintTimeline,
-        animation: AnimationTimeline
+        time: AnimationTimeline,
+        weight: AnimationTimeline
     },
     ZOrderTimeline, {
         frame: ZOrderFrame

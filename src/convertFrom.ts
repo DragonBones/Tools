@@ -5,6 +5,7 @@ import * as commander from "commander";
 import * as utils from "./common/utils";
 import * as dbft from "./format/dragonBonesFormat";
 import * as spft from "./format/spineFormat";
+import * as l2ft from "./format/live2dFormat";
 import fromSpine from "./action/fromSpine";
 import fromLive2D from "./action/fromLive2D";
 import format from "./action/formatFormat";
@@ -141,6 +142,24 @@ function execute(): void {
                 const fileBuffer = fs.readFileSync(file);
                 const fileName = path.basename(file).replace(".moc", "");
 
+                const reader = new l2ft.Live2DReader(fileBuffer.buffer);
+
+                const num = reader.readByte();
+                const num2 = reader.readByte();
+                const num3 = reader.readByte();
+                if (((num !== 0x6d) || (num2 !== 0x6f)) || (num3 !== 0x63)) {
+                    console.log("Invalid version");
+                    continue;
+                }
+
+                const version = reader.readByte();
+                reader.version = version;
+                if (version > 11) {
+                    console.log("Invalid version:" + version);
+                    continue;
+                }
+
+
                 const textureAtlasFile = path.join(path.dirname(file), fileName + ".png");
                 let textureWidth = 0;
                 let textureHeight = 0;
@@ -154,11 +173,10 @@ function execute(): void {
                         textureWidth = textureAtlasBuffer.readUInt32BE(16);
                         textureHeight = textureAtlasBuffer.readUInt32BE(20);
                     }
-
-                    console.log("w:" + textureWidth + " h:" + textureHeight);
                 }
 
-                const result = fromLive2D({ name: fileName, data: fileBuffer.buffer, textureAtlas: fileName, textureAtlasWidth: textureWidth, textureAtlasHeight: textureHeight });
+                const model: l2ft.ModelImpl = reader.readObject() as l2ft.ModelImpl;
+                const result = fromLive2D({ name: fileName, data: model, textureAtlas: fileName, textureAtlasWidth: textureWidth, textureAtlasHeight: textureHeight });
                 if (result === null) {
                     continue;
                 }
