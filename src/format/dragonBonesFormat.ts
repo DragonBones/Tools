@@ -748,6 +748,8 @@ export class Bone extends BaseData {
 }
 
 export class Surface extends Bone {
+    offset: number = -1; // Binary.
+
     segmentX: number = 0;
     segmentY: number = 0;
     readonly vertices: number[] = [];
@@ -756,6 +758,10 @@ export class Surface extends Bone {
         super();
 
         this.type = BoneType[BoneType.Surface].toLowerCase();
+    }
+
+    clearToBinary(): void {
+        this.vertices.length = 0;
     }
 }
 

@@ -145,16 +145,6 @@ gate.actions["/convert"] = (request, response) => {
                                 "string"
                             )
                         );
-                        // TODO
-                        for (const armature of dragonBonesData.armature) {
-                            if (armature.ik) {
-                                for (const ik of armature.ik) {
-                                    if (ik.bendPositive === false) {
-                                        ik.bendPositive = "false" as any;
-                                    }
-                                }
-                            }
-                        }
                         break;
                     }
 
@@ -182,7 +172,7 @@ gate.actions["/convert"] = (request, response) => {
                     case "viewer": {
                         toNew(dragonBonesData, true);
                         format(dragonBonesData);
-                        
+
                         const result = toWeb(
                             {
                                 data: new Buffer(toBinary(dragonBonesData)),
