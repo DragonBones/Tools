@@ -1027,7 +1027,8 @@ export class Animation extends BaseData {
     readonly slot: SlotTimeline[] = [];
     readonly ffd: MeshDeformTimeline[] = [];
     readonly ik: IKConstraintTimeline[] = [];
-    readonly animation: AnimationTimeline[] = [];
+    readonly state: StateTimeline[] = [];
+    readonly blend: BlendTimeline[] = [];
     zOrder: ZOrderTimeline | null = null;
 
     getSlotTimeline(name: string): SlotTimeline | null {
@@ -1384,8 +1385,14 @@ export class IKConstraintTimeline extends Timeline {
     readonly frame: IKConstraintFrame[] = [];
 }
 
-export class AnimationTimeline extends Timeline {
-    readonly frame: AnimationFrame[] = [];
+export class StateTimeline extends Timeline {
+    positionX: number = 0.0;
+    positionY: number = 0.0;
+    readonly frame: StateFrame[] = [];
+}
+
+export class BlendTimeline extends Timeline {
+    readonly frame: BlendFrame[] = [];
 }
 
 export abstract class Frame extends BaseData {
@@ -1592,12 +1599,21 @@ export class IKConstraintFrame extends TweenFrame {
     }
 }
 
-export class AnimationFrame extends TweenFrame {
-    value: number = -1;
+export class StateFrame extends TweenFrame {
+    progress: number = 0.0;
     weight: number = 1.0;
 
     equal(value: this): boolean {
-        return this.value === value.value && this.weight === value.weight;
+        return this.progress === value.progress && this.weight === value.weight;
+    }
+}
+
+export class BlendFrame extends TweenFrame {
+    paramaterX: number = 0.0;
+    paramaterY: number = 0.0;
+
+    equal(value: this): boolean {
+        return this.paramaterX === value.paramaterX && this.paramaterY === value.paramaterY;
     }
 }
 
@@ -1758,7 +1774,8 @@ export const copyConfig = [
         slot: SlotTimeline,
         ffd: MeshDeformTimeline,
         ik: IKConstraintTimeline,
-        animation: AnimationTimeline
+        state: StateTimeline,
+        blend: BlendTimeline,
     },
     ZOrderTimeline, {
         frame: ZOrderFrame
@@ -1783,8 +1800,11 @@ export const copyConfig = [
     IKConstraintTimeline, {
         frame: IKConstraintFrame
     },
-    AnimationTimeline, {
-        frame: AnimationFrame
+    StateTimeline, {
+        frame: StateFrame
+    },
+    BlendTimeline, {
+        frame: BlendFrame
     },
     ActionFrame, {
         actions: Action,
@@ -1838,7 +1858,8 @@ export const compressConfig = [
     new SlotTimeline(),
     new MeshDeformTimeline(),
     new IKConstraintTimeline(),
-    new AnimationTimeline(),
+    new StateTimeline(),
+    new BlendTimeline(),
     new ActionFrame(),
     new ZOrderFrame(),
     new BoneAllFrame(),
@@ -1850,7 +1871,8 @@ export const compressConfig = [
     new SlotDisplayFrame(),
     new SlotColorFrame(),
     new IKConstraintFrame(),
-    new AnimationFrame(),
+    new StateFrame(),
+    new BlendFrame(),
 
     new TextureAtlas(),
     new Texture()

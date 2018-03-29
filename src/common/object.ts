@@ -28,7 +28,7 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
             parent[key] = object;
         }
         else if (dataType === "boolean") {
-            console.warn(`${key}: ${objectType} is not a boolean.`);
+            // console.warn(`${key}: ${objectType} is not a boolean.`);
             switch (object) {
                 case "0":
                 case "NaN":
@@ -45,7 +45,7 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
             }
         }
         else if (dataType === "number") {
-            console.warn(`${key}: ${objectType} is not a number.`);
+            // console.warn(`${key}: ${objectType} is not a number.`);
             if (object === "NaN" || object === null) {
                 parent[key] = NaN;
             }
@@ -54,7 +54,7 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
             }
         }
         else if (dataType === "string") {
-            console.warn(`${key}: ${objectType} is not a string.`);
+            // console.warn(`${key}: ${objectType} is not a string.`);
             if (object || object === object) {
                 parent[key] = String(object);
             }
@@ -68,7 +68,7 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
     }
     else if (object instanceof Array) {
         if (!(data instanceof Array)) {
-            console.warn(`${key}: ${dataType} is not an array.`);
+            // console.warn(`${key}: ${dataType} is not an array.`);
             parent[key] = data = [];
         }
 
@@ -109,12 +109,12 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
                 copyObjectFrom(object, data, config);
             }
             else {
-                console.warn(`${key}: shallow copy.`);
+                // console.warn(`${key}: shallow copy.`);
                 parent[key] = object;
             }
         }
         else {
-            console.warn(`${key}: shallow copy.`);
+            // console.warn(`${key}: shallow copy.`);
             parent[key] = object;
         }
     }
