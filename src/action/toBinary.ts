@@ -1,13 +1,10 @@
 import * as object from "../common/object";
-import { Endian, ByteArray } from "../common/byteArray";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
 type Map<T> = {
     [key: string]: T;
 };
-
-const byteArray: ByteArray = new ByteArray();
 
 const intArray: Array<number> = [];
 const floatArray: Array<number> = [];
@@ -26,7 +23,6 @@ let currentAnimationBinary: dbft.AnimationBinary;
  */
 export default function (data: dbft.DragonBones): ArrayBuffer {
     // Clean helper.
-    byteArray.clear();
     intArray.length = 0;
     floatArray.length = 0;
     timelineArray.length = 0;
@@ -159,7 +155,6 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     object.compress(data, dbft.compressConfig);
 
     // Write DragonBones format tag.
-    byteArray.endian = Endian.LITTLE_ENDIAN;
     byteArray.writeByte("D".charCodeAt(0));
     byteArray.writeByte("B".charCodeAt(0));
     byteArray.writeByte("D".charCodeAt(0));
@@ -170,10 +165,9 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     byteArray.writeByte(2);
 
     const jsonString = JSON.stringify(data);
-    byteArray.writeUTF(jsonString, true);
+    const jsonArray = stringToUTF8Array(jsonString);
+    modifyBytesPosition(jsonArray, " ".charCodeAt(0));
 
-    // Modify json length.
-    modifyBytesPosition(byteArray, " ".charCodeAt(0));
     const position = byteArray.position;
     byteArray.position = 8;
     byteArray.writeUnsignedInt(position - 8 - 4);
@@ -960,8 +954,40 @@ function createIKConstraintTimeline(value: dbft.IKConstraintTimeline): number[] 
     return timelines;
 }
 
-function modifyBytesPosition(bytes: ByteArray, byte: number = 0): void {
-    while ((bytes.position % 4) !== 0) {
-        bytes.writeByte(byte);
+function modifyBytesPosition(bytes: number[], byte: number = 0): void {
+    while ((bytes.length % 4) !== 0) {
+        bytes.push(byte);
     }
+}
+
+function stringToUTF8Array(string: string): number[] {
+    const result: number[] = [];
+
+    for (let i = 0; i < string.length; i++) {
+        const c = string.charAt(i);
+        const cc = c.charCodeAt(0);
+
+        if (cc > 0xFFFF) {
+            throw new Error("InvalidCharacterError");
+        }
+
+        if (cc > 0x80) {
+            if (cc < 0x07FF) {
+                const c1 = (cc >>> 6) | 0xC0;
+                const c2 = (cc & 0x3F) | 0x80;
+                result.push(c1, c2);
+            }
+            else {
+                const c1 = (cc >>> 12) | 0xE0;
+                const c2 = ((cc >>> 6) & 0x3F) | 0x80;
+                const c3 = (cc & 0x3F) | 0x80;
+                result.push(c1, c2, c3);
+            }
+        }
+        else {
+            result.push(cc);
+        }
+    }
+
+    return result;
 }
