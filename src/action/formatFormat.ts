@@ -1,6 +1,9 @@
-import { Map } from "common/types";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
+
+type Map<T> = {
+    [key: string]: T;
+};
 
 export default function (data: dbft.DragonBones | null, textureAtlases: dbft.TextureAtlas[] | null = null): void {
     if (data) {

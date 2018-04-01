@@ -1,10 +1,10 @@
-import { Map } from "../common/types";
-import * as utils from "../common/utils";
-import { Endian, ByteArray } from "../common/byteArray";
+import * as object from "../common/object";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
-const byteArray: ByteArray = new ByteArray();
+type Map<T> = {
+    [key: string]: T;
+};
 
 const intArray: Array<number> = [];
 const floatArray: Array<number> = [];
@@ -23,7 +23,6 @@ let currentAnimationBinary: dbft.AnimationBinary;
  */
 export default function (data: dbft.DragonBones): ArrayBuffer {
     // Clean helper.
-    byteArray.clear();
     intArray.length = 0;
     floatArray.length = 0;
     timelineArray.length = 0;
@@ -139,81 +138,76 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     }
 
     // Offset.
+    let byteLength = 0;
+    let byteOffset = 0;
     data.offset[0] = 0;
-    data.offset[1] = intArray.length * Int16Array.BYTES_PER_ELEMENT;
+    byteLength += data.offset[1] = intArray.length * Int16Array.BYTES_PER_ELEMENT;
     data.offset[2] = data.offset[0] + data.offset[1];
-    data.offset[3] = floatArray.length * Float32Array.BYTES_PER_ELEMENT;
+    byteLength += data.offset[3] = floatArray.length * Float32Array.BYTES_PER_ELEMENT;
     data.offset[4] = data.offset[2] + data.offset[3];
-    data.offset[5] = frameIntArray.length * Int16Array.BYTES_PER_ELEMENT;
+    byteLength += data.offset[5] = frameIntArray.length * Int16Array.BYTES_PER_ELEMENT;
     data.offset[6] = data.offset[4] + data.offset[5];
-    data.offset[7] = frameFloatArray.length * Float32Array.BYTES_PER_ELEMENT;
+    byteLength += data.offset[7] = frameFloatArray.length * Float32Array.BYTES_PER_ELEMENT;
     data.offset[8] = data.offset[6] + data.offset[7];
-    data.offset[9] = frameArray.length * Int16Array.BYTES_PER_ELEMENT;
+    byteLength += data.offset[9] = frameArray.length * Int16Array.BYTES_PER_ELEMENT;
     data.offset[10] = data.offset[8] + data.offset[9];
-    data.offset[11] = timelineArray.length * Uint16Array.BYTES_PER_ELEMENT;
+    byteLength += data.offset[11] = timelineArray.length * Uint16Array.BYTES_PER_ELEMENT;
     data.offset[12] = data.offset[10] + data.offset[11];
-    data.offset[13] = colorArray.length * Int16Array.BYTES_PER_ELEMENT;
-    utils.compress(data, dbft.compressConfig);
-
-    // Write DragonBones format tag.
-    byteArray.endian = Endian.LITTLE_ENDIAN;
-    byteArray.writeByte("D".charCodeAt(0));
-    byteArray.writeByte("B".charCodeAt(0));
-    byteArray.writeByte("D".charCodeAt(0));
-    byteArray.writeByte("T".charCodeAt(0));
-    byteArray.writeByte(0);
-    byteArray.writeByte(0);
-    byteArray.writeByte(0);
-    byteArray.writeByte(2);
-
+    byteLength += data.offset[13] = colorArray.length * Int16Array.BYTES_PER_ELEMENT;
+    object.compress(data, dbft.compressConfig);
+    //
     const jsonString = JSON.stringify(data);
-    byteArray.writeUTF(jsonString, true);
+    const jsonArray = stringToUTF8Array(jsonString);
+    modifyBytesPosition(jsonArray, " ".charCodeAt(0));
+    //
+    const buffer = new ArrayBuffer(4 + 4 + 4 + jsonArray.length + byteLength);
+    const dataView = new DataView(buffer);
+    // Write DragonBones format tag.
+    dataView.setUint8(byteOffset++, "D".charCodeAt(0));
+    dataView.setUint8(byteOffset++, "B".charCodeAt(0));
+    dataView.setUint8(byteOffset++, "D".charCodeAt(0));
+    dataView.setUint8(byteOffset++, "T".charCodeAt(0));
+    //
+    dataView.setUint8(byteOffset++, 0);
+    dataView.setUint8(byteOffset++, 0);
+    dataView.setUint8(byteOffset++, 0);
+    dataView.setUint8(byteOffset++, 2);
+    //
+    dataView.setUint32(byteOffset, jsonArray.length, true); byteOffset += 4;
 
-    // Modify json length.
-    modifyBytesPosition(byteArray, " ".charCodeAt(0));
-    const position = byteArray.position;
-    byteArray.position = 8;
-    byteArray.writeUnsignedInt(position - 8 - 4);
-    byteArray.position = position;
-
-    byteArray.length +=
-        intArray.length * Int16Array.BYTES_PER_ELEMENT +
-        floatArray.length * Float32Array.BYTES_PER_ELEMENT +
-        frameIntArray.length * Int16Array.BYTES_PER_ELEMENT +
-        frameFloatArray.length * Float32Array.BYTES_PER_ELEMENT +
-        frameArray.length * Int16Array.BYTES_PER_ELEMENT +
-        timelineArray.length * Uint16Array.BYTES_PER_ELEMENT +
-        colorArray.length * Int16Array.BYTES_PER_ELEMENT;
+    for (const value of jsonArray) {
+        dataView.setUint8(byteOffset++, value);
+    }
 
     for (const value of intArray) {
-        byteArray.writeShort(value);
+        dataView.setInt16(byteOffset, value, true); byteOffset += 2;
     }
 
     for (const value of floatArray) {
-        byteArray.writeFloat(value);
+        dataView.setFloat32(byteOffset, value, true); byteOffset += 4;
     }
 
     for (const value of frameIntArray) {
-        byteArray.writeShort(value);
+        dataView.setInt16(byteOffset, value, true); byteOffset += 2;
     }
 
     for (const value of frameFloatArray) {
-        byteArray.writeFloat(value);
+        dataView.setFloat32(byteOffset, value, true); byteOffset += 4;
     }
 
     for (const value of frameArray) {
-        byteArray.writeShort(value);
+        dataView.setInt16(byteOffset, value, true); byteOffset += 2;
     }
 
     for (const value of timelineArray) {
-        byteArray.writeUnsignedShort(value);
+        dataView.setUint16(byteOffset, value, true); byteOffset += 2;
     }
 
     for (const value of colorArray) {
-        byteArray.writeShort(value);
+        dataView.setInt16(byteOffset, value, true); byteOffset += 2;
     }
 
-    return byteArray.buffer;
+    return buffer;
 }
 
 function createColor(value: geom.ColorTransform): number {
@@ -424,9 +418,10 @@ function createTweenFrame(frame: dbft.TweenFrame, frameStart: number): number {
 
     if (frame.duration > 0) {
         if (frame.curve.length > 0) {
-            const sampleCount = frame.duration + 1;
+            const isOmited = (frame.curve.length % 3) === 1;
+            const sampleCount = frame.duration + (isOmited ? 1 : 3);
             const samples = new Array<number>(sampleCount);
-            const isOmited = dbft.samplingEasingCurve(frame.curve, samples);
+            dbft.samplingEasingCurve(frame.curve, samples, isOmited);
 
             frameArray.length += 1 + 1 + samples.length;
             frameArray[frameOffset + dbft.BinaryOffset.FrameTweenType] = dbft.TweenType.Curve;
@@ -726,7 +721,7 @@ function createSurfaceTimeline(value: dbft.SurfaceTimeline): number[] {
     const valueCount = end - begin + 1;
 
     frameIntArray.length += 5;
-    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformMeshOffset] = 0; // Empty.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformMeshOffset] = surface.offset; // Surface offset.
     frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformCount] = count; // Deform count.
     frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueCount] = valueCount; // Value count.
     frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueOffset] = begin; // Value offset.
@@ -736,7 +731,7 @@ function createSurfaceTimeline(value: dbft.SurfaceTimeline): number[] {
         frameFloatArray.push(firstValues[i]);
     }
 
-    for (let i = count - 1; i > end; --i) {
+    for (let i = end + 1; i < count; i++) {
         frameFloatArray.push(firstValues[i]);
     }
 
@@ -917,7 +912,7 @@ function createMeshDeformTimeline(value: dbft.MeshDeformTimeline): number[] {
         frameFloatArray.push(firstValues[i]);
     }
 
-    for (let i = count - 1; i > end; --i) {
+    for (let i = end + 1; i < count; i++) {
         frameFloatArray.push(firstValues[i]);
     }
 
@@ -956,8 +951,40 @@ function createIKConstraintTimeline(value: dbft.IKConstraintTimeline): number[] 
     return timelines;
 }
 
-function modifyBytesPosition(bytes: ByteArray, byte: number = 0): void {
-    while ((bytes.position % 4) !== 0) {
-        bytes.writeByte(byte);
+function modifyBytesPosition(bytes: number[], byte: number = 0): void {
+    while ((bytes.length % 4) !== 0) {
+        bytes.push(byte);
     }
+}
+
+function stringToUTF8Array(string: string): number[] {
+    const result: number[] = [];
+
+    for (let i = 0; i < string.length; i++) {
+        const c = string.charAt(i);
+        const cc = c.charCodeAt(0);
+
+        if (cc > 0xFFFF) {
+            throw new Error("InvalidCharacterError");
+        }
+
+        if (cc > 0x80) {
+            if (cc < 0x07FF) {
+                const c1 = (cc >>> 6) | 0xC0;
+                const c2 = (cc & 0x3F) | 0x80;
+                result.push(c1, c2);
+            }
+            else {
+                const c1 = (cc >>> 12) | 0xE0;
+                const c2 = ((cc >>> 6) & 0x3F) | 0x80;
+                const c3 = (cc & 0x3F) | 0x80;
+                result.push(c1, c2, c3);
+            }
+        }
+        else {
+            result.push(cc);
+        }
+    }
+
+    return result;
 }

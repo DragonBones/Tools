@@ -1,6 +1,4 @@
-// import { Map } from "../common/types";
 import * as utils from "../common/utils";
-import * as utilsFT from "../format/utils";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 import * as spft from "../format/spineFormat";
@@ -60,7 +58,7 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
             const spSlot = new spft.Slot();
             spSlot.name = slot.name;
             spSlot.bone = slot.parent;
-            spSlot.color = utilsFT.rgbaToHex(
+            spSlot.color = utils.rgbaToHex(
                 Math.round(slot.color.rM * 2.55),
                 Math.round(slot.color.gM * 2.55),
                 Math.round(slot.color.bM * 2.55),
@@ -432,7 +430,7 @@ export default function (data: dbft.DragonBones, version: string, addTextureAtla
                     setCurveFormDB(spFrame, frame, iF++ === timeline.colorFrame.length - 1);
                     spTimelines.color.push(spFrame);
 
-                    spFrame.color = utilsFT.rgbaToHex(
+                    spFrame.color = utils.rgbaToHex(
                         Math.round(frame.value.rM * 2.55),
                         Math.round(frame.value.gM * 2.55),
                         Math.round(frame.value.bM * 2.55),

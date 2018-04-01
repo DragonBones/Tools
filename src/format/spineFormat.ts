@@ -1,10 +1,13 @@
-import { Map } from "../common/types";
 /**
  * Spine format.
  */
 export type TransformType = "normal" | "onlyTranslation" | "noRotationOrReflection" | "noScale" | "noScaleOrReflection";
 export type AttachmentType = "region" | "mesh" | "linkedmesh" | "boundingbox" | "path" | "point" | "clipping" | "skinnedmesh";
 export type BlendMode = "normal" | "additive" | "multiply" | "screen";
+
+type Map<T> = {
+    [key: string]: T;
+};
 
 export function isSpineString(string: string): boolean {
     return string.indexOf("skeleton") > 0 && string.indexOf("spine") > 0;

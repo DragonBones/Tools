@@ -1,5 +1,6 @@
 import * as http from "http";
-import * as utils from "./common/utils";
+import * as object from "./common/object";
+import * as nodeUtils from "./common/nodeUtils";
 import { Code, Gate } from "./common/server";
 import * as dbft from "./format/dragonBonesFormat";
 import * as spft from "./format/spineFormat";
@@ -75,10 +76,10 @@ gate.actions["/convert"] = (request, response) => {
                         }
 
                         const spine = new spft.Spine();
-                        utils.copyFromObject(spine, JSON.parse(spineInput.data), spft.copyConfig);
+                        object.copyObjectFrom(JSON.parse(spineInput.data), spine, spft.copyConfig);
                         const result = fromSpine({ name: spineInput.name, data: spine, textureAtlas: spineInput.textureAtlas }, true);
                         format(result);
-                        utils.compress(result, dbft.compressConfig);
+                        object.compress(result, dbft.compressConfig);
                         gate.responseEnd(response, Code.Success, Code[Code.Success], result);
 
                         // TODO
@@ -132,7 +133,7 @@ gate.actions["/convert"] = (request, response) => {
                         format(dragonBonesData);
 
                         if (input.compress !== false) {
-                            utils.compress(dragonBonesData, dbft.compressConfig);
+                            object.compress(dragonBonesData, dbft.compressConfig);
                         }
 
                         const result = JSON.stringify(dragonBonesData);
@@ -144,16 +145,6 @@ gate.actions["/convert"] = (request, response) => {
                                 "string"
                             )
                         );
-                        // TODO
-                        for (const armature of dragonBonesData.armature) {
-                            if (armature.ik) {
-                                for (const ik of armature.ik) {
-                                    if (ik.bendPositive === false) {
-                                        ik.bendPositive = "false" as any;
-                                    }
-                                }
-                            }
-                        }
                         break;
                     }
 
@@ -162,7 +153,7 @@ gate.actions["/convert"] = (request, response) => {
                         format(dragonBonesData);
 
                         if (input.compress !== false) {
-                            utils.compress(dragonBonesData, dbft.compressConfig);
+                            object.compress(dragonBonesData, dbft.compressConfig);
                         }
 
                         const result = JSON.stringify(dragonBonesData);
@@ -181,7 +172,7 @@ gate.actions["/convert"] = (request, response) => {
                     case "viewer": {
                         toNew(dragonBonesData, true);
                         format(dragonBonesData);
-                        
+
                         const result = toWeb(
                             {
                                 data: new Buffer(toBinary(dragonBonesData)),
@@ -210,7 +201,7 @@ gate.actions["/convert"] = (request, response) => {
 
                         for (const spine of result.spines) {
                             if (input.compress !== false) {
-                                utils.compress(spine, spft.compressConfig);
+                                object.compress(spine, spft.compressConfig);
                             }
 
                             toOutput.push(
@@ -255,7 +246,7 @@ function execute(): void {
     if (process.argv.length > 1) {
         const port = Number(process.argv[2]);
         if (port === port && port >= 0 && port <= 65535) {
-            const url = `http://${utils.findIP()}:${port}/dragonbones`;
+            const url = `http://${nodeUtils.findIP()}:${port}/dragonbones`;
 
             gate.actions["/working_directory"] = (request, response) => {
                 // let jsonString = "";
@@ -281,7 +272,7 @@ function execute(): void {
         const port = portServer.address().port;
         portServer.close();
         gate.start("dragonbones", port, "/dragonbones");
-        console.log(`http://${utils.findIP()}:${port}/dragonbones`);
+        console.log(`http://${nodeUtils.findIP()}:${port}/dragonbones`);
     });
 }
 

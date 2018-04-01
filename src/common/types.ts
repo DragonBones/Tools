@@ -1,8 +1,5 @@
-export interface Map<T> {
-    [key: string]: T;
-}
 
-export const MineContentTypes: Map<string> = {
+export const MineContentTypes: { [key: string]: string } = {
     "css": "text/css",
     "gif": "image/gif",
     "html": "text/html",

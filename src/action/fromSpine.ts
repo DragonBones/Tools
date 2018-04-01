@@ -1,9 +1,9 @@
-import { Map } from "../common/types";
-// import * as utils from "../common/utils";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 import * as spft from "../format/spineFormat";
-
+type Map<T> = {
+    [key: string]: T;
+};
 type Input = {
     name: string;
     data: spft.Spine;
@@ -137,6 +137,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
         armature.bone.push(bone);
     }
 
+    armature.sortBones();
     armature.localToGlobal();
 
     const slotDisplays: Map<string[]> = {}; // Create attachments sort.
@@ -504,7 +505,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
             iF = 0;
             for (const spFrame of spTimeline.translate) {
                 const frame = new dbft.BoneTranslateFrame();
-                frame._position = Math.round(spFrame.time * result.frameRate);
+                frame._position = Math.floor(spFrame.time * result.frameRate);
                 frame.x = spFrame.x;
                 frame.y = -spFrame.y;
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.translate.length - 1);
@@ -512,23 +513,21 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
                 lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
-            modifyFrames(timeline.translateFrame);
 
             iF = 0;
             for (const spFrame of spTimeline.rotate) {
                 const frame = new dbft.BoneRotateFrame();
-                frame._position = Math.round(spFrame.time * result.frameRate);
+                frame._position = Math.floor(spFrame.time * result.frameRate);
                 frame.rotate = -spFrame.angle;
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.rotate.length - 1);
                 timeline.rotateFrame.push(frame);
 
                 lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
-            modifyFrames(timeline.rotateFrame);
 
             iF = 0;
             for (const spFrame of spTimeline.shear) {
-                const position = Math.round(spFrame.time * result.frameRate);
+                const position = Math.floor(spFrame.time * result.frameRate);
                 const index = timeline.insertFrame(timeline.rotateFrame, position);
                 if (index < 0) {
                     continue;
@@ -543,15 +542,17 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
             iF = 0;
             for (const spFrame of spTimeline.scale) {
                 const frame = new dbft.BoneScaleFrame();
-                frame._position = Math.round(spFrame.time * result.frameRate);
+                frame._position = Math.floor(spFrame.time * result.frameRate);
                 frame.x = spFrame.x;
                 frame.y = spFrame.y;
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.scale.length - 1);
                 timeline.scaleFrame.push(frame);
                 lastFramePosition = Math.max(frame._position, lastFramePosition);
             }
-            modifyFrames(timeline.scaleFrame);
 
+            modifyFrames(timeline.translateFrame);
+            modifyFrames(timeline.rotateFrame);
+            modifyFrames(timeline.scaleFrame);
             animation.bone.push(timeline);
         }
 
@@ -563,7 +564,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
             for (const spFrame of spTimeline.attachment) {
                 const frame = new dbft.SlotDisplayFrame();
                 const displays = slotDisplays[timelineName];
-                frame._position = Math.round(spFrame.time * result.frameRate);
+                frame._position = Math.floor(spFrame.time * result.frameRate);
                 frame.value = displays ? displays.indexOf(spFrame.name) : -1;
                 timeline.displayFrame.push(frame);
                 lastFramePosition = Math.max(frame._position, lastFramePosition);
@@ -572,7 +573,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
             iF = 0;
             for (const spFrame of spTimeline.color) {
                 const frame = new dbft.SlotColorFrame();
-                frame._position = Math.round(spFrame.time * result.frameRate);
+                frame._position = Math.floor(spFrame.time * result.frameRate);
                 frame.value.copyFromRGBA(Number("0x" + spFrame.color));
                 setTweenFormSP(frame, spFrame, iF++ === spTimeline.color.length - 1);
                 timeline.colorFrame.push(frame);
@@ -610,7 +611,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                     iF = 0;
                     for (const spFrame of spFrames) {
                         const frame = new dbft.DeformFrame();
-                        frame._position = Math.round(spFrame.time * result.frameRate);
+                        frame._position = Math.floor(spFrame.time * result.frameRate);
                         setTweenFormSP(frame, spFrame, iF++ === spFrames.length - 1);
                         timeline.frame.push(frame);
 
@@ -683,7 +684,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
             iF = 0;
             for (const spFrame of spFrames) {
                 const frame = new dbft.IKConstraintFrame();
-                frame._position = Math.round(spFrame.time * result.frameRate);
+                frame._position = Math.floor(spFrame.time * result.frameRate);
                 frame.bendPositive = !spFrame.bendPositive;
                 frame.weight = spFrame.mix;
                 setTweenFormSP(frame, spFrame, iF++ === spFrames.length - 1);
@@ -701,7 +702,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
             let prevFrame: dbft.Frame | null = null;
             for (const spFrame of spAnimation.events) {
-                const position = Math.round(spFrame.time * result.frameRate);
+                const position = Math.floor(spFrame.time * result.frameRate);
                 let frame: dbft.ActionFrame;
 
                 if (prevFrame && prevFrame._position === position) {
@@ -741,7 +742,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
             for (const spFrame of spAnimation.drawOrder) {
                 const frame = new dbft.ZOrderFrame();
-                frame._position = Math.round(spFrame.time * result.frameRate);
+                frame._position = Math.floor(spFrame.time * result.frameRate);
 
                 for (const v of spFrame.offsets) {
                     const slot = armature.getSlot(v.slot);

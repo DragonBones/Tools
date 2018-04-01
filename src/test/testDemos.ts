@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 import * as fs from "fs";
 import * as path from "path";
-import * as utils from "../common/utils";
+import * as nodeUtils from "../common/nodeUtils";
 import * as dbft from "../format/dragonBonesFormat";
 import * as resft from "../format/resFormat";
 import * as dbUtils from "../format/utils";
@@ -27,7 +27,7 @@ function execute(): void {
     const root = process.cwd();
     const include = args[0];
     const resourcesJSON = new resft.ResourceJSON();
-    const files = utils.filterFileList(root, /\.(json)$/i);
+    const files = nodeUtils.filterFileList(root, /\.(json)$/i);
 
     for (let i = 0, l = files.length; i < l; ++i) {
         const dragonBonesFile = files[i];

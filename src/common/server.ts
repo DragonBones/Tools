@@ -11,6 +11,7 @@ export abstract class Server {
     public readonly httpServer: http.Server = http.createServer(this._requestHandler.bind(this));
 
     protected _requestHandler(request: http.IncomingMessage, response: http.ServerResponse): boolean {
+        // tslint:disable-next-line:no-unused-expression
         response;
         if (!request.url) {
             return false;
