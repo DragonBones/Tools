@@ -12,6 +12,8 @@
 * [Data Tag](#data_tag)
 * [Header](#header)
 * [Color](#color)
+* [Weights](#weights)
+* [Surface](#surface)
 * [Mesh](#mesh)
 * [Timeline](#timeline)
 * [Frame](#frame)
@@ -264,52 +266,69 @@ Alpha Offset | Int16 | 2 | -256 ~ 256
 Red Offset | Int16 | 2 | -256 ~ 256
 Greed Offset | Int16 | 2 | -256 ~ 256
 Blue Offset | Int16 | 2 | -256 ~ 256
-  |  |
+ |  |
 
 
-<h2 id="weight">Weight (Int Array)</h2>
+<h2 id="weights">Weights (Int Array)</h2>
 
 Name | Data Type | Size (Bytes) | Value range
 :---:|:---------:|:------------:|:-----------:
-Bone Count | Int16 | 2
-Float Array Offset | Int16 | 2
-Bone Indices | Int16 | 2
+Bone Count | Int16 | 2 |
+Float Array Offset | Int16 | 2 |
+Bone Indices | Int16 | 2 |
 ... | ... | ...
 Vertex Bone Count, Vertex Bone Indices | Int16 | 2 | 3, 4, 7, 6
 ... | ... | ...
+ |  |
 Weight, X, Y (Float Array) | Float32 | 4 | 1.0, 12.3, 45.6
 ... | ... | ...
-  |  |
+ |  |
+
+
+<h2 id="surface">Surface (Int Array)</h2>
+
+Name | Data Type | Size (Bytes) | Value range
+:---:|:---------:|:------------:|:-----------:
+Vertex Count | Int16 | 2 |
+Empty | Int16 | 2 | 0
+Float Array Offset | Int16 | 2 |
+Empty | Int16 | 2 | -1
+ |  | 
+Vertices (Float Array) | Float32 | 4 |
+... | ... | ...
+ |  |
 
 
 <h2 id="mesh">Mesh (Int Array)</h2>
 
 Name | Data Type | Size (Bytes) | Value range
 :---:|:---------:|:------------:|:-----------:
-Vertex Count | Int16 | 2
-Triangle Count | Int16 | 2
-Float Array Offset | Int16 | 2
-Weight Offset | Int16 | 2 | -1: No Weight, N: Int Array Offset
-Vertex indices | Int16 | 2
+Vertex Count | Int16 | 2 |
+Triangle Count | Int16 | 2 |
+Float Array Offset | Int16 | 2 |
+Weight Offset | Int16 | 2 | -1: No Weights, N: [Weights](#weidhts) Offset
+Vertex indices | Int16 | 2 |
 ... | ... | ...
-Vertices (Float Array) | Float32 | 4 | Vertex
+ |  |
+Vertices (Float Array) | Float32 | 4 |
 ... | ... | ...
-UVs (Float Array) | Float32 | 4 | UV
+UVs (Float Array) | Float32 | 4 |
 ... | ... | ...
-  |  |
+ |  |
 
 
 <h2 id="path">Path / Polygon BoundingBox (Int Array)</h2>
 
 Name | Data Type | Size (Bytes) | Value range
 :---:|:---------:|:------------:|:-----------:
-Vertex Count | Int16 | 2
+Vertex Count | Int16 | 2 | 
 Empty | Int16 | 2 | 0
-Float Array Offset | Int16 | 2 |-1: No Vertices, N: Float Array Offset
-Weight Offset | Int16 | 2 | -1: No Weight, N: Int Array Offset
-Vertices (Float Array) | Float32 | 4 | Vertex
+Float Array Offset | Int16 | 2 |
+Weight Offset | Int16 | 2 | -1: No Weights, N: [Weights](#weidhts) Offset
+ |  | 
+Vertices (Float Array) | Float32 | 4 |
 ... | ... | ...
-  |  |
+ |  |
 
 
 <h2 id="timeline">Timeline (Uint Array)</h2>
@@ -366,6 +385,7 @@ ZOrders | Int16 | 2
 
 
 <h2 id="tween_type">Tween Type</h2>
+
 Value | Type
 :----:|:---:
 0 | None
@@ -375,4 +395,4 @@ Value | Type
 4 | EaseOutQuad
 5 | EaseInOutQuad
 ... | ...
-  |  |
+  | 

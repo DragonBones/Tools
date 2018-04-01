@@ -1033,8 +1033,7 @@ export class Animation extends BaseData {
     readonly slot: SlotTimeline[] = [];
     readonly ffd: MeshDeformTimeline[] = [];
     readonly ik: IKConstraintTimeline[] = [];
-    readonly state: StateTimeline[] = [];
-    readonly blend: BlendTimeline[] = [];
+    readonly animation: AnimationTimeline[] = [];
     zOrder: ZOrderTimeline | null = null;
 
     getSlotTimeline(name: string): SlotTimeline | null {
@@ -1072,6 +1071,7 @@ export class AnimationBinary extends BaseData {
     readonly surface: Map<number[]> = {};
     readonly slot: Map<number[]> = {};
     readonly constraint: Map<number[]> = {};
+    readonly animation: Map<number[]> = {};
 }
 
 export abstract class Timeline extends BaseData {
@@ -1391,14 +1391,10 @@ export class IKConstraintTimeline extends Timeline {
     readonly frame: IKConstraintFrame[] = [];
 }
 
-export class StateTimeline extends Timeline {
-    positionX: number = 0.0;
-    positionY: number = 0.0;
-    readonly frame: StateFrame[] = [];
-}
-
-export class BlendTimeline extends Timeline {
-    readonly frame: BlendFrame[] = [];
+export class AnimationTimeline extends Timeline {
+    x: number = 0.0;
+    y: number = 0.0;
+    readonly frame: AnimationFrame[] = [];
 }
 
 export abstract class Frame extends BaseData {
@@ -1605,21 +1601,17 @@ export class IKConstraintFrame extends TweenFrame {
     }
 }
 
-export class StateFrame extends TweenFrame {
+export class AnimationFrame extends TweenFrame {
     progress: number = 0.0;
     weight: number = 1.0;
+    x: number = 0.0;
+    y: number = 0.0;
 
     equal(value: this): boolean {
-        return this.progress === value.progress && this.weight === value.weight;
-    }
-}
-
-export class BlendFrame extends TweenFrame {
-    paramaterX: number = 0.0;
-    paramaterY: number = 0.0;
-
-    equal(value: this): boolean {
-        return this.paramaterX === value.paramaterX && this.paramaterY === value.paramaterY;
+        return this.progress === value.progress &&
+            this.weight === value.weight &&
+            this.x === value.x &&
+            this.y === value.y;
     }
 }
 
@@ -1780,8 +1772,7 @@ export const copyConfig = [
         slot: SlotTimeline,
         ffd: MeshDeformTimeline,
         ik: IKConstraintTimeline,
-        state: StateTimeline,
-        blend: BlendTimeline,
+        animation: AnimationTimeline,
     },
     ZOrderTimeline, {
         frame: ZOrderFrame
@@ -1806,11 +1797,8 @@ export const copyConfig = [
     IKConstraintTimeline, {
         frame: IKConstraintFrame
     },
-    StateTimeline, {
-        frame: StateFrame
-    },
-    BlendTimeline, {
-        frame: BlendFrame
+    AnimationTimeline, {
+        frame: AnimationFrame
     },
     ActionFrame, {
         actions: Action,
@@ -1864,8 +1852,7 @@ export const compressConfig = [
     new SlotTimeline(),
     new MeshDeformTimeline(),
     new IKConstraintTimeline(),
-    new StateTimeline(),
-    new BlendTimeline(),
+    new AnimationTimeline(),
     new ActionFrame(),
     new ZOrderFrame(),
     new BoneAllFrame(),
@@ -1877,8 +1864,7 @@ export const compressConfig = [
     new SlotDisplayFrame(),
     new SlotColorFrame(),
     new IKConstraintFrame(),
-    new StateFrame(),
-    new BlendFrame(),
+    new AnimationFrame(),
 
     new TextureAtlas(),
     new Texture()
