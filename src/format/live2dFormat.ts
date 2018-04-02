@@ -1,8 +1,6 @@
-type Map<T> = {
-    [key: string]: T;
-};
+
 /**
- * Live2d format.
+ * Live2D format.
  */
 export class Live2dObjectTag {
     public static readonly MODEL: number = 0x88;//129
@@ -183,6 +181,8 @@ export abstract class IBaseData implements ISerializable {
     public read(reader: Live2DReader): void {
         this.baseDataID = reader.readObject();
         this.targetBaseDataID = reader.readObject();
+
+
     }
 
     protected readOpacity(reader: Live2DReader): void {
@@ -211,7 +211,7 @@ export class AffineData extends IBaseData {
     pivotManager: PivotManager;
 
     //-----------------------------------------
-    readonly pivotMap: Map<Transform[]> = {};
+    readonly tempAffines: Transform[] = [];
     public read(reader: Live2DReader): void {
         super.read(reader);
 
@@ -229,19 +229,18 @@ export class AffineData extends IBaseData {
     }
 
     protected _init(): void {
-        // const paramPivotTable = this.pivotManager.paramPivotTable;
-        // for (let i = 0, l = paramPivotTable.length; i < l; i++) {
-        //     const paramPivot = paramPivotTable[i];
-        //     if (this.pivotMap[paramPivot.paramID] === null) {
-        //         this.pivotMap[paramPivot.paramID] = [];
-        //     }
-
-        //     let k = i;
-        //     while (k > l) {
-
-        //     }
-        //     this.pivotMap[paramPivot.paramID].push(this.affines[i]);
-        // }
+        const paramPivotTable = this.pivotManager.paramPivotTable;
+        for (let i = 0, l = paramPivotTable.length; i < l; i++) {
+            const paramPivot = paramPivotTable[i];
+            for (let j = 0; j < paramPivot.pivotCount; j++) {
+                if (l > 1) {
+                    this.tempAffines.push(this.affines[i + j * paramPivot.pivotCount]);
+                }
+                else {
+                    this.tempAffines.push(this.affines[j]);
+                }
+            }
+        }
     }
 }
 
@@ -328,9 +327,13 @@ export class MeshData extends DisplayData {
     readonly indexArray: number[] = [];
     readonly pivotPoints: number[][] = [];
     readonly uvmap: number[] = [];
-    readonly optionData: Map<any> = {};
+    readonly optionData: any = {};
 
     // readonly uvInfo: UVInfo = new UVInfo();
+
+    //-------------------------------------    
+    readonly tempOpacity: number[] = [];
+    readonly tempPoints: number[][] = [];
 
     public read(reader: Live2DReader): void {
         super.read(reader);
@@ -379,6 +382,26 @@ export class MeshData extends DisplayData {
         }
         else {
             this.optionFlag = 0;
+        }
+
+        this._init();
+    }
+
+    protected _init(): void {
+        //TODO
+        const paramPivotTable = this.pivotManager.paramPivotTable;
+        for (let i = 0, l = paramPivotTable.length; i < l; i++) {
+            const paramPivot = paramPivotTable[i];
+            for (let j = 0; j < paramPivot.pivotCount; j++) {
+                if (l > 1) {
+                    this.tempPoints.push(this.pivotPoints[i + j * paramPivot.pivotCount]);
+                    this.tempOpacity.push(this.pivotOpacity[i + j * paramPivot.pivotCount]);
+                }
+                else {
+                    this.tempPoints.push(this.pivotPoints[j]);
+                    this.tempOpacity.push(this.pivotOpacity[j]);
+                }
+            }
         }
     }
 }

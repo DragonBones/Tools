@@ -44,7 +44,6 @@ export default function (data: Input): dbft.DragonBones | null {
     result.armature.push(armature);
     // Bone.
     const root = new dbft.Bone();
-    root.type = dbft.BoneType.Bone;
     root.name = "DST_BASE";
     root.length = 150.0;
     armature.bone.push(root);
@@ -53,7 +52,6 @@ export default function (data: Input): dbft.DragonBones | null {
         const isParentSurface = model.isSurface(baseData.targetBaseDataID);
         if (baseData instanceof l2ft.AffineData) {
             const bone = new dbft.Bone();
-            bone.type = dbft.BoneType.Bone;
             bone.inheritRotation = true;
             bone.inheritScale = true;
             bone.inheritReflection = true;
@@ -81,12 +79,12 @@ export default function (data: Input): dbft.DragonBones | null {
         }
         else if (baseData instanceof l2ft.BoxGridData) {
             const surface = new dbft.Surface();
-            surface.type = dbft.BoneType.Surface;
             surface.name = baseData.baseDataID;
             surface.parent = baseData.targetBaseDataID;
             surface.segmentX = baseData.col;
             surface.segmentY = baseData.row;
-            //
+
+            // Set default pose, will override later.
             const posePivots = baseData.pivotPoints[0];
             surface.vertices.length = posePivots.length;
 
@@ -160,229 +158,386 @@ export default function (data: Input): dbft.DragonBones | null {
 
     armature.skin.push(skin);
     // Animation.
-    if (paramList.paramDefSet.length > 0) {
-        for (const baseData of baseList) { // Bone Timelines.
-            if (baseData instanceof l2ft.AffineData) {
-                const paramPivotTable = baseData.pivotManager.paramPivotTable;
-                const affines = baseData.tempAffines;
+    // if (paramList.paramDefSet.length > 0) {
+    //     for (const baseData of baseList) { // Bone Timelines.
+    //         if (baseData instanceof l2ft.AffineData) {
+    //             const paramPivotTable = baseData.pivotManager.paramPivotTable;
+    //             const affines = baseData.affines;
 
-                for (let row = 0, l = paramPivotTable.length; row < l; row++) {
-                    const paramPivots = paramPivotTable[row];
-                    const paramDef = model.getParamDef(paramPivots.paramID);
-                    if (paramDef === null) {
-                        continue;
-                    }
+    //             for (let row = 0, l = paramPivotTable.length; row < l; row++) {
+    //                 const paramPivots = paramPivotTable[row];
+    //                 // const paramDef = model.getParamDef(paramPivots.paramID);
+    //                 // if (paramDef === null) {
+    //                 //     continue;
+    //                 // }
 
-                    let lastFramePosition = 0;
-                    let animation = armature.getAnimation(paramDef.paramID) as dbft.Animation;
+    //                 let lastFramePosition = 0;
+    //                 // let animation = armature.getAnimation(paramDef.paramID) as dbft.Animation;
+    //                 let animation = armature.getAnimation(paramPivots.paramID) as dbft.Animation;
 
-                    if (animation === null) {
-                        animation = new dbft.Animation();
-                        animation.playTimes = 0; //
-                        animation.name = paramDef.paramID;
-                        armature.animation.push(animation);
-                    }
+    //                 if (animation === null) {
+    //                     animation = new dbft.Animation();
+    //                     animation.playTimes = 0;
+    //                     // animation.name = paramDef.paramID;
+    //                     animation.name = paramPivots.paramID;
+    //                     armature.animation.push(animation);
+    //                 }
 
-                    for (let col = 0; col < paramPivots.pivotCount; col++) {
-                        let timeline = animation.getBoneTimeline(baseData.baseDataID);
-                        if (timeline === null) {
-                            timeline = new dbft.BoneTimeline();
-                            timeline.name = baseData.baseDataID;
-                            animation.bone.push(timeline);
-                        }
+    //                 for (let col = 0; col < paramPivots.pivotCount; col++) {
+    //                     let timeline = animation.getBoneTimeline(baseData.baseDataID);
+    //                     if (timeline === null) {
+    //                         timeline = new dbft.BoneTimeline();
+    //                         timeline.name = baseData.baseDataID;
+    //                         animation.bone.push(timeline);
+    //                     }
 
-                        const translateFrame = new dbft.BoneTranslateFrame();
-                        translateFrame._position = Math.floor(col * result.frameRate);
-                        translateFrame.x = affines[col].originX;
-                        translateFrame.y = affines[col].originY;
-                        translateFrame.tweenEasing = 0.0;
-                        timeline.translateFrame.push(translateFrame);
-                        lastFramePosition = Math.max(translateFrame._position, lastFramePosition);
+    //                     const translateFrame = new dbft.BoneTranslateFrame();
+    //                     translateFrame._position = Math.floor(col * result.frameRate);
+    //                     translateFrame.x = affines[col].originX;
+    //                     translateFrame.y = affines[col].originY;
+    //                     translateFrame.tweenEasing = 0.0;
+    //                     timeline.translateFrame.push(translateFrame);
+    //                     lastFramePosition = Math.max(translateFrame._position, lastFramePosition);
 
-                        const rotateFrame = new dbft.BoneRotateFrame();
-                        rotateFrame._position = Math.floor(col * result.frameRate);
-                        rotateFrame.rotate = affines[col].rotateDeg;
-                        rotateFrame.tweenEasing = 0.0;
-                        timeline.rotateFrame.push(rotateFrame);
-                        lastFramePosition = Math.max(rotateFrame._position, lastFramePosition);
+    //                     const rotateFrame = new dbft.BoneRotateFrame();
+    //                     rotateFrame._position = Math.floor(col * result.frameRate);
+    //                     rotateFrame.rotate = affines[col].rotateDeg;
+    //                     rotateFrame.tweenEasing = 0.0;
+    //                     timeline.rotateFrame.push(rotateFrame);
+    //                     lastFramePosition = Math.max(rotateFrame._position, lastFramePosition);
 
-                        const scaleFrame = new dbft.BoneScaleFrame();
-                        scaleFrame._position = Math.floor(col * result.frameRate);
-                        scaleFrame.x = affines[col].scaleX;
-                        scaleFrame.y = affines[col].scaleY;
-                        scaleFrame.tweenEasing = 0.0;
-                        timeline.scaleFrame.push(scaleFrame);
-                        lastFramePosition = Math.max(scaleFrame._position, lastFramePosition);
+    //                     const scaleFrame = new dbft.BoneScaleFrame();
+    //                     scaleFrame._position = Math.floor(col * result.frameRate);
+    //                     scaleFrame.x = affines[col].scaleX;
+    //                     scaleFrame.y = affines[col].scaleY;
+    //                     scaleFrame.tweenEasing = 0.0;
+    //                     timeline.scaleFrame.push(scaleFrame);
+    //                     lastFramePosition = Math.max(scaleFrame._position, lastFramePosition);
 
-                        // modifyFrames(timeline.translateFrame);
-                        // modifyFrames(timeline.rotateFrame);
-                        // modifyFrames(timeline.scaleFrame);
-                    }
+    //                     // modifyFrames(timeline.translateFrame);
+    //                     // modifyFrames(timeline.rotateFrame);
+    //                     // modifyFrames(timeline.scaleFrame);
+    //                 }
 
-                    //
-                    animation.duration = lastFramePosition + 1;
-                }
-            }
-        }
+    //                 //
+    //                 animation.duration = lastFramePosition + 1;
+    //             }
+    //         }
+    //         else if (baseData instanceof l2ft.BoxGridData) {
+    //             const isParentSurface = model.isSurface(baseData.targetBaseDataID);
+    //             const paramPivotTable = baseData.pivotManager.paramPivotTable;
+    //             const pivotPoints = baseData.pivotPoints;
+    //             const surface = armature.getBone(baseData.baseDataID) as dbft.Surface | null;
+    //             if (surface === null) {
+    //                 break;
+    //             }
 
-        // Slot timelines.
-        // for (const drawData of drawList) {
-        //     if (drawData instanceof l2ft.MeshData) {
-        //         console.log(drawData);
-        //         const posePoint = drawData.pivotPoints[0];
-        //         const paramPivotTable = drawData.pivotManager.paramPivotTable;
-        //         if (paramPivotTable.length === 2) {
-        //             const firstParamPivot = paramPivotTable[0];
-        //             const lastParamPivot = paramPivotTable[1];
-        //             let opindex = 0;
+    //             switch (paramPivotTable.length) {
+    //                 case 0:
+    //                     break;
 
-        //             for (let row = 0; row < lastParamPivot.pivotCount; row++) {
-        //                 let lastFramePosition = 0;
-        //                 //
-        //                 let animation = armature.getAnimation(drawData.drawDataID + "_" + row) as dbft.Animation;
-        //                 if (animation === null) {
-        //                     animation = new dbft.Animation();
-        //                     animation.name = drawData.drawDataID + "_" + row;
-        //                 }
+    //                 case 1: {
+    //                     let lastFramePosition = 0;
+    //                     const paramPivots = paramPivotTable[0];
+    //                     const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+    //                     //
+    //                     const defaultValueIndex = paramPivots.pivotValue.indexOf(paramDef.defaultValue);
+    //                     if (defaultValueIndex > 0) {
+    //                         const posePivotPoints = pivotPoints[defaultValueIndex];
+    //                         for (let i = 0, l = posePivotPoints.length; i < l; ++i) {
+    //                             if (isParentSurface) {
+    //                                 surface.vertices[i] = (posePivotPoints[i] - 0.5) * 400.0;
+    //                             }
+    //                             else {
+    //                                 surface.vertices[i] = posePivotPoints[i];
+    //                             }
+    //                         }
+    //                     }
 
-        //                 animation.playTimes = 0;
-        //                 animation.scale = 1.0;
-        //                 const opacity = drawData.tempOpacity;
-        //                 const points = drawData.tempPoints;
+    //                     const animation = new dbft.Animation();
+    //                     animation.playTimes = 0;
+    //                     animation.name = paramPivots.paramID;
+    //                     armature.animation.push(animation);
 
-        //                 for (let col = 0; col < firstParamPivot.pivotCount; col++) {
-        //                     //SlotTimeline
-        //                     {
-        //                         let timeline = animation.getSlotTimeline(drawData.drawDataID);
-        //                         if (timeline === null) {
-        //                             timeline = new dbft.SlotTimeline();
-        //                             timeline.name = drawData.drawDataID;
+    //                     const timeline = new dbft.SurfaceTimeline();
+    //                     timeline.name = baseData.baseDataID;
+    //                     animation.surface.push(timeline);
 
-        //                             animation.slot.push(timeline);
-        //                         }
+    //                     const totalValue = paramDef.maxValue - paramDef.minValue;
 
-        //                         //
-        //                         const colorFrame = new dbft.SlotColorFrame();
-        //                         colorFrame._position = Math.floor(col * result.frameRate);
-        //                         colorFrame.tweenEasing = 0.0;
-        //                         console.log(opindex);
-        //                         colorFrame.value.aM = opacity[opindex++] * 100.0;
-        //                         timeline.colorFrame.push(colorFrame);
-        //                         lastFramePosition = Math.max(colorFrame._position, lastFramePosition);
-        //                         modifyFrames(timeline.colorFrame);
-        //                     }
+    //                     for (let i = 0; i < paramPivots.pivotCount; ++i) {
+    //                         const deformFrame = new dbft.DeformFrame();
+    //                         const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
+    //                         const framePivotPoints = pivotPoints[i];
 
-        //                     //MeshDeformTimeline
-        //                     // {
-        //                     //     let timeline = animation.getDeformTimeline(data.name);
-        //                     //     if (timeline === null) {
-        //                     //         timeline = new dbft.MeshDeformTimeline();
-        //                     //         timeline.name = data.name;
-        //                     //         timeline.slot = drawData.drawDataID;
+    //                         deformFrame._position = Math.floor(progress * result.frameRate);
+    //                         deformFrame.tweenEasing = 0.0;
 
-        //                     //         animation.ffd.push(timeline);
-        //                     //     }
+    //                         for (let i = 0, l = framePivotPoints.length; i < l; ++i) {
+    //                             if (isParentSurface) {
+    //                                 deformFrame.vertices[i] = (framePivotPoints[i] - 0.5) * 400.0 - surface.vertices[i];
+    //                             }
+    //                             else {
+    //                                 deformFrame.vertices[i] = framePivotPoints[i] - surface.vertices[i];
+    //                             }
+    //                         }
 
-        //                     //     const deformFrame = new dbft.DeformFrame();
-        //                     //     deformFrame._position = Math.round(col * result.frameRate);
-        //                     //     deformFrame.tweenEasing = 0.0;
-        //                     //     timeline.frame.push(deformFrame);
+    //                         timeline.frame.push(deformFrame);
+    //                         lastFramePosition = deformFrame._position;
+    //                     }
 
-        //                     //     const vertices = points[col];
+    //                     modifyFrames(timeline.frame);
+    //                     animation.duration = lastFramePosition + 1;
+    //                     break;
+    //                 }
 
-        //                     //     for (let k = 0, l = vertices.length; k < l; k++) {
-        //                     //         deformFrame.vertices.push(vertices[k] - posePoint[k]);
-        //                     //     }
+    //                 case 2: {
+    //                     let lastFramePosition = 0;
+    //                     const paramPivotsA = paramPivotTable[0];
+    //                     const paramPivotsB = paramPivotTable[1];
+    //                     const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+    //                     const paramDefB = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+    //                     const defaultValueIndex = paramPivotsA.pivotValue.indexOf(paramDefA.defaultValue) * paramPivotsB.pivotCount + paramPivotsB.pivotValue.indexOf(paramDefB.defaultValue);
 
-        //                     //     lastFramePosition = Math.max(deformFrame._position, lastFramePosition);
-        //                     //     modifyFrames(timeline.frame);
-        //                     // }
+    //                     if (defaultValueIndex > 0) {
+    //                         const posePivotPoints = pivotPoints[defaultValueIndex];
+    //                         for (let i = 0, l = posePivotPoints.length; i < l; ++i) {
+    //                             if (isParentSurface) {
+    //                                 surface.vertices[i] = (posePivotPoints[i] - 0.5) * 400.0;
+    //                             }
+    //                             else {
+    //                                 surface.vertices[i] = posePivotPoints[i];
+    //                             }
+    //                         }
+    //                     }
 
-        //                 }
-        //                 animation.duration = lastFramePosition + 1;
-        //                 armature.animation.push(animation);
-        //             }
-        //         }
-        //         // for (let row = 0, l = paramPivotTable.length; row < l; row++) {
-        //         //     const paramPivot = paramPivotTable[row];
+    //                     const animation = new dbft.Animation();
+    //                     animation.playTimes = 0;
+    //                     animation.name = paramPivotsA.paramID + "_" + paramPivotsB.paramID;
+    //                     armature.animation.push(animation);
 
-        //         //     const paramDef = model.getParamDef(paramPivot.paramID);
-        //         //     if (paramDef === null) {
-        //         //         continue;
-        //         //     }
+    //                     const totalValueA = paramDefA.maxValue - paramDefA.minValue;
+    //                     const totalValueB = paramDefB.maxValue - paramDefB.minValue;
 
-        //         //     for (let col = 0; col < paramPivot.pivotCount; col++) {
-        //         //         let lastFramePosition = 0;
-        //         //         //
-        //         //         let animation = armature.getAnimation(drawData.drawDataID + "_" + col) as dbft.Animation;
-        //         //         if (animation === null) {
-        //         //             animation = new dbft.Animation();
-        //         //             animation.name = drawData.drawDataID + "_" + col;
-        //         //             console.log("new:" + animation.name);
-        //         //         }
-        //         //         else {
-        //         //             console.log("old:" + animation.name);
-        //         //         }
-        //         //         animation.playTimes = 0;
-        //         //         animation.scale = 1.0;
+    //                     for (let col = 0; col < paramPivotsA.pivotCount; ++col) {
+    //                         const childAnimation = new dbft.Animation();
+    //                         childAnimation.name = paramPivotsA.paramID + "_" + col;
+    //                         armature.animation.push(childAnimation);
 
-        //         //         const opacity = drawData.tempOpacity;
-        //         //         const points = drawData.tempPoints;
-        //         //         //SlotTimeline
-        //         //         {
-        //         //             let timeline = animation.getSlotTimeline(drawData.drawDataID);
-        //         //             if (timeline === null) {
-        //         //                 timeline = new dbft.SlotTimeline();
-        //         //                 timeline.name = drawData.drawDataID;
+    //                         const timeline = new dbft.SurfaceTimeline();
+    //                         timeline.name = baseData.baseDataID;
+    //                         childAnimation.surface.push(timeline);
 
-        //         //                 animation.slot.push(timeline);
-        //         //             }
+    //                         for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
+    //                             const pivotPointsIndex = col * paramPivotsB.pivotCount + row;
+    //                             const deformFrame = new dbft.DeformFrame();
+    //                             const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
+    //                             const framePivotPoints = pivotPoints[pivotPointsIndex];
 
-        //         //             //
-        //         //             const colorFrame = new dbft.SlotColorFrame();
-        //         //             colorFrame._position = Math.round(col * result.frameRate);
-        //         //             colorFrame.tweenEasing = 0.0;
-        //         //             colorFrame.value.aM = opacity[col] * 100.0;
-        //         //             timeline.colorFrame.push(colorFrame);
-        //         //             lastFramePosition = Math.max(colorFrame._position, lastFramePosition);
-        //         //             modifyFrames(timeline.colorFrame);
-        //         //         }
+    //                             deformFrame._position = Math.floor(progress * result.frameRate);
+    //                             deformFrame.tweenEasing = 0.0;
 
-        //         //         //MeshDeformTimeline
-        //         //         // {
-        //         //         //     let timeline = animation.getDeformTimeline(data.name);
-        //         //         //     if (timeline === null) {
-        //         //         //         timeline = new dbft.MeshDeformTimeline();
-        //         //         //         timeline.name = data.name;
-        //         //         //         timeline.slot = drawData.drawDataID;
+    //                             for (let i = 0, l = framePivotPoints.length; i < l; ++i) {
+    //                                 if (isParentSurface) {
+    //                                     deformFrame.vertices[i] = (framePivotPoints[i] - 0.5) * 400.0 - surface.vertices[i];
+    //                                 }
+    //                                 else {
+    //                                     deformFrame.vertices[i] = framePivotPoints[i] - surface.vertices[i];
+    //                                 }
+    //                             }
 
-        //         //         //         animation.ffd.push(timeline);
-        //         //         //     }
+    //                             timeline.frame.push(deformFrame);
+    //                             lastFramePosition = deformFrame._position;
+    //                         }
 
-        //         //         //     const deformFrame = new dbft.DeformFrame();
-        //         //         //     deformFrame._position = Math.round(col * result.frameRate);
-        //         //         //     deformFrame.tweenEasing = 0.0;
-        //         //         //     timeline.frame.push(deformFrame);
+    //                         modifyFrames(timeline.frame);
+    //                         childAnimation.duration = lastFramePosition + 1;
 
-        //         //         //     const vertices = points[col];
+    //                         const animationTimeline = new dbft.AnimationTimeline();
+    //                         animationTimeline.name = childAnimation.name;
+    //                         animationTimeline.x = (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA;
 
-        //         //         //     for (let k = 0, l = vertices.length; k < l; k++) {
-        //         //         //         deformFrame.vertices.push(vertices[k] - posePoint[k]);
-        //         //         //     }
+    //                         const frameBegin = new dbft.AnimationFrame();
+    //                         const frameEnd = new dbft.AnimationFrame();
+    //                         frameBegin._position = 0;
+    //                         frameBegin.progress = 0.0;
+    //                         frameBegin.tweenEasing = 0.0;
+    //                         frameEnd._position = lastFramePosition;
+    //                         frameEnd.progress = 1.0;
+    //                         frameEnd.tweenEasing = 0.0;
+    //                         animationTimeline.frame.push(frameBegin, frameEnd);
+    //                         animation.animation.push(animationTimeline);
+    //                         modifyFrames(animationTimeline.frame);
+    //                         animation.duration = lastFramePosition + 1;
+    //                     }
+    //                     break;
+    //                 }
 
-        //         //         //     lastFramePosition = Math.max(deformFrame._position, lastFramePosition);
-        //         //         //     modifyFrames(timeline.frame);
-        //         //         // }
+    //                 case 3: {
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     }
 
-        //         //         animation.duration = lastFramePosition + 1;
-        //         //         armature.animation.push(animation);
-        //         //     }
+    //     // Slot timelines.
+    //     // for (const drawData of drawList) {
+    //     //     if (drawData instanceof l2ft.MeshData) {
+    //     //         console.log(drawData);
+    //     //         const posePoint = drawData.pivotPoints[0];
+    //     //         const paramPivotTable = drawData.pivotManager.paramPivotTable;
+    //     //         if (paramPivotTable.length === 2) {
+    //     //             const firstParamPivot = paramPivotTable[0];
+    //     //             const lastParamPivot = paramPivotTable[1];
+    //     //             let opindex = 0;
+
+    //     //             for (let row = 0; row < lastParamPivot.pivotCount; row++) {
+    //     //                 let lastFramePosition = 0;
+    //     //                 //
+    //     //                 let animation = armature.getAnimation(drawData.drawDataID + "_" + row) as dbft.Animation;
+    //     //                 if (animation === null) {
+    //     //                     animation = new dbft.Animation();
+    //     //                     animation.name = drawData.drawDataID + "_" + row;
+    //     //                 }
+
+    //     //                 animation.playTimes = 0;
+    //     //                 animation.scale = 1.0;
+    //     //                 const opacity = drawData.tempOpacity;
+    //     //                 const points = drawData.tempPoints;
+
+    //     //                 for (let col = 0; col < firstParamPivot.pivotCount; col++) {
+    //     //                     //SlotTimeline
+    //     //                     {
+    //     //                         let timeline = animation.getSlotTimeline(drawData.drawDataID);
+    //     //                         if (timeline === null) {
+    //     //                             timeline = new dbft.SlotTimeline();
+    //     //                             timeline.name = drawData.drawDataID;
+
+    //     //                             animation.slot.push(timeline);
+    //     //                         }
+
+    //     //                         //
+    //     //                         const colorFrame = new dbft.SlotColorFrame();
+    //     //                         colorFrame._position = Math.floor(col * result.frameRate);
+    //     //                         colorFrame.tweenEasing = 0.0;
+    //     //                         console.log(opindex);
+    //     //                         colorFrame.value.aM = opacity[opindex++] * 100.0;
+    //     //                         timeline.colorFrame.push(colorFrame);
+    //     //                         lastFramePosition = Math.max(colorFrame._position, lastFramePosition);
+    //     //                         modifyFrames(timeline.colorFrame);
+    //     //                     }
+
+    //     //                     //MeshDeformTimeline
+    //     //                     // {
+    //     //                     //     let timeline = animation.getDeformTimeline(data.name);
+    //     //                     //     if (timeline === null) {
+    //     //                     //         timeline = new dbft.MeshDeformTimeline();
+    //     //                     //         timeline.name = data.name;
+    //     //                     //         timeline.slot = drawData.drawDataID;
+
+    //     //                     //         animation.ffd.push(timeline);
+    //     //                     //     }
+
+    //     //                     //     const deformFrame = new dbft.DeformFrame();
+    //     //                     //     deformFrame._position = Math.round(col * result.frameRate);
+    //     //                     //     deformFrame.tweenEasing = 0.0;
+    //     //                     //     timeline.frame.push(deformFrame);
+
+    //     //                     //     const vertices = points[col];
+
+    //     //                     //     for (let k = 0, l = vertices.length; k < l; k++) {
+    //     //                     //         deformFrame.vertices.push(vertices[k] - posePoint[k]);
+    //     //                     //     }
+
+    //     //                     //     lastFramePosition = Math.max(deformFrame._position, lastFramePosition);
+    //     //                     //     modifyFrames(timeline.frame);
+    //     //                     // }
+
+    //     //                 }
+    //     //                 animation.duration = lastFramePosition + 1;
+    //     //                 armature.animation.push(animation);
+    //     //             }
+    //     //         }
+    //     //         // for (let row = 0, l = paramPivotTable.length; row < l; row++) {
+    //     //         //     const paramPivot = paramPivotTable[row];
+
+    //     //         //     const paramDef = model.getParamDef(paramPivot.paramID);
+    //     //         //     if (paramDef === null) {
+    //     //         //         continue;
+    //     //         //     }
+
+    //     //         //     for (let col = 0; col < paramPivot.pivotCount; col++) {
+    //     //         //         let lastFramePosition = 0;
+    //     //         //         //
+    //     //         //         let animation = armature.getAnimation(drawData.drawDataID + "_" + col) as dbft.Animation;
+    //     //         //         if (animation === null) {
+    //     //         //             animation = new dbft.Animation();
+    //     //         //             animation.name = drawData.drawDataID + "_" + col;
+    //     //         //             console.log("new:" + animation.name);
+    //     //         //         }
+    //     //         //         else {
+    //     //         //             console.log("old:" + animation.name);
+    //     //         //         }
+    //     //         //         animation.playTimes = 0;
+    //     //         //         animation.scale = 1.0;
+
+    //     //         //         const opacity = drawData.tempOpacity;
+    //     //         //         const points = drawData.tempPoints;
+    //     //         //         //SlotTimeline
+    //     //         //         {
+    //     //         //             let timeline = animation.getSlotTimeline(drawData.drawDataID);
+    //     //         //             if (timeline === null) {
+    //     //         //                 timeline = new dbft.SlotTimeline();
+    //     //         //                 timeline.name = drawData.drawDataID;
+
+    //     //         //                 animation.slot.push(timeline);
+    //     //         //             }
+
+    //     //         //             //
+    //     //         //             const colorFrame = new dbft.SlotColorFrame();
+    //     //         //             colorFrame._position = Math.round(col * result.frameRate);
+    //     //         //             colorFrame.tweenEasing = 0.0;
+    //     //         //             colorFrame.value.aM = opacity[col] * 100.0;
+    //     //         //             timeline.colorFrame.push(colorFrame);
+    //     //         //             lastFramePosition = Math.max(colorFrame._position, lastFramePosition);
+    //     //         //             modifyFrames(timeline.colorFrame);
+    //     //         //         }
+
+    //     //         //         //MeshDeformTimeline
+    //     //         //         // {
+    //     //         //         //     let timeline = animation.getDeformTimeline(data.name);
+    //     //         //         //     if (timeline === null) {
+    //     //         //         //         timeline = new dbft.MeshDeformTimeline();
+    //     //         //         //         timeline.name = data.name;
+    //     //         //         //         timeline.slot = drawData.drawDataID;
+
+    //     //         //         //         animation.ffd.push(timeline);
+    //     //         //         //     }
+
+    //     //         //         //     const deformFrame = new dbft.DeformFrame();
+    //     //         //         //     deformFrame._position = Math.round(col * result.frameRate);
+    //     //         //         //     deformFrame.tweenEasing = 0.0;
+    //     //         //         //     timeline.frame.push(deformFrame);
+
+    //     //         //         //     const vertices = points[col];
+
+    //     //         //         //     for (let k = 0, l = vertices.length; k < l; k++) {
+    //     //         //         //         deformFrame.vertices.push(vertices[k] - posePoint[k]);
+    //     //         //         //     }
+
+    //     //         //         //     lastFramePosition = Math.max(deformFrame._position, lastFramePosition);
+    //     //         //         //     modifyFrames(timeline.frame);
+    //     //         //         // }
+
+    //     //         //         animation.duration = lastFramePosition + 1;
+    //     //         //         armature.animation.push(animation);
+    //     //         //     }
 
 
-        //         // }
-        //     }
-        // }
-    }
+    //     //         // }
+    //     //     }
+    //     // }
+    // }
 
     return result;
 }

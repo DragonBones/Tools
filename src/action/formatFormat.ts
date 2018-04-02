@@ -39,27 +39,24 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     bone.parent = "";
                 }
 
-                switch (bone.type) {
-                    case dbft.BoneType.Bone:
-                        bone.transform.skX = geom.normalizeDegree(bone.transform.skX);
-                        bone.transform.skY = geom.normalizeDegree(bone.transform.skY);
-                        if (bone.transform.scX === 0.0) {
-                            bone.transform.scX = 0.0001;
-                        }
+                if (bone instanceof dbft.Surface) {
+                    const vertices = (bone as dbft.Surface).vertices;
+                    for (let i = 0, l = vertices.length; i < l; ++i) {
+                        vertices[i] = Number(vertices[i].toFixed(2));
+                    }
+                }
+                else {
+                    bone.transform.skX = geom.normalizeDegree(bone.transform.skX);
+                    bone.transform.skY = geom.normalizeDegree(bone.transform.skY);
+                    if (bone.transform.scX === 0.0) {
+                        bone.transform.scX = 0.0001;
+                    }
 
-                        if (bone.transform.scY === 0.0) {
-                            bone.transform.scY = 0.0001;
-                        }
+                    if (bone.transform.scY === 0.0) {
+                        bone.transform.scY = 0.0001;
+                    }
 
-                        bone.transform.toFixed();
-                        break;
-
-                    case dbft.BoneType.Surface:
-                        const vertices = (bone as dbft.Surface).vertices;
-                        for (let i = 0, l = vertices.length; i < l; ++i) {
-                            vertices[i] = Number(vertices[i].toFixed(2));
-                        }
-                        break;
+                    bone.transform.toFixed();
                 }
             }
 
@@ -130,10 +127,6 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                             meshMatrices[meshName] = matrix;
 
                             if (display.weights.length > 0) {
-                                for (let i = 0, l = display.uvs.length; i < l; ++i) {
-                                    display.uvs[i] = Number(display.uvs[i].toFixed(6));
-                                }
-
                                 for (let i = 0, l = display.weights.length; i < l; ++i) {
                                     display.weights[i] = Number(display.weights[i].toFixed(6));
                                 }
@@ -154,6 +147,10 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                             else {
                                 display.transform.toMatrix(matrix);
                                 display.transform.identity();
+                            }
+
+                            for (let i = 0, l = display.uvs.length; i < l; ++i) {
+                                display.uvs[i] = Number(display.uvs[i].toFixed(6));
                             }
 
                             for (let i = 0, l = display.vertices.length; i < l; i += 2) {

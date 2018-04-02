@@ -17,7 +17,7 @@ function execute(): void {
         .version("0.0.51")
         .option("-i, --input [path]", "Input path")
         .option("-o, --output [path]", "Output path")
-        .option("-t, --type [type]", "Convert from type [spine, cocos, live2d]", /^(spine|cocos|live2d)$/i, "none")
+        .option("-t, --type [type]", "Convert from type [spine, live2d]", /^(spine|live2d)$/i, "none")
         .option("-f, --filter [keyword]", "Filter")
         .option("-d, --delete", "Delete raw files after convert complete.")
         .parse(process.argv);
@@ -99,18 +99,18 @@ function execute(): void {
                             JSON.stringify(textureAtlas)
                         );
 
-                        let hasRotated = false;
-                        for (const texture of textureAtlas.SubTexture) {
-                            if (texture.rotated) {
-                                hasRotated = true;
-                            }
-                        }
-
                         if (deleteRaw) {
                             fs.moveSync(textureAtlasImage, imageOutputFile);
                         }
                         else {
                             fs.copySync(textureAtlasImage, imageOutputFile);
+                        }
+
+                        let hasRotated = false;
+                        for (const texture of textureAtlas.SubTexture) {
+                            if (texture.rotated) {
+                                hasRotated = true;
+                            }
                         }
 
                         if (hasRotated) {
@@ -134,32 +134,31 @@ function execute(): void {
             }
 
         case "live2d":
-            const files = utils.filterFileList(input, /\.(moc)$/i);
+            const files = nodeUtils.filterFileList(input, /\.(moc)$/i);
 
             for (const file of files) {
                 if (filter && file.indexOf(filter) < 0) {
                     continue;
                 }
+
                 const fileBuffer = fs.readFileSync(file);
                 const fileName = path.basename(file).replace(".moc", "");
-
                 const reader = new l2ft.Live2DReader(fileBuffer.buffer);
 
                 const num = reader.readByte();
                 const num2 = reader.readByte();
                 const num3 = reader.readByte();
                 if (((num !== 0x6d) || (num2 !== 0x6f)) || (num3 !== 0x63)) {
-                    console.log("Invalid version");
+                    console.log("Invalid data.");
                     continue;
                 }
 
                 const version = reader.readByte();
                 reader.version = version;
                 if (version > 11) {
-                    console.log("Invalid version:" + version);
+                    console.log("Invalid version:", version);
                     continue;
                 }
-
 
                 const textureAtlasFile = path.join(path.dirname(file), fileName + ".png");
                 let textureWidth = 0;
@@ -181,20 +180,24 @@ function execute(): void {
                 if (result === null) {
                     continue;
                 }
+
                 const outputFile = (output ? file.replace(input, output) : file).replace(".moc", "_ske.json");
                 format(result);
+
                 //create textureAtlas
                 const textureAtlases = result.textureAtlas.concat(); // TODO
                 result.textureAtlas.length = 0;
-                
-                utils.compress(result, dbft.compressConfig);
+
+                object.compress(result, dbft.compressConfig);
                 if (!fs.existsSync(path.dirname(outputFile))) {
                     fs.mkdirsSync(path.dirname(outputFile));
                 }
+
                 fs.writeFileSync(
                     outputFile,
                     JSON.stringify(result)
                 );
+                console.log(outputFile);
 
                 if (deleteRaw) {
                     fs.removeSync(file);
@@ -214,7 +217,7 @@ function execute(): void {
                         fs.mkdirsSync(path.dirname(imageOutputFile));
                     }
 
-                    utils.compress(textureAtlas, dbft.compressConfig);
+                    object.compress(textureAtlas, dbft.compressConfig);
                     if (!fs.existsSync(path.dirname(outputFile))) {
                         fs.mkdirsSync(path.dirname(outputFile));
                     }
@@ -224,13 +227,6 @@ function execute(): void {
                         JSON.stringify(textureAtlas)
                     );
 
-                    let hasRotated = false;
-                    for (const texture of textureAtlas.SubTexture) {
-                        if (texture.rotated) {
-                            hasRotated = true;
-                        }
-                    }
-
                     if (deleteRaw) {
                         fs.moveSync(textureAtlasImage, imageOutputFile);
                     }
@@ -238,26 +234,9 @@ function execute(): void {
                         fs.copySync(textureAtlasImage, imageOutputFile);
                     }
 
-                    if (hasRotated) {
-                        const input = {
-                            type: "modify_spine_textureatlas",
-                            data: {
-                                file: imageOutputFile,
-                                config: textureAtlas,
-                                texture: fs.readFileSync(imageOutputFile, "base64")
-                            }
-                        };
-
-                        helper.addInput(input);
-                    }
-
                     console.log(outputFile);
                     console.log(imageOutputFile);
                 }
-
-                console.log(outputFile);
-
-                ///
             }
             break;
 

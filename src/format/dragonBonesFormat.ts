@@ -127,8 +127,12 @@ export enum TimelineType {
 
     IKConstraint = 30,
 
-    AnimationTime = 40,
-    AnimationWeight = 41
+    Animation = 40
+}
+
+export enum AnimationBlendType {
+    None = 0,
+    E1D,
 }
 
 export enum TweenType {
@@ -758,16 +762,19 @@ export class Bone extends BaseData {
 }
 
 export class Surface extends Bone {
+    type: BoneType | string = BoneType[BoneType.Surface].toLowerCase();
     offset: number = -1; // Binary.
 
     segmentX: number = 0;
     segmentY: number = 0;
     readonly vertices: number[] = [];
 
-    constructor() {
+    constructor(isDefault: boolean = false) {
         super();
 
-        this.type = BoneType[BoneType.Surface].toLowerCase();
+        if (isDefault) {
+            this.type = "";
+        }
     }
 
     clearToBinary(): void {
@@ -1036,6 +1043,7 @@ export class Animation extends BaseData {
     playTimes: number = 1;
     scale: number = 1.0;
     fadeInTime: number = 0.0;
+    blendType: AnimationBlendType | string = AnimationBlendType[AnimationBlendType.None].toLowerCase();
     name: string = "default";
     readonly frame: ActionFrame[] = [];
     readonly bone: BoneTimeline[] = [];
@@ -1043,8 +1051,7 @@ export class Animation extends BaseData {
     readonly slot: SlotTimeline[] = [];
     readonly ffd: MeshDeformTimeline[] = [];
     readonly ik: IKConstraintTimeline[] = [];
-    readonly time: AnimationTimeline[] = [];
-    readonly weight: AnimationTimeline[] = [];
+    readonly animation: AnimationTimeline[] = [];
     zOrder: ZOrderTimeline | null = null;
 
     getSlotTimeline(name: string): SlotTimeline | null {
@@ -1848,7 +1855,7 @@ export const compressConfig = [
     new Canvas(),
     new Armature(),
     new Bone(),
-    new Surface(),
+    new Surface(true),
     new Slot(),
     new IKConstraint(),
     new PathConstraint(),

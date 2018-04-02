@@ -633,13 +633,9 @@ function createBoneTimeline(value: dbft.BoneTimeline): number[] {
 
 function createSurfaceTimeline(value: dbft.SurfaceTimeline): number[] {
     const timelines = new Array<number>();
-
     const surface = currentArmature.getBone(value.name) as dbft.Surface;
-    if (!surface || surface.type !== dbft.BoneType.Surface) {
-        return timelines;
-    }
-
     const vertexCount = surface.vertices.length / 2;
+
     for (const frame of value.frame) {
         let x = 0.0;
         let y = 0.0;
