@@ -1083,6 +1083,16 @@ export class Animation extends BaseData {
 
         return null;
     }
+
+    getAnimationTimeline(name: string): AnimationTimeline | null {
+        for (const timeline of this.animation) {
+            if (timeline.name === name) {
+                return timeline;
+            }
+        }
+
+        return null;
+    }
 }
 
 export class AnimationBinary extends BaseData {
