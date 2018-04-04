@@ -1432,7 +1432,9 @@ export class IKConstraintTimeline extends Timeline {
 export class AnimationTimeline extends Timeline {
     x: number = 0.0;
     y: number = 0.0;
-    readonly frame: AnimationFrame[] = [];
+    readonly time: FloatFrame[] = [];
+    readonly weight: FloatFrame[] = [];
+    readonly parameters: BoneTranslateFrame[] = [];
 }
 
 export abstract class Frame extends BaseData {
@@ -1481,6 +1483,23 @@ export abstract class TweenFrame extends Frame {
     }
 }
 
+export class FloatFrame extends TweenFrame {
+    value: number = 0.0;
+
+    equal(value: this): boolean {
+        return this.value === value.value;
+    }
+}
+
+export class BoneTranslateFrame extends TweenFrame {
+    x: number = 0.0;
+    y: number = 0.0;
+
+    equal(value: this): boolean {
+        return this.x === value.x && this.y === value.y;
+    }
+}
+
 export class ActionFrame extends Frame {
     action: string = ""; // Deprecated.
     event: string = ""; // Deprecated.
@@ -1522,15 +1541,6 @@ export class BoneAllFrame extends TweenFrame {
 
     equal(value: this): boolean {
         return this.tweenRotate === 0 && !this.action && !this.event && !this.sound && this.transform.equal(value.transform);
-    }
-}
-
-export class BoneTranslateFrame extends TweenFrame {
-    x: number = 0.0;
-    y: number = 0.0;
-
-    equal(value: this): boolean {
-        return this.x === value.x && this.y === value.y;
     }
 }
 
@@ -1639,19 +1649,6 @@ export class IKConstraintFrame extends TweenFrame {
     }
 }
 
-export class AnimationFrame extends TweenFrame {
-    progress: number = 0.0;
-    weight: number = 1.0;
-    x: number = 0.0;
-    y: number = 0.0;
-
-    equal(value: this): boolean {
-        return this.progress === value.progress &&
-            this.weight === value.weight &&
-            this.x === value.x &&
-            this.y === value.y;
-    }
-}
 export class TextureAtlas extends BaseData {
     width: number = 0;
     height: number = 0;
@@ -1835,7 +1832,9 @@ export const copyConfig = [
         frame: IKConstraintFrame
     },
     AnimationTimeline, {
-        frame: AnimationFrame
+        time: FloatFrame,
+        weight: FloatFrame,
+        parameters: BoneTranslateFrame,
     },
     ActionFrame, {
         actions: Action,
@@ -1890,10 +1889,11 @@ export const compressConfig = [
     new MeshDeformTimeline(),
     new IKConstraintTimeline(),
     new AnimationTimeline(),
+    new FloatFrame(),
+    new BoneTranslateFrame(),
     new ActionFrame(),
     new ZOrderFrame(),
     new BoneAllFrame(),
-    new BoneTranslateFrame(),
     new BoneRotateFrame(),
     new BoneScaleFrame(),
     new DeformFrame(),
@@ -1901,7 +1901,6 @@ export const compressConfig = [
     new SlotDisplayFrame(),
     new SlotColorFrame(),
     new IKConstraintFrame(),
-    new AnimationFrame(),
 
     new TextureAtlas(),
     new Texture()

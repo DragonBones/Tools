@@ -8,21 +8,23 @@ type Input = {
     textureAtlasWidth: number;
     textureAtlasHeight: number;
 };
+
+let result: dbft.DragonBones;
+let armature: dbft.Armature;
 /**
  * Convert Spine format to DragonBones format.
  */
 export default function (data: Input): dbft.DragonBones | null {
     const model = data.data;
-    const baseList = model.tempBaseList;
     const drawList = model.tempDrawList;
-    // TextureAtlas.
+    // Create textureAtlas.
     const textureAtlas = new dbft.TextureAtlas();
     textureAtlas.name = data.textureAtlas;
     textureAtlas.width = data.textureAtlasWidth;
     textureAtlas.height = data.textureAtlasHeight;
     textureAtlas.scale = 1.0;
     textureAtlas.imagePath = data.textureAtlas + ".png";
-    //
+    // Create subTexutres.
     const subTexture = new dbft.Texture();
     subTexture.name = data.textureAtlas;
     subTexture.x = 0;
@@ -30,77 +32,79 @@ export default function (data: Input): dbft.DragonBones | null {
     subTexture.width = data.textureAtlasWidth;
     subTexture.height = data.textureAtlasHeight;
     textureAtlas.SubTexture.push(subTexture);
-    //
-    const result = new dbft.DragonBones();
+    // Create dragonBones.
+    result = new dbft.DragonBones();
     result.frameRate = 24;
     result.name = data.name;
     result.version = dbft.DATA_VERSION_5_5;
     result.compatibleVersion = dbft.DATA_VERSION_5_5;
     result.textureAtlas.push(textureAtlas);
-    // Armature.
-    const armature = new dbft.Armature();
+    // Create armatures.
+    armature = new dbft.Armature();
     armature.name = data.name;
     result.armature.push(armature);
-
-    // Root bone.
+    // Create bones.
     const root = new dbft.Bone();
     root.name = "DST_BASE";
     root.length = 150.0;
     armature.bone.push(root);
 
-    for (const baseData of baseList) {
-        const isParentSurface = model.isSurface(baseData.targetBaseDataID);
-        if (baseData instanceof l2ft.AffineData) {
-            const bone = new dbft.Bone();
-            bone.length = 150.0;
-            bone.name = baseData.baseDataID;
-            bone.parent = baseData.targetBaseDataID;
-            // Set default pose, will override later.
-            const poseAffine = baseData.affines[0];
+    for (const partsData of model.partsDataList) {
+        for (const baseData of partsData.baseDataList) {
+            const isParentSurface = model.isSurface(baseData.targetBaseDataID);
 
-            if (isParentSurface) {
-                bone.transform.x = (poseAffine.originX - 0.5) * 400.0;
-                bone.transform.y = (poseAffine.originY - 0.5) * 400.0;
-                bone.inheritScale = false;
-            }
-            else {
-                bone.transform.x = poseAffine.originX;
-                bone.transform.y = poseAffine.originY;
-            }
+            if (baseData instanceof l2ft.AffineData) {
+                const bone = new dbft.Bone();
+                bone.length = 150.0;
+                bone.name = baseData.baseDataID;
+                bone.parent = baseData.targetBaseDataID;
+                // Set default pose, will override later.
+                const poseAffine = baseData.affines[0];
 
-            bone.transform.skY = poseAffine.rotateDeg;
-            bone.transform.skX = poseAffine.rotateDeg;
-            bone.transform.scX = poseAffine.scaleX;
-            bone.transform.scY = poseAffine.scaleY;
-
-            armature.bone.push(bone);
-        }
-        else if (baseData instanceof l2ft.BoxGridData) {
-            const surface = new dbft.Surface();
-            surface.name = baseData.baseDataID;
-            surface.parent = baseData.targetBaseDataID;
-            surface.segmentX = baseData.col;
-            surface.segmentY = baseData.row;
-            // Set default pose, will override later.
-            const posePivots = baseData.pivotPoints[0];
-            surface.vertices.length = posePivots.length;
-
-            for (let i = 0, l = posePivots.length; i < l; ++i) {
                 if (isParentSurface) {
-                    surface.vertices[i] = (posePivots[i] - 0.5) * 400.0;
+                    bone.transform.x = (poseAffine.originX - 0.5) * 400.0;
+                    bone.transform.y = (poseAffine.originY - 0.5) * 400.0;
+                    bone.inheritScale = false;
                 }
                 else {
-                    surface.vertices[i] = posePivots[i];
+                    bone.transform.x = poseAffine.originX;
+                    bone.transform.y = poseAffine.originY;
                 }
-            }
 
-            armature.bone.push(surface);
+                bone.transform.skY = poseAffine.rotateDeg;
+                bone.transform.skX = poseAffine.rotateDeg;
+                bone.transform.scX = poseAffine.scaleX;
+                bone.transform.scY = poseAffine.scaleY;
+
+                armature.bone.push(bone);
+            }
+            else if (baseData instanceof l2ft.BoxGridData) {
+                const surface = new dbft.Surface();
+                surface.segmentX = baseData.col;
+                surface.segmentY = baseData.row;
+                surface.name = baseData.baseDataID;
+                surface.parent = baseData.targetBaseDataID;
+                // Set default pose, will override later.
+                const posePivots = baseData.pivotPoints[0];
+                surface.vertices.length = posePivots.length;
+
+                for (let i = 0, l = posePivots.length; i < l; ++i) {
+                    if (isParentSurface) {
+                        surface.vertices[i] = (posePivots[i] - 0.5) * 400.0;
+                    }
+                    else {
+                        surface.vertices[i] = posePivots[i];
+                    }
+                }
+
+                armature.bone.push(surface);
+            }
         }
     }
-
+    // 
     armature.sortBones();
-    armature.localToGlobal();
-    // Slot.
+    // armature.localToGlobal();
+    // Create slots.
     for (const drawData of drawList) {
         if (drawData instanceof l2ft.MeshData) {
             const slot = new dbft.Slot();
@@ -109,7 +113,7 @@ export default function (data: Input): dbft.DragonBones | null {
             armature.slot.push(slot);
         }
     }
-    // Skin.
+    // Create skins.
     const skin = new dbft.Skin();
 
     for (const drawData of drawList) {
@@ -155,393 +159,388 @@ export default function (data: Input): dbft.DragonBones | null {
     }
 
     armature.skin.push(skin);
-
-
-
-    // Animation.
+    // Create animations.
     if (model.paramDefSet.paramDefSet.length > 0) {
-        for (const baseData of baseList) { // Bone Timelines.
-            if (baseData instanceof l2ft.AffineData) {
+        for (const partsData of model.partsDataList) {
+            for (const baseData of partsData.baseDataList) {
                 const isParentSurface = model.isSurface(baseData.targetBaseDataID);
                 const paramPivotTable = baseData.pivotManager.paramPivotTable;
-                const affines = baseData.affines;
-                const bone = armature.getBone(baseData.baseDataID) as dbft.Bone | null;
-                if (!bone) {
-                    break;
-                }
 
-                switch (paramPivotTable.length) {
-                    case 0:
-                        break;
+                if (baseData instanceof l2ft.AffineData) {
+                    const bone = armature.getBone(baseData.baseDataID);
+                    if (!bone) {
+                        continue;
+                    }
+                    const surface = bone as dbft.Surface;
+                    const affines = baseData.affines;
 
-                    case 1: {
-                        let lastFramePosition = 0;
-                        const paramPivots = paramPivotTable[0];
-                        const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
-                        //
-                        // const defaultValueIndex = paramPivots.pivotValue.indexOf(paramDef.defaultValue);
-                        // if (defaultValueIndex > 0) {
-                        //     const poseAffine = affines[defaultValueIndex];
+                    switch (paramPivotTable.length) {
+                        case 0:
+                            break;
 
-                        //     if (isParentSurface) {
-                        //         bone.transform.x = (poseAffine.originX - 0.5) * 400.0;
-                        //         bone.transform.y = (poseAffine.originY - 0.5) * 400.0;
-                        //         bone.inheritScale = false;
-                        //     }
-                        //     else {
-                        //         bone.transform.x = poseAffine.originX;
-                        //         bone.transform.y = poseAffine.originY;
-                        //     }
+                        case 1: {
+                            let lastFramePosition = 0;
+                            const paramPivots = paramPivotTable[0];
+                            const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+                            //
+                            // const defaultValueIndex = paramPivots.pivotValue.indexOf(paramDef.defaultValue);
+                            // if (defaultValueIndex > 0) {
+                            //     const poseAffine = affines[defaultValueIndex];
 
-                        //     bone.transform.skY = poseAffine.rotateDeg;
-                        //     bone.transform.skX = poseAffine.rotateDeg;
-                        //     bone.transform.scX = poseAffine.scaleX;
-                        //     bone.transform.scY = poseAffine.scaleY;
-                        // }
+                            //     if (isParentSurface) {
+                            //         bone.transform.x = (poseAffine.originX - 0.5) * 400.0;
+                            //         bone.transform.y = (poseAffine.originY - 0.5) * 400.0;
+                            //         bone.inheritScale = false;
+                            //     }
+                            //     else {
+                            //         bone.transform.x = poseAffine.originX;
+                            //         bone.transform.y = poseAffine.originY;
+                            //     }
 
-                        let animation = armature.getAnimation(paramPivots.paramID) as dbft.Animation | null;
-                        if (!animation) {
-                            animation = new dbft.Animation();
-                            animation.playTimes = 0;
-                            animation.name = paramPivots.paramID;
-                            armature.animation.push(animation);
-                        }
+                            //     bone.transform.skY = poseAffine.rotateDeg;
+                            //     bone.transform.skX = poseAffine.rotateDeg;
+                            //     bone.transform.scX = poseAffine.scaleX;
+                            //     bone.transform.scY = poseAffine.scaleY;
+                            // }
 
-                        const timeline = new dbft.BoneTimeline();
-                        timeline.name = baseData.baseDataID;
-                        animation.bone.push(timeline);
-
-                        const totalValue = paramDef.maxValue - paramDef.minValue;
-
-                        for (let i = 0; i < paramPivots.pivotCount; ++i) {
-                            const translateFrame = new dbft.BoneTranslateFrame();
-                            const rotateFrame = new dbft.BoneRotateFrame();
-                            const scaleFrame = new dbft.BoneScaleFrame();
-                            const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
-                            const frameAffine = affines[i];
-
-                            translateFrame._position = rotateFrame._position = scaleFrame._position = lastFramePosition = Math.floor(progress * result.frameRate);
-                            translateFrame.tweenEasing = rotateFrame.tweenEasing = scaleFrame.tweenEasing = 0.0;
-
-                            if (isParentSurface) {
-                                translateFrame.x = (frameAffine.originX - 0.5) * 400.0 - bone.transform.x;
-                                translateFrame.y = (frameAffine.originY - 0.5) * 400.0 - bone.transform.y;
-                            }
-                            else {
-                                translateFrame.x = frameAffine.originX - bone.transform.x;
-                                translateFrame.y = frameAffine.originY - bone.transform.y;
+                            let animation = armature.getAnimation(paramPivots.paramID) as dbft.Animation | null;
+                            if (!animation) {
+                                animation = new dbft.Animation();
+                                animation.playTimes = 0;
+                                animation.name = paramPivots.paramID;
+                                armature.animation.push(animation);
                             }
 
-                            rotateFrame.rotate = frameAffine.rotateDeg - bone.transform.skY;
-                            scaleFrame.x = frameAffine.scaleX - bone.transform.scX;
-                            scaleFrame.y = frameAffine.scaleY - bone.transform.scY;
+                            const timeline = new dbft.BoneTimeline();
+                            timeline.name = baseData.baseDataID;
+                            animation.bone.push(timeline);
 
-                            timeline.translateFrame.push(translateFrame);
-                            timeline.rotateFrame.push(rotateFrame);
-                            timeline.scaleFrame.push(scaleFrame);
-                        }
+                            const totalValue = paramDef.maxValue - paramDef.minValue;
 
-                        modifyFrames(timeline.translateFrame);
-                        modifyFrames(timeline.rotateFrame);
-                        modifyFrames(timeline.scaleFrame);
-                        animation.duration = lastFramePosition + 1;
-                        break;
-                    }
+                            for (let i = 0; i < paramPivots.pivotCount; ++i) {
+                                const translateFrame = new dbft.BoneTranslateFrame();
+                                const rotateFrame = new dbft.BoneRotateFrame();
+                                const scaleFrame = new dbft.BoneScaleFrame();
+                                const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
+                                const frameAffine = affines[i];
 
-                    case 2: {
-                        // let lastFramePosition = 0;
-                        // const paramPivotsA = paramPivotTable[0];
-                        // const paramPivotsB = paramPivotTable[1];
-                        // const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
-                        // const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
-                        // //
-                        // // const defaultValueIndex = paramPivotsA.pivotValue.indexOf(paramDefA.defaultValue) * paramPivotsB.pivotCount + paramPivotsB.pivotValue.indexOf(paramDefB.defaultValue);
-                        // // if (defaultValueIndex > 0) {
-                        // //     const posePivotPoints = pivotPoints[defaultValueIndex];
-                        // //     for (let i = 0, l = posePivotPoints.length; i < l; ++i) {
-                        // //         if (isParentSurface) {
-                        // //             surface.vertices[i] = (posePivotPoints[i] - 0.5) * 400.0;
-                        // //         }
-                        // //         else {
-                        // //             surface.vertices[i] = posePivotPoints[i];
-                        // //         }
-                        // //     }
-                        // // }
+                                translateFrame._position = rotateFrame._position = scaleFrame._position = lastFramePosition = Math.floor(progress * result.frameRate);
+                                translateFrame.tweenEasing = rotateFrame.tweenEasing = scaleFrame.tweenEasing = 0.0;
 
-                        // let animationA = armature.getAnimation(paramPivotsA.paramID) as dbft.Animation | null;
-                        // if (!animationA) {
-                        //     animationA = new dbft.Animation();
-                        //     animationA.playTimes = 0;
-                        //     animationA.name = paramPivotsA.paramID;
-                        //     armature.animation.push(animationA);
-                        // }
-
-                        // let animationB = armature.getAnimation(paramPivotsB.paramID) as dbft.Animation | null;
-                        // if (!animationB) {
-                        //     animationB = new dbft.Animation();
-                        //     animationB.playTimes = 0;
-                        //     animationB.name = paramPivotsB.paramID;
-                        //     armature.animation.push(animationB);
-                        // }
-
-                        // const totalValueA = paramDefA.maxValue - paramDefA.minValue;
-                        // const totalValueB = paramDefB.maxValue - paramDefB.minValue;
-
-                        // for (let col = 0; col < paramPivotsA.pivotCount; ++col) {
-                        //     const childAnimationName = paramPivotsA.paramID + "_" + col;
-                        //     let childAnimation = armature.getAnimation(childAnimationName) as dbft.Animation | null;
-                        //     if (!childAnimation) {
-                        //         childAnimation = new dbft.Animation();
-                        //         childAnimation.name = childAnimationName;
-                        //         armature.animation.push(childAnimation);
-                        //     }
-
-                        //     const timeline = new dbft.BoneTimeline();
-                        //     timeline.name = baseData.baseDataID;
-                        //     childAnimation.bone.push(timeline);
-
-                        //     for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
-                        //         const pivotPointsIndex = col * paramPivotsB.pivotCount + row;
-                        //         const deformFrame = new dbft.DeformFrame();
-                        //         const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
-                        //         const frameAffine = affines[pivotPointsIndex];
-
-                        //         // deformFrame._position = Math.floor(progress * result.frameRate);
-                        //         // deformFrame.tweenEasing = 0.0;
-
-                        //         // for (let i = 0, l = frameAffine.length; i < l; ++i) {
-                        //         //     if (isParentSurface) {
-                        //         //         deformFrame.vertices[i] = (frameAffine[i] - 0.5) * 400.0 - surface.vertices[i];
-                        //         //     }
-                        //         //     else {
-                        //         //         deformFrame.vertices[i] = frameAffine[i] - surface.vertices[i];
-                        //         //     }
-                        //         // }
-
-                        //         // timeline.frame.push(deformFrame);
-                        //         // lastFramePosition = deformFrame._position;
-                        //     }
-
-                        //     modifyFrames(timeline.translateFrame);
-                        //     modifyFrames(timeline.rotateFrame);
-                        //     modifyFrames(timeline.scaleFrame);
-                        //     childAnimation.duration = Math.max(lastFramePosition + 1, childAnimation.duration);
-                        //     animationA.duration = Math.max(lastFramePosition + 1, animationA.duration);
-
-                        //     if (!animationA.getAnimationTimeline(childAnimation.name)) {
-                        //         const animationTimeline = new dbft.AnimationTimeline();
-                        //         animationTimeline.name = childAnimation.name;
-                        //         animationTimeline.x = (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA;
-
-                        //         const frameBegin = new dbft.AnimationFrame();
-                        //         const frameEnd = new dbft.AnimationFrame();
-                        //         frameBegin._position = 0;
-                        //         frameBegin.progress = 0.0;
-                        //         frameBegin.tweenEasing = 0.0;
-                        //         frameEnd._position = lastFramePosition;
-                        //         frameEnd.progress = 1.0;
-                        //         frameEnd.tweenEasing = 0.0;
-                        //         animationTimeline.frame.push(frameBegin, frameEnd);
-                        //         animationA.animation.push(animationTimeline);
-                        //         modifyFrames(animationTimeline.frame);
-                        //     }
-                        // }
-                        break;
-                    }
-
-                    case 3: {
-                        break;
-                    }
-                }
-            }
-            else if (baseData instanceof l2ft.BoxGridData) {
-                const isParentSurface = model.isSurface(baseData.targetBaseDataID);
-                const paramPivotTable = baseData.pivotManager.paramPivotTable;
-                const pivotPoints = baseData.pivotPoints;
-                const surface = armature.getBone(baseData.baseDataID) as dbft.Surface | null;
-                if (!surface) {
-                    break;
-                }
-
-                switch (paramPivotTable.length) {
-                    case 0:
-                        break;
-
-                    case 1: {
-                        let lastFramePosition = 0;
-                        const paramPivots = paramPivotTable[0];
-                        const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
-                        //
-                        // const defaultValueIndex = paramPivots.pivotValue.indexOf(paramDef.defaultValue);
-                        // if (defaultValueIndex > 0) {
-                        //     const posePivotPoints = pivotPoints[defaultValueIndex];
-                        //     for (let i = 0, l = posePivotPoints.length; i < l; ++i) {
-                        //         if (isParentSurface) {
-                        //             surface.vertices[i] = (posePivotPoints[i] - 0.5) * 400.0;
-                        //         }
-                        //         else {
-                        //             surface.vertices[i] = posePivotPoints[i];
-                        //         }
-                        //     }
-                        // }
-
-                        let animation = armature.getAnimation(paramPivots.paramID) as dbft.Animation | null;
-                        if (!animation) {
-                            animation = new dbft.Animation();
-                            animation.playTimes = 0;
-                            animation.name = paramPivots.paramID;
-                            armature.animation.push(animation);
-                        }
-
-                        const timeline = new dbft.SurfaceTimeline();
-                        timeline.name = baseData.baseDataID;
-                        animation.surface.push(timeline);
-
-                        const totalValue = paramDef.maxValue - paramDef.minValue;
-
-                        for (let i = 0; i < paramPivots.pivotCount; ++i) {
-                            const deformFrame = new dbft.DeformFrame();
-                            const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
-                            const framePivotPoints = pivotPoints[i];
-
-                            deformFrame._position = Math.floor(progress * result.frameRate);
-                            deformFrame.tweenEasing = 0.0;
-
-                            for (let i = 0, l = framePivotPoints.length; i < l; ++i) {
                                 if (isParentSurface) {
-                                    deformFrame.vertices[i] = (framePivotPoints[i] - 0.5) * 400.0 - surface.vertices[i];
+                                    translateFrame.x = (frameAffine.originX - 0.5) * 400.0 - bone.transform.x;
+                                    translateFrame.y = (frameAffine.originY - 0.5) * 400.0 - bone.transform.y;
                                 }
                                 else {
-                                    deformFrame.vertices[i] = framePivotPoints[i] - surface.vertices[i];
+                                    translateFrame.x = frameAffine.originX - bone.transform.x;
+                                    translateFrame.y = frameAffine.originY - bone.transform.y;
                                 }
+
+                                rotateFrame.rotate = frameAffine.rotateDeg - bone.transform.skY;
+                                scaleFrame.x = frameAffine.scaleX - bone.transform.scX;
+                                scaleFrame.y = frameAffine.scaleY - bone.transform.scY;
+
+                                timeline.translateFrame.push(translateFrame);
+                                timeline.rotateFrame.push(rotateFrame);
+                                timeline.scaleFrame.push(scaleFrame);
                             }
 
-                            timeline.frame.push(deformFrame);
-                            lastFramePosition = deformFrame._position;
+                            modifyFrames(timeline.translateFrame);
+                            modifyFrames(timeline.rotateFrame);
+                            modifyFrames(timeline.scaleFrame);
+                            animation.duration = lastFramePosition + 1;
+                            break;
                         }
 
-                        modifyFrames(timeline.frame);
-                        animation.duration = Math.max(lastFramePosition + 1, animation.duration);
-                        break;
+                        case 2: {
+                            // let lastFramePosition = 0;
+                            // const paramPivotsA = paramPivotTable[0];
+                            // const paramPivotsB = paramPivotTable[1];
+                            // const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+                            // const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
+                            // //
+                            // // const defaultValueIndex = paramPivotsA.pivotValue.indexOf(paramDefA.defaultValue) * paramPivotsB.pivotCount + paramPivotsB.pivotValue.indexOf(paramDefB.defaultValue);
+                            // // if (defaultValueIndex > 0) {
+                            // //     const posePivotPoints = pivotPoints[defaultValueIndex];
+                            // //     for (let i = 0, l = posePivotPoints.length; i < l; ++i) {
+                            // //         if (isParentSurface) {
+                            // //             surface.vertices[i] = (posePivotPoints[i] - 0.5) * 400.0;
+                            // //         }
+                            // //         else {
+                            // //             surface.vertices[i] = posePivotPoints[i];
+                            // //         }
+                            // //     }
+                            // // }
+
+                            // let animationA = armature.getAnimation(paramPivotsA.paramID) as dbft.Animation | null;
+                            // if (!animationA) {
+                            //     animationA = new dbft.Animation();
+                            //     animationA.playTimes = 0;
+                            //     animationA.name = paramPivotsA.paramID;
+                            //     armature.animation.push(animationA);
+                            // }
+
+                            // let animationB = armature.getAnimation(paramPivotsB.paramID) as dbft.Animation | null;
+                            // if (!animationB) {
+                            //     animationB = new dbft.Animation();
+                            //     animationB.playTimes = 0;
+                            //     animationB.name = paramPivotsB.paramID;
+                            //     armature.animation.push(animationB);
+                            // }
+
+                            // const totalValueA = paramDefA.maxValue - paramDefA.minValue;
+                            // const totalValueB = paramDefB.maxValue - paramDefB.minValue;
+
+                            // for (let col = 0; col < paramPivotsA.pivotCount; ++col) {
+                            //     const childAnimationName = paramPivotsA.paramID + "_" + col;
+                            //     let childAnimation = armature.getAnimation(childAnimationName) as dbft.Animation | null;
+                            //     if (!childAnimation) {
+                            //         childAnimation = new dbft.Animation();
+                            //         childAnimation.name = childAnimationName;
+                            //         armature.animation.push(childAnimation);
+                            //     }
+
+                            //     const timeline = new dbft.BoneTimeline();
+                            //     timeline.name = baseData.baseDataID;
+                            //     childAnimation.bone.push(timeline);
+
+                            //     for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
+                            //         const pivotPointsIndex = col * paramPivotsB.pivotCount + row;
+                            //         const deformFrame = new dbft.DeformFrame();
+                            //         const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
+                            //         const frameAffine = affines[pivotPointsIndex];
+
+                            //         // deformFrame._position = Math.floor(progress * result.frameRate);
+                            //         // deformFrame.tweenEasing = 0.0;
+
+                            //         // for (let i = 0, l = frameAffine.length; i < l; ++i) {
+                            //         //     if (isParentSurface) {
+                            //         //         deformFrame.vertices[i] = (frameAffine[i] - 0.5) * 400.0 - surface.vertices[i];
+                            //         //     }
+                            //         //     else {
+                            //         //         deformFrame.vertices[i] = frameAffine[i] - surface.vertices[i];
+                            //         //     }
+                            //         // }
+
+                            //         // timeline.frame.push(deformFrame);
+                            //         // lastFramePosition = deformFrame._position;
+                            //     }
+
+                            //     modifyFrames(timeline.translateFrame);
+                            //     modifyFrames(timeline.rotateFrame);
+                            //     modifyFrames(timeline.scaleFrame);
+                            //     childAnimation.duration = Math.max(lastFramePosition + 1, childAnimation.duration);
+                            //     animationA.duration = Math.max(lastFramePosition + 1, animationA.duration);
+
+                            //     if (!animationA.getAnimationTimeline(childAnimation.name)) {
+                            //         const animationTimeline = new dbft.AnimationTimeline();
+                            //         animationTimeline.name = childAnimation.name;
+                            //         animationTimeline.x = (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA;
+
+                            //         const frameBegin = new dbft.AnimationFrame();
+                            //         const frameEnd = new dbft.AnimationFrame();
+                            //         frameBegin._position = 0;
+                            //         frameBegin.progress = 0.0;
+                            //         frameBegin.tweenEasing = 0.0;
+                            //         frameEnd._position = lastFramePosition;
+                            //         frameEnd.progress = 1.0;
+                            //         frameEnd.tweenEasing = 0.0;
+                            //         animationTimeline.frame.push(frameBegin, frameEnd);
+                            //         animationA.animation.push(animationTimeline);
+                            //         modifyFrames(animationTimeline.frame);
+                            //     }
+                            // }
+                            break;
+                        }
+
+                        case 3: {
+                            break;
+                        }
+                    }
+                }
+                else if (baseData instanceof l2ft.BoxGridData) {
+                    const keyFrames = baseData.pivotPoints;
+                    const surface = armature.getBone(baseData.baseDataID) as dbft.Surface | null;
+                    if (!surface) {
+                        continue;
                     }
 
-                    case 2: {
-                        let lastFramePosition = 0;
-                        const paramPivotsA = paramPivotTable[0];
-                        const paramPivotsB = paramPivotTable[1];
-                        const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
-                        const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
-                        //
-                        // const defaultValueIndex = paramPivotsA.pivotValue.indexOf(paramDefA.defaultValue) * paramPivotsB.pivotCount + paramPivotsB.pivotValue.indexOf(paramDefB.defaultValue);
-                        // if (defaultValueIndex > 0) {
-                        //     const posePivotPoints = pivotPoints[defaultValueIndex];
-                        //     for (let i = 0, l = posePivotPoints.length; i < l; ++i) {
-                        //         if (isParentSurface) {
-                        //             surface.vertices[i] = (posePivotPoints[i] - 0.5) * 400.0;
-                        //         }
-                        //         else {
-                        //             surface.vertices[i] = posePivotPoints[i];
-                        //         }
-                        //     }
-                        // }
+                    switch (paramPivotTable.length) {
+                        case 0:
+                            break;
 
-                        let animationA = armature.getAnimation(paramPivotsA.paramID) as dbft.Animation | null;
-                        if (!animationA) {
-                            animationA = new dbft.Animation();
-                            animationA.playTimes = 0;
-                            animationA.name = paramPivotsA.paramID;
-                            armature.animation.push(animationA);
-                        }
+                        case 1: {
+                            const paramPivots = paramPivotTable[0];
+                            const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+                            const totalValue = paramDef.maxValue - paramDef.minValue;
 
-                        let animationB = armature.getAnimation(paramPivotsB.paramID) as dbft.Animation | null;
-                        if (!animationB) {
-                            animationB = new dbft.Animation();
-                            animationB.playTimes = 0;
-                            animationB.name = paramPivotsB.paramID;
-                            armature.animation.push(animationB);
-                        }
+                            //
+                            // const defaultValueIndex = paramPivots.pivotValue.indexOf(paramDef.defaultValue);
+                            // if (defaultValueIndex > 0) {
+                            //     const posePivotPoints = pivotPoints[defaultValueIndex];
+                            //     for (let i = 0, l = posePivotPoints.length; i < l; ++i) {
+                            //         if (isParentSurface) {
+                            //             surface.vertices[i] = (posePivotPoints[i] - 0.5) * 400.0;
+                            //         }
+                            //         else {
+                            //             surface.vertices[i] = posePivotPoints[i];
+                            //         }
+                            //     }
+                            // }
 
-                        const totalValueA = paramDefA.maxValue - paramDefA.minValue;
-                        const totalValueB = paramDefB.maxValue - paramDefB.minValue;
-
-                        for (let col = 0; col < paramPivotsA.pivotCount; ++col) {
-                            const childAnimationName = paramPivotsB.paramID + "_" + col;
-                            let childAnimation = armature.getAnimation(childAnimationName) as dbft.Animation | null;
-                            if (!childAnimation) {
-                                childAnimation = new dbft.Animation();
-                                childAnimation.name = childAnimationName;
-                                armature.animation.push(childAnimation);
+                            let animation = armature.getAnimation(paramPivots.paramID) as dbft.Animation | null;
+                            if (!animation) {
+                                animation = new dbft.Animation();
+                                animation.playTimes = 0;
+                                animation.duration = paramDef._frameCount;
+                                animation.name = paramPivots.paramID;
+                                armature.animation.push(animation);
                             }
 
                             const timeline = new dbft.SurfaceTimeline();
                             timeline.name = baseData.baseDataID;
-                            childAnimation.surface.push(timeline);
 
-                            for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
-                                const pivotPointsIndex = col * paramPivotsB.pivotCount + row;
+                            for (let i = 0; i < paramPivots.pivotCount; ++i) {
                                 const deformFrame = new dbft.DeformFrame();
-                                const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
-                                const framePivotPoints = pivotPoints[pivotPointsIndex];
+                                const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
+                                const keyFrame = keyFrames[i];
 
-                                deformFrame._position = Math.floor(progress * result.frameRate);
+                                deformFrame._position = Math.floor(progress * animation.duration);
                                 deformFrame.tweenEasing = 0.0;
 
-                                for (let i = 0, l = framePivotPoints.length; i < l; ++i) {
+                                for (let i = 0, l = keyFrame.length; i < l; ++i) {
                                     if (isParentSurface) {
-                                        deformFrame.vertices[i] = (framePivotPoints[i] - 0.5) * 400.0 - surface.vertices[i];
+                                        deformFrame.vertices[i] = (keyFrame[i] - 0.5) * 400.0 - surface.vertices[i];
                                     }
                                     else {
-                                        deformFrame.vertices[i] = framePivotPoints[i] - surface.vertices[i];
+                                        deformFrame.vertices[i] = keyFrame[i] - surface.vertices[i];
                                     }
                                 }
 
                                 timeline.frame.push(deformFrame);
-                                lastFramePosition = deformFrame._position;
                             }
 
                             modifyFrames(timeline.frame);
-                            childAnimation.duration = Math.max(lastFramePosition + 1, childAnimation.duration);
-                            animationB.duration = Math.max(lastFramePosition + 1, animationB.duration);
-
-                            if (!animationB.getAnimationTimeline(childAnimationName)) {
-                                const animationTimeline = new dbft.AnimationTimeline();
-                                animationTimeline.name = childAnimationName;
-                                // animationTimeline.x = (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA;
-                                const frameBegin = new dbft.AnimationFrame();
-                                const frameEnd = new dbft.AnimationFrame();
-                                frameBegin._position = 0;
-                                frameBegin.progress = 0.0;
-                                frameBegin.tweenEasing = 0.0;
-                                frameEnd._position = lastFramePosition;
-                                frameEnd.progress = 1.0;
-                                frameEnd.tweenEasing = 0.0;
-                                animationTimeline.frame.push(frameBegin, frameEnd);
-                                animationB.animation.push(animationTimeline);
-                                modifyFrames(animationTimeline.frame);
-                            }
-                            
-                            if (!animationB.getAnimationTimeline(childAnimationName)) {
-                                const animationTimeline = new dbft.AnimationTimeline();
-                                animationTimeline.name = childAnimationName;
-                                // animationTimeline.x = (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA;
-                                const frameBegin = new dbft.AnimationFrame();
-                                const frameEnd = new dbft.AnimationFrame();
-                                frameBegin._position = 0;
-                                frameBegin.progress = 0.0;
-                                frameBegin.tweenEasing = 0.0;
-                                frameEnd._position = lastFramePosition;
-                                frameEnd.progress = 1.0;
-                                frameEnd.tweenEasing = 0.0;
-                                animationTimeline.frame.push(frameBegin, frameEnd);
-                                animationB.animation.push(animationTimeline);
-                                modifyFrames(animationTimeline.frame);
-                            }
+                            animation.surface.push(timeline);
+                            break;
                         }
-                        break;
-                    }
 
-                    case 3: {
-                        break;
+                        case 2: {
+                            const paramPivotsA = paramPivotTable[0];
+                            const paramPivotsB = paramPivotTable[1];
+                            const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+                            const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
+                            const totalValueA = paramDefA.maxValue - paramDefA.minValue;
+                            const totalValueB = paramDefB.maxValue - paramDefB.minValue;
+
+                            //
+                            // const defaultValueIndex = paramPivotsA.pivotValue.indexOf(paramDefA.defaultValue) * paramPivotsB.pivotCount + paramPivotsB.pivotValue.indexOf(paramDefB.defaultValue);
+                            // if (defaultValueIndex > 0) {
+                            //     const posePivotPoints = pivotPoints[defaultValueIndex];
+                            //     for (let i = 0, l = posePivotPoints.length; i < l; ++i) {
+                            //         if (isParentSurface) {
+                            //             surface.vertices[i] = (posePivotPoints[i] - 0.5) * 400.0;
+                            //         }
+                            //         else {
+                            //             surface.vertices[i] = posePivotPoints[i];
+                            //         }
+                            //     }
+                            // }
+                            // Create parameters animaiton.
+                            let animationA = armature.getAnimation(paramPivotsA.paramID) as dbft.Animation | null;
+                            if (!animationA) {
+                                animationA = new dbft.Animation();
+                                animationA.playTimes = 0;
+                                animationA.duration = paramDefA._frameCount;
+                                animationA.name = paramPivotsA.paramID;
+                                armature.animation.push(animationA);
+                            }
+                            // Create weight and time animaiton.
+                            let animationB = armature.getAnimation(paramPivotsB.paramID) as dbft.Animation | null;
+                            if (!animationB) {
+                                animationB = new dbft.Animation();
+                                animationB.playTimes = 0;
+                                animationB.duration = paramDefB._frameCount;
+                                animationB.name = paramPivotsB.paramID;
+                                armature.animation.push(animationB);
+                            }
+                            // Create animations and timelines.
+                            for (let col = 0; col < paramPivotsA.pivotCount; ++col) {
+                                const childAnimationName = paramPivotsB.paramID + "_" + col;
+                                let childAnimation = armature.getAnimation(childAnimationName) as dbft.Animation | null;
+                                if (!childAnimation) {
+                                    childAnimation = new dbft.Animation();
+                                    childAnimation.duration = animationB.duration;
+                                    childAnimation.name = childAnimationName;
+                                    armature.animation.push(childAnimation);
+                                }
+
+                                const timeline = new dbft.SurfaceTimeline();
+                                timeline.name = baseData.baseDataID;
+
+                                for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
+                                    const pivotPointsIndex = col * paramPivotsB.pivotCount + row;
+                                    const deformFrame = new dbft.DeformFrame();
+                                    const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
+                                    const keyFrame = keyFrames[pivotPointsIndex];
+
+                                    deformFrame._position = Math.floor(progress * childAnimation.duration);
+                                    deformFrame.tweenEasing = 0.0;
+
+                                    for (let i = 0, l = keyFrame.length; i < l; ++i) {
+                                        if (isParentSurface) {
+                                            deformFrame.vertices[i] = (keyFrame[i] - 0.5) * 400.0 - surface.vertices[i];
+                                        }
+                                        else {
+                                            deformFrame.vertices[i] = keyFrame[i] - surface.vertices[i];
+                                        }
+                                    }
+
+                                    timeline.frame.push(deformFrame);
+                                }
+
+                                modifyFrames(timeline.frame);
+                                childAnimation.surface.push(timeline);
+
+                                if (!animationB.getAnimationTimeline(childAnimationName)) {
+                                    const animationTimeline = new dbft.AnimationTimeline();
+                                    animationTimeline.name = childAnimationName;
+                                    animationTimeline.x = (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA * 2.0 - 1.0;
+                                    const frameBegin = new dbft.FloatFrame();
+                                    const frameEnd = new dbft.FloatFrame();
+                                    frameBegin._position = 0;
+                                    frameBegin.progress = 0.0;
+                                    frameBegin.tweenEasing = 0.0;
+                                    frameEnd._position = animationB.duration;
+                                    frameEnd.progress = 1.0;
+                                    frameEnd.tweenEasing = 0.0;
+                                    animationTimeline.frame.push(frameBegin, frameEnd);
+                                    modifyFrames(animationTimeline.frame);
+                                    animationB.animation.push(animationTimeline);
+                                }
+
+                                if (!animationA.getAnimationTimeline(animationB.name)) {
+                                    const animationTimeline = new dbft.AnimationTimeline();
+                                    animationTimeline.name = animationB.name;
+                                    const frameBegin = new dbft.FloatFrame();
+                                    const frameEnd = new dbft.FloatFrame();
+                                    frameBegin._position = 0;
+                                    frameBegin.progress = 0.0;
+                                    frameBegin.tweenEasing = 0.0;
+                                    frameEnd._position = animationB.duration;
+                                    frameEnd.progress = 1.0;
+                                    frameEnd.tweenEasing = 0.0;
+                                    animationTimeline.frame.push(frameBegin, frameEnd);
+                                    modifyFrames(animationTimeline.frame);
+                                    animationB.animation.push(animationTimeline);
+                                }
+                            }
+                            break;
+                        }
+
+                        case 3: {
+                            break;
+                        }
                     }
                 }
             }
