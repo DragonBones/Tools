@@ -49,7 +49,7 @@ export class ParamPivots implements ISerializable {
     pivotCount: number;
     readonly pivotValue: number[] = [];
 
-    _internal: number = 0.0;
+    _internal: number = 999999.0;
 
     _paramIndex: number = -2;
     indexInitVersion: number = -1;
@@ -62,7 +62,7 @@ export class ParamPivots implements ISerializable {
 
         const list = reader.readObject() as number[];
         this.pivotValue.length = list.length;
-        
+
         for (let i = 0, l = list.length; i < l; i++) {
             this.pivotValue[i] = list[i];
             if (i !== 0) {
@@ -209,6 +209,8 @@ export abstract class IBaseData implements ISerializable {
 export abstract class IDrawData implements ISerializable {
     drawDataID: string;
     targetBaseDataID: string;
+    pivotManager: PivotManager;
+    
     public read(reader: Live2DReader): void {
         // tslint:disable-next-line:no-unused-expression
         reader;
@@ -270,7 +272,6 @@ export abstract class DisplayData extends IDrawData {
     readonly clipIDList: string[] = [];
     readonly pivotDrawOrder: number[] = [];
     readonly pivotOpacity: number[] = [];
-    pivotManager: PivotManager;
 
     public read(reader: Live2DReader): void {
         this.drawDataID = reader.readObject();
@@ -463,6 +464,7 @@ export class ModelImpl implements ISerializable {
 
     //
     readonly tempDrawList: IDrawData[] = [];
+
     public read(reader: Live2DReader): void {
         this.paramDefSet = reader.readObject();
         const list = reader.readObject();

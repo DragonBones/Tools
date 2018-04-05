@@ -321,8 +321,8 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                                 frame.transform.y === 0.0 &&
                                 frame.transform.skX === 0.0 &&
                                 frame.transform.skY === 0.0 &&
-                                frame.transform.scX === 1.0 &&
-                                frame.transform.scY === 1.0
+                                frame.transform.scX === 0.0 &&
+                                frame.transform.scY === 0.0
                             ) {
                                 timeline.frame.length = 0;
                             }
@@ -344,7 +344,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
                         if (timeline.scaleFrame.length === 1) {
                             const frame = timeline.scaleFrame[0];
-                            if (frame.x === 1.0 && frame.y === 1.0) {
+                            if (frame.x === 0.0 && frame.y === 0.0) {
                                 timeline.scaleFrame.length = 0;
                             }
                         }

@@ -127,7 +127,9 @@ export enum TimelineType {
 
     IKConstraint = 30,
 
-    Animation = 40
+    AnimationProgress = 40,
+    AnimationWeight = 41,
+    AnimationParameter = 42
 }
 
 export enum AnimationBlendType {
@@ -1047,9 +1049,9 @@ export class Animation extends BaseData {
     name: string = "default";
     readonly frame: ActionFrame[] = [];
     readonly bone: BoneTimeline[] = [];
-    readonly surface: SurfaceTimeline[] = [];
+    readonly surface: DeformTimeline[] = [];
     readonly slot: SlotTimeline[] = [];
-    readonly ffd: MeshDeformTimeline[] = [];
+    readonly ffd: SlotDeformTimeline[] = [];
     readonly ik: IKConstraintTimeline[] = [];
     readonly animation: AnimationTimeline[] = [];
     zOrder: ZOrderTimeline | null = null;
@@ -1064,7 +1066,7 @@ export class Animation extends BaseData {
         return null;
     }
 
-    getDeformTimeline(name: string): MeshDeformTimeline | null {
+    getDeformTimeline(name: string): SlotDeformTimeline | null {
         for (const timeline of this.ffd) {
             if (timeline.name === name) {
                 return timeline;
@@ -1120,6 +1122,10 @@ export abstract class Timeline extends BaseData {
 
 export class ZOrderTimeline extends Timeline {
     readonly frame: ZOrderFrame[] = [];
+}
+
+export class DeformTimeline extends Timeline {
+    readonly frame: DeformFrame[] = [];
 }
 
 export class BoneTimeline extends Timeline {
@@ -1299,10 +1305,6 @@ export class BoneTimeline extends Timeline {
     }
 }
 
-export class SurfaceTimeline extends Timeline {
-    readonly frame: DeformFrame[] = [];
-}
-
 export class SlotTimeline extends Timeline {
     readonly frame: SlotAllFrame[] = []; // Deprecated.
     readonly displayFrame: SlotDisplayFrame[] = [];
@@ -1419,10 +1421,9 @@ export class SlotTimeline extends Timeline {
     }
 }
 
-export class MeshDeformTimeline extends Timeline {
+export class SlotDeformTimeline extends DeformTimeline {
     skin: string = "default";
     slot: string = "";
-    readonly frame: DeformFrame[] = [];
 }
 
 export class IKConstraintTimeline extends Timeline {
@@ -1432,9 +1433,9 @@ export class IKConstraintTimeline extends Timeline {
 export class AnimationTimeline extends Timeline {
     x: number = 0.0;
     y: number = 0.0;
-    readonly time: FloatFrame[] = [];
-    readonly weight: FloatFrame[] = [];
-    readonly parameters: BoneTranslateFrame[] = [];
+    readonly progressFrame: FloatFrame[] = [];
+    readonly weightFrame: FloatFrame[] = [];
+    readonly parameterFrame: BoneTranslateFrame[] = [];
 }
 
 export abstract class Frame extends BaseData {
@@ -1802,9 +1803,9 @@ export const copyConfig = [
         frame: ActionFrame,
         zOrder: ZOrderTimeline,
         bone: BoneTimeline,
-        surface: SurfaceTimeline,
+        surface: DeformTimeline,
         slot: SlotTimeline,
-        ffd: MeshDeformTimeline,
+        ffd: SlotDeformTimeline,
         ik: IKConstraintTimeline,
         animation: AnimationTimeline,
     },
@@ -1817,7 +1818,7 @@ export const copyConfig = [
         rotateFrame: BoneRotateFrame,
         scaleFrame: BoneScaleFrame,
     },
-    SurfaceTimeline, {
+    DeformTimeline, {
         frame: DeformFrame,
     },
     SlotTimeline, {
@@ -1825,16 +1826,16 @@ export const copyConfig = [
         displayFrame: SlotDisplayFrame,
         colorFrame: SlotColorFrame,
     },
-    MeshDeformTimeline, {
+    SlotDeformTimeline, {
         frame: DeformFrame
     },
     IKConstraintTimeline, {
         frame: IKConstraintFrame
     },
     AnimationTimeline, {
-        time: FloatFrame,
-        weight: FloatFrame,
-        parameters: BoneTranslateFrame,
+        progressFrame: FloatFrame,
+        weightFrame: FloatFrame,
+        parameterFrame: BoneTranslateFrame,
     },
     ActionFrame, {
         actions: Action,
@@ -1884,9 +1885,9 @@ export const compressConfig = [
     new AnimationBinary(),
     new ZOrderTimeline(),
     new BoneTimeline(),
-    new SurfaceTimeline(),
+    new DeformTimeline(),
     new SlotTimeline(),
-    new MeshDeformTimeline(),
+    new SlotDeformTimeline(),
     new IKConstraintTimeline(),
     new AnimationTimeline(),
     new FloatFrame(),

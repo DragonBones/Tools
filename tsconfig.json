@@ -19,7 +19,7 @@
 		"lib": [
 			"es6",
 			"dom",
-			"es2015.promise"
+			"es2017"
 		]
 	},
 	"exclude": [

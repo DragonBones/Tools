@@ -631,7 +631,7 @@ function createBoneTimeline(value: dbft.BoneTimeline): number[] {
     return timelines;
 }
 
-function createSurfaceTimeline(value: dbft.SurfaceTimeline): number[] {
+function createSurfaceTimeline(value: dbft.DeformTimeline): number[] {
     const timelines = new Array<number>();
     const surface = currentArmature.getBone(value.name) as dbft.Surface;
     const vertexCount = surface.vertices.length / 2;
@@ -782,7 +782,7 @@ function createSlotTimeline(value: dbft.SlotTimeline): number[] {
     return timelines;
 }
 
-function createMeshDeformTimeline(value: dbft.MeshDeformTimeline): number[] {
+function createMeshDeformTimeline(value: dbft.SlotDeformTimeline): number[] {
     const timelines = new Array<number>();
 
     const mesh = currentArmature.getMesh(value.skin, value.slot, value.name);

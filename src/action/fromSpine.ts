@@ -602,7 +602,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                         continue;
                     }
 
-                    const timeline = new dbft.MeshDeformTimeline();
+                    const timeline = new dbft.SlotDeformTimeline();
                     const spFrames = timelines[timelineName];
                     timeline.name = meshName;
                     timeline.skin = skinName;

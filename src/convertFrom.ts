@@ -6,7 +6,7 @@ import * as object from "./common/object";
 import * as nodeUtils from "./common/nodeUtils";
 import * as dbft from "./format/dragonBonesFormat";
 import * as spft from "./format/spineFormat";
-import * as l2ft from "./format/live2dFormat";
+import * as l2ft from "./format/live2DFormat";
 import fromSpine from "./action/fromSpine";
 import fromLive2D from "./action/fromLive2D";
 import format from "./action/formatFormat";
@@ -143,7 +143,7 @@ function execute(): void {
 
                 const fileBuffer = fs.readFileSync(file);
                 const fileName = path.basename(file).replace(".moc", "");
-                const reader = new l2ft.Live2DReader(fileBuffer.buffer);
+                const reader = new l2ft.Live2DReader(fileBuffer.buffer as ArrayBuffer);
 
                 const num = reader.readByte();
                 const num2 = reader.readByte();
