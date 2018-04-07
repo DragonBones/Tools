@@ -19,8 +19,6 @@ export class ParamDefFloat implements ISerializable {
     minValue: number;
     paramID: string;
 
-    _frameCount: number = -1;
-
     public read(reader: Live2DReader): void {
         this.minValue = reader.readFloat();
         this.maxValue = reader.readFloat();
@@ -49,13 +47,6 @@ export class ParamPivots implements ISerializable {
     pivotCount: number;
     readonly pivotValue: number[] = [];
 
-    _internal: number = 999999.0;
-
-    _paramIndex: number = -2;
-    indexInitVersion: number = -1;
-    tmpPivotIndex: number;
-    tmpT: number;
-
     public read(reader: Live2DReader): void {
         this.paramID = reader.readObject();
         this.pivotCount = reader.readInt();
@@ -65,9 +56,6 @@ export class ParamPivots implements ISerializable {
 
         for (let i = 0, l = list.length; i < l; i++) {
             this.pivotValue[i] = list[i];
-            if (i !== 0) {
-                this._internal = Math.min(Math.abs(this.pivotValue[i] - this.pivotValue[i - 1]), this._internal);
-            }
         }
     }
 }
@@ -130,6 +118,8 @@ export class LDMatrix {
 }
 
 export class Transform implements ISerializable {
+    static helper: Transform = new Transform();
+
     originX = 0.0;
     originY = 0.0;
     reflectX = false;
@@ -149,6 +139,50 @@ export class Transform implements ISerializable {
             this.reflectX = reader.readBool();
             this.reflectY = reader.readBool();
         }
+    }
+
+    public copyFrom(value: this): this {
+        this.originX = value.originX;
+        this.originY = value.originY;
+        this.scaleX = value.scaleX;
+        this.scaleY = value.scaleY;
+        this.rotateDeg = value.rotateDeg;
+        this.reflectX = value.reflectX;
+        this.reflectY = value.reflectY;
+
+        return this;
+    }
+
+    public add(value: this): this {
+        this.originX += value.originX;
+        this.originY += value.originY;
+        this.scaleX += value.scaleX;
+        this.scaleY += value.scaleY;
+        this.rotateDeg += value.rotateDeg;
+
+        return this;
+    }
+
+    public minus(value: this): this {
+        this.originX -= value.originX;
+        this.originY -= value.originY;
+        this.scaleX -= value.scaleX;
+        this.scaleY -= value.scaleY;
+        this.rotateDeg -= value.rotateDeg;
+
+        return this;
+    }
+
+    public interpolation(valueA: this, valueB: this, progress: number): this {
+        Transform.helper.copyFrom(valueB).minus(valueA);
+        Transform.helper.originX *= progress;
+        Transform.helper.originY *= progress;
+        Transform.helper.scaleX *= progress;
+        Transform.helper.scaleY *= progress;
+        Transform.helper.rotateDeg *= progress;
+        this.copyFrom(valueA).add(Transform.helper as any); // 
+
+        return this;
     }
 }
 
@@ -210,7 +244,7 @@ export abstract class IDrawData implements ISerializable {
     drawDataID: string;
     targetBaseDataID: string;
     pivotManager: PivotManager;
-    
+
     public read(reader: Live2DReader): void {
         // tslint:disable-next-line:no-unused-expression
         reader;
@@ -320,10 +354,6 @@ export class MeshData extends DisplayData {
 
     // readonly uvInfo: UVInfo = new UVInfo();
 
-    //-------------------------------------    
-    readonly tempOpacity: number[] = [];
-    readonly tempPoints: number[][] = [];
-
     public read(reader: Live2DReader): void {
         super.read(reader);
 
@@ -371,26 +401,6 @@ export class MeshData extends DisplayData {
         }
         else {
             this.optionFlag = 0;
-        }
-
-        this._init();
-    }
-
-    protected _init(): void {
-        //TODO
-        const paramPivotTable = this.pivotManager.paramPivotTable;
-        for (let i = 0, l = paramPivotTable.length; i < l; i++) {
-            const paramPivot = paramPivotTable[i];
-            for (let j = 0; j < paramPivot.pivotCount; j++) {
-                if (l > 1) {
-                    this.tempPoints.push(this.pivotPoints[i + j * paramPivot.pivotCount]);
-                    this.tempOpacity.push(this.pivotOpacity[i + j * paramPivot.pivotCount]);
-                }
-                else {
-                    this.tempPoints.push(this.pivotPoints[j]);
-                    this.tempOpacity.push(this.pivotOpacity[j]);
-                }
-            }
         }
     }
 }
@@ -463,6 +473,7 @@ export class ModelImpl implements ISerializable {
     readonly partsDataList: PartsData[] = [];
 
     //
+    frameRate: number = 24;
     readonly tempDrawList: IDrawData[] = [];
 
     public read(reader: Live2DReader): void {
@@ -484,11 +495,25 @@ export class ModelImpl implements ISerializable {
             for (const baseData of partsData.baseDataList) {
                 for (const paramPivots of baseData.pivotManager.paramPivotTable) {
                     const paramDef = this.getParamDef(paramPivots.paramID);
-                    if (!paramDef || paramDef._frameCount > 0) {
+                    if (!paramDef) {
                         continue;
                     }
 
-                    paramDef._frameCount = Math.ceil((paramDef.maxValue - paramDef.minValue) / paramPivots._internal);
+                    let internal = 999999.0;
+                    for (let i = 0, l = paramPivots.pivotValue.length; i < l; ++i) {
+                        if (i !== 0) {
+                            internal = Math.min(Math.abs(paramPivots.pivotValue[i] - paramPivots.pivotValue[i - 1]), internal);
+                        }
+                    }
+
+                    this.frameRate = Math.max(
+                        Math.ceil((paramDef.maxValue - paramDef.minValue) / internal),
+                        this.frameRate
+                    );
+
+                    if (this.frameRate % 2) {
+                        this.frameRate++;
+                    }
                 }
             }
 
@@ -544,7 +569,6 @@ export class ModelImpl implements ISerializable {
         return null;
     }
 }
-
 
 export class Live2DReader {
     protected offset: number = 0;

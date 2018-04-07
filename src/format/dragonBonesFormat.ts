@@ -110,6 +110,12 @@ export enum BlendMode {
     Subtract = 13
 }
 
+export enum AnimationType {
+    "Normal",
+    "Tree",
+    "Node",
+}
+
 export enum TimelineType {
     Action = 0,
     ZOrder = 1,
@@ -1045,8 +1051,8 @@ export class Animation extends BaseData {
     playTimes: number = 1;
     scale: number = 1.0;
     fadeInTime: number = 0.0;
-    blendType: AnimationBlendType | string = AnimationBlendType[AnimationBlendType.None].toLowerCase();
     name: string = "default";
+    type: AnimationType = AnimationType.Normal;
     readonly frame: ActionFrame[] = [];
     readonly bone: BoneTimeline[] = [];
     readonly surface: DeformTimeline[] = [];

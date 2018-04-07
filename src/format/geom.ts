@@ -72,6 +72,25 @@ export class Matrix {
         return this;
     }
 
+    public rotate(radian: number): Matrix {
+        const u = Math.cos(radian);
+        const v = Math.sin(radian);
+        const ta = this.a;
+        const tb = this.b;
+        const tc = this.c;
+        const td = this.d;
+        const ttx = this.tx;
+        const tty = this.ty;
+        this.a = ta * u - tb * v;
+        this.b = ta * v + tb * u;
+        this.c = tc * u - td * v;
+        this.d = tc * v + td * u;
+        this.tx = ttx * u - tty * v;
+        this.ty = ttx * v + tty * u;
+
+        return this;
+    }
+
     public concat(value: Matrix): Matrix {
         let aA = this.a * value.a;
         let bA = 0.0;
