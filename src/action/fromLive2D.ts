@@ -540,7 +540,7 @@ export default function (data: Input): dbft.DragonBones | null {
                         continue;
                     }
 
-                    const keyFrames = baseData.affines;
+                    const l2Frames = baseData.affines;
 
                     switch (paramPivotTable.length) {
                         case 0:
@@ -557,7 +557,6 @@ export default function (data: Input): dbft.DragonBones | null {
                                 animation.playTimes = 0;
                                 animation.duration = result.frameRate;
                                 animation.name = paramPivots.paramID;
-                                animation.type = dbft.AnimationType.Tree;
                                 armature.animation.push(animation);
                             }
                             // Create timeline.
@@ -565,24 +564,24 @@ export default function (data: Input): dbft.DragonBones | null {
                             timeline.name = bone.name;
 
                             for (let i = 0; i < paramPivots.pivotCount; ++i) {
+                                const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
+                                let x = 0.0;
+                                let y = 0.0;
+                                const l2Frame = l2Frames[i];
                                 const translateFrame = new dbft.BoneTranslateFrame();
                                 const rotateFrame = new dbft.BoneRotateFrame();
                                 const scaleFrame = new dbft.BoneScaleFrame();
-                                const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
-                                const keyFrame = keyFrames[i];
-                                let x = 0.0;
-                                let y = 0.0;
 
                                 translateFrame._position = rotateFrame._position = scaleFrame._position = Math.floor(progress * animation.duration);
                                 translateFrame.tweenEasing = rotateFrame.tweenEasing = scaleFrame.tweenEasing = 0.0;
 
                                 if (isSurfaceParent) {
-                                    x = (keyFrame.originX - 0.5) * 400.0;
-                                    y = (keyFrame.originY - 0.5) * 400.0;
+                                    x = (l2Frame.originX - 0.5) * 400.0;
+                                    y = (l2Frame.originY - 0.5) * 400.0;
                                 }
                                 else {
-                                    x = keyFrame.originX;
-                                    y = keyFrame.originY;
+                                    x = l2Frame.originX;
+                                    y = l2Frame.originY;
                                 }
 
                                 if (!bone.parent || isSurfaceParent) {
@@ -595,27 +594,27 @@ export default function (data: Input): dbft.DragonBones | null {
                                         translateFrame.y = y - bone.transform.y;
                                     }
 
-                                    rotateFrame.rotate = keyFrame.rotateDeg - bone.transform.skY - 90.0;
+                                    rotateFrame.rotate = l2Frame.rotateDeg - bone.transform.skY - 90.0;
                                 }
                                 else {
                                     rotateMatrix.transformPoint(x, y, translateFrame);
                                     translateFrame.x -= bone.transform.x;
                                     translateFrame.y -= bone.transform.y;
-                                    rotateFrame.rotate = keyFrame.rotateDeg - bone.transform.skY;
+                                    rotateFrame.rotate = l2Frame.rotateDeg - bone.transform.skY;
                                 }
 
-                                scaleFrame.x = keyFrame.scaleX * (keyFrame.reflectX ? -1.0 : 1.0) - bone.transform.scX;
-                                scaleFrame.y = keyFrame.scaleY * (keyFrame.reflectY ? -1.0 : 1.0) - bone.transform.scY;
+                                scaleFrame.x = l2Frame.scaleX * (l2Frame.reflectX ? -1.0 : 1.0) - bone.transform.scX;
+                                scaleFrame.y = l2Frame.scaleY * (l2Frame.reflectY ? -1.0 : 1.0) - bone.transform.scY;
 
                                 timeline.translateFrame.push(translateFrame);
                                 timeline.rotateFrame.push(rotateFrame);
                                 timeline.scaleFrame.push(scaleFrame);
                             }
 
+                            animation.bone.push(timeline);
                             modifyFrames(timeline.translateFrame);
                             modifyFrames(timeline.rotateFrame);
                             modifyFrames(timeline.scaleFrame);
-                            animation.bone.push(timeline);
                             break;
                         }
 
@@ -634,6 +633,7 @@ export default function (data: Input): dbft.DragonBones | null {
                                 animationA.duration = result.frameRate;
                                 animationA.name = paramPivotsA.paramID;
                                 animationA.type = dbft.AnimationType.Tree;
+                                animationA.blendType = dbft.AnimationBlendType.E1D;
                                 armature.animation.push(animationA);
                             }
                             // Create weight and time animaiton.
@@ -647,8 +647,16 @@ export default function (data: Input): dbft.DragonBones | null {
                                 armature.animation.push(animationB);
                             }
                             // Create animations and timelines.
+                            const animation = new dbft.Animation();
+                            animation.playTimes = 0;
+                            animation.duration = result.frameRate;
+                            animation.name = bone.name;
+                            animation.type = dbft.AnimationType.Tree;
+                            animation.blendType = dbft.AnimationBlendType.E1D;
+                            armature.animation.push(animation);
+
                             for (let col = 0; col < paramPivotsA.pivotCount; ++col) {
-                                const childAnimationName = animationB.name + "_" + col.toString().padStart(2, "0");
+                                const childAnimationName = bone.name + "_" + col.toString().padStart(2, "0");
                                 let childAnimation = armature.getAnimation(childAnimationName) as dbft.Animation | null;
                                 if (!childAnimation) {
                                     childAnimation = new dbft.Animation();
@@ -663,25 +671,25 @@ export default function (data: Input): dbft.DragonBones | null {
                                 timeline.name = bone.name;
 
                                 for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
-                                    const frameIndex = col * paramPivotsB.pivotCount + row;
+                                    const frameIndex = col + row * paramPivotsA.pivotCount;
+                                    let x = 0.0;
+                                    let y = 0.0;
+                                    const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
+                                    const l2Frame = l2Frames[frameIndex];
                                     const translateFrame = new dbft.BoneTranslateFrame();
                                     const rotateFrame = new dbft.BoneRotateFrame();
                                     const scaleFrame = new dbft.BoneScaleFrame();
-                                    const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
-                                    const keyFrame = keyFrames[frameIndex];
-                                    let x = 0.0;
-                                    let y = 0.0;
 
                                     translateFrame._position = rotateFrame._position = scaleFrame._position = Math.floor(progress * childAnimation.duration);
                                     translateFrame.tweenEasing = rotateFrame.tweenEasing = scaleFrame.tweenEasing = 0.0;
 
                                     if (isSurfaceParent) {
-                                        x = (keyFrame.originX - 0.5) * 400.0;
-                                        y = (keyFrame.originY - 0.5) * 400.0;
+                                        x = (l2Frame.originX - 0.5) * 400.0;
+                                        y = (l2Frame.originY - 0.5) * 400.0;
                                     }
                                     else {
-                                        x = keyFrame.originX;
-                                        y = keyFrame.originY;
+                                        x = l2Frame.originX;
+                                        y = l2Frame.originY;
                                     }
 
                                     if (!bone.parent || isSurfaceParent) {
@@ -694,13 +702,13 @@ export default function (data: Input): dbft.DragonBones | null {
                                             translateFrame.y = y - bone.transform.y;
                                         }
 
-                                        rotateFrame.rotate = keyFrame.rotateDeg - bone.transform.skY - 90.0;
+                                        rotateFrame.rotate = l2Frame.rotateDeg - bone.transform.skY - 90.0;
                                     }
                                     else {
                                         rotateMatrix.transformPoint(x, y, translateFrame);
                                         translateFrame.x -= bone.transform.x;
                                         translateFrame.y -= bone.transform.y;
-                                        rotateFrame.rotate = keyFrame.rotateDeg - bone.transform.skY;
+                                        rotateFrame.rotate = l2Frame.rotateDeg - bone.transform.skY;
                                     }
 
                                     timeline.translateFrame.push(translateFrame);
@@ -708,11 +716,14 @@ export default function (data: Input): dbft.DragonBones | null {
                                     timeline.scaleFrame.push(scaleFrame);
                                 }
 
+                                childAnimation.bone.push(timeline);
                                 modifyFrames(timeline.translateFrame);
                                 modifyFrames(timeline.rotateFrame);
                                 modifyFrames(timeline.scaleFrame);
-                                childAnimation.bone.push(timeline);
-                                createAnimationController(animationA, animationB, childAnimationName, (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA * 2.0 - 1.0);
+                                createAnimationController(
+                                    animationA, animationB, animation, childAnimation,
+                                    (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA * 2.0 - 1.0
+                                );
                             }
                             break;
                         }
@@ -728,7 +739,7 @@ export default function (data: Input): dbft.DragonBones | null {
                         continue;
                     }
 
-                    const keyFrames = baseData.pivotPoints;
+                    const l2DeformFrames = baseData.pivotPoints;
 
                     switch (paramPivotTable.length) {
                         case 0:
@@ -745,7 +756,6 @@ export default function (data: Input): dbft.DragonBones | null {
                                 animation.playTimes = 0;
                                 animation.duration = result.frameRate;
                                 animation.name = paramPivots.paramID;
-                                animation.type = dbft.AnimationType.Tree;
                                 armature.animation.push(animation);
                             }
                             // Create timeline.
@@ -753,14 +763,14 @@ export default function (data: Input): dbft.DragonBones | null {
                             timeline.name = surface.name;
 
                             for (let i = 0; i < paramPivots.pivotCount; ++i) {
-                                const deformFrame = new dbft.DeformFrame();
                                 const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
-                                const keyFrame = keyFrames[i];
+                                const l2DeformFrame = l2DeformFrames[i];
+                                const deformFrame = new dbft.DeformFrame();
                                 deformFrame._position = Math.floor(progress * animation.duration);
                                 deformFrame.tweenEasing = 0.0;
                                 createDeformFrame(
                                     deformFrame,
-                                    keyFrame,
+                                    l2DeformFrame,
                                     surface.vertices,
                                     isSurfaceParent,
                                     surface.parent.length > 0
@@ -768,8 +778,8 @@ export default function (data: Input): dbft.DragonBones | null {
                                 timeline.frame.push(deformFrame);
                             }
 
-                            modifyFrames(timeline.frame);
                             animation.surface.push(timeline);
+                            modifyFrames(timeline.frame);
                             break;
                         }
 
@@ -788,6 +798,7 @@ export default function (data: Input): dbft.DragonBones | null {
                                 animationA.duration = result.frameRate;
                                 animationA.name = paramPivotsA.paramID;
                                 animationA.type = dbft.AnimationType.Tree;
+                                animationA.blendType = dbft.AnimationBlendType.E1D;
                                 armature.animation.push(animationA);
                             }
                             // Create weight and time animaiton.
@@ -801,8 +812,16 @@ export default function (data: Input): dbft.DragonBones | null {
                                 armature.animation.push(animationB);
                             }
                             // Create animations and timelines.
+                            const animation = new dbft.Animation();
+                            animation.playTimes = 0;
+                            animation.duration = result.frameRate;
+                            animation.name = surface.name;
+                            animation.type = dbft.AnimationType.Tree;
+                            animation.blendType = dbft.AnimationBlendType.E1D;
+                            armature.animation.push(animation);
+
                             for (let col = 0; col < paramPivotsA.pivotCount; ++col) {
-                                const childAnimationName = animationB.name + "_" + col.toString().padStart(2, "0");
+                                const childAnimationName = surface.name + "_" + col.toString().padStart(2, "0");
                                 let childAnimation = armature.getAnimation(childAnimationName) as dbft.Animation | null;
                                 if (!childAnimation) {
                                     childAnimation = new dbft.Animation();
@@ -818,14 +837,14 @@ export default function (data: Input): dbft.DragonBones | null {
 
                                 for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
                                     const frameIndex = col * paramPivotsB.pivotCount + row;
-                                    const deformFrame = new dbft.DeformFrame();
                                     const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
-                                    const keyFrame = keyFrames[frameIndex];
+                                    const l2DeformFrame = l2DeformFrames[frameIndex];
+                                    const deformFrame = new dbft.DeformFrame();
                                     deformFrame._position = Math.floor(progress * childAnimation.duration);
                                     deformFrame.tweenEasing = 0.0;
                                     createDeformFrame(
                                         deformFrame,
-                                        keyFrame,
+                                        l2DeformFrame,
                                         surface.vertices,
                                         isSurfaceParent,
                                         surface.parent.length > 0
@@ -833,9 +852,12 @@ export default function (data: Input): dbft.DragonBones | null {
                                     timeline.frame.push(deformFrame);
                                 }
 
-                                modifyFrames(timeline.frame);
                                 childAnimation.surface.push(timeline);
-                                createAnimationController(animationA, animationB, childAnimationName, (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA * 2.0 - 1.0);
+                                modifyFrames(timeline.frame);
+                                createAnimationController(
+                                    animationA, animationB, animation, childAnimation,
+                                    (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA * 2.0 - 1.0
+                                );
                             }
                             break;
                         }
@@ -858,8 +880,8 @@ export default function (data: Input): dbft.DragonBones | null {
                         continue;
                     }
 
-                    const colorFrames = drawData.pivotOpacity;
-                    const deformFrames = drawData.pivotPoints;
+                    const l2ColorFrames = drawData.pivotOpacity;
+                    const l2DeformFrames = drawData.pivotPoints;
 
                     switch (paramPivotTable.length) {
                         case 0:
@@ -876,48 +898,39 @@ export default function (data: Input): dbft.DragonBones | null {
                                 animation.playTimes = 0;
                                 animation.duration = result.frameRate;
                                 animation.name = paramPivots.paramID;
-                                animation.type = dbft.AnimationType.Tree;
                                 armature.animation.push(animation);
                             }
-                            // Create colorTimeline.
+                            // Create timelines.
                             const colorTimeline = new dbft.SlotTimeline();
-                            colorTimeline.name = slot.name;
-
-                            for (let i = 0; i < paramPivots.pivotCount; ++i) {
-                                const colorFrame = new dbft.SlotColorFrame();
-                                const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
-                                const keyFrame = colorFrames[i];
-                                colorFrame._position = Math.floor(progress * animation.duration);
-                                colorFrame.tweenEasing = 0.0;
-                                colorFrame.value.aM = Math.max(Math.round(keyFrame * 100), 100);
-                                colorTimeline.colorFrame.push(colorFrame);
-                            }
-
-                            modifyFrames(colorTimeline.colorFrame);
-                            animation.slot.push(colorTimeline);
-                            // Create defromTimeline.
                             const deformTimeline = new dbft.SlotDeformTimeline();
+                            colorTimeline.name = slot.name;
                             deformTimeline.name = meshDisplay.name;
                             deformTimeline.slot = slot.name;
 
                             for (let i = 0; i < paramPivots.pivotCount; ++i) {
-                                const deformFrame = new dbft.DeformFrame();
                                 const progress = (paramPivots.pivotValue[i] - paramDef.minValue) / totalValue;
-                                const keyFrame = deformFrames[i];
-                                deformFrame._position = Math.floor(progress * animation.duration);
-                                deformFrame.tweenEasing = 0.0;
+                                const l2ColorFrame = l2ColorFrames[i];
+                                const l2DeformFrame = l2DeformFrames[i];
+                                const colorFrame = new dbft.SlotColorFrame();
+                                const deformFrame = new dbft.DeformFrame();
+                                deformFrame._position = colorFrame._position = Math.floor(progress * animation.duration);
+                                deformFrame.tweenEasing = colorFrame.tweenEasing = 0.0;
+                                colorFrame.value.aM = Math.max(Math.round(l2ColorFrame * 100), 100);
                                 createDeformFrame(
                                     deformFrame,
-                                    keyFrame,
+                                    l2DeformFrame,
                                     meshDisplay.vertices,
                                     isSurfaceParent,
                                     slot.parent !== rootBone.name
                                 );
+                                colorTimeline.colorFrame.push(colorFrame);
                                 deformTimeline.frame.push(deformFrame);
                             }
 
-                            modifyFrames(deformTimeline.frame);
+                            animation.slot.push(colorTimeline);
                             animation.ffd.push(deformTimeline);
+                            modifyFrames(colorTimeline.colorFrame);
+                            modifyFrames(deformTimeline.frame);
                             break;
                         }
 
@@ -936,6 +949,7 @@ export default function (data: Input): dbft.DragonBones | null {
                                 animationA.duration = result.frameRate;
                                 animationA.name = paramPivotsA.paramID;
                                 animationA.type = dbft.AnimationType.Tree;
+                                animationA.blendType = dbft.AnimationBlendType.E1D;
                                 armature.animation.push(animationA);
                             }
                             // Create weight and time animaiton.
@@ -949,8 +963,16 @@ export default function (data: Input): dbft.DragonBones | null {
                                 armature.animation.push(animationB);
                             }
                             // Create animations and timelines.
+                            const animation = new dbft.Animation();
+                            animation.playTimes = 0;
+                            animation.duration = result.frameRate;
+                            animation.name = slot.name;
+                            animation.type = dbft.AnimationType.Tree;
+                            animation.blendType = dbft.AnimationBlendType.E1D;
+                            armature.animation.push(animation);
+
                             for (let col = 0; col < paramPivotsA.pivotCount; ++col) {
-                                const childAnimationName = animationB.name + "_" + col.toString().padStart(2, "0");
+                                const childAnimationName = slot.name + "_" + col.toString().padStart(2, "0");
                                 let childAnimation = armature.getAnimation(childAnimationName) as dbft.Animation | null;
                                 if (!childAnimation) {
                                     childAnimation = new dbft.Animation();
@@ -960,48 +982,42 @@ export default function (data: Input): dbft.DragonBones | null {
                                     childAnimation.type = dbft.AnimationType.Node;
                                     armature.animation.push(childAnimation);
                                 }
-                                // Create colorTimeline.
+                                // Create timelines.
                                 const colorTimeline = new dbft.SlotTimeline();
-                                colorTimeline.name = slot.name;
-
-                                for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
-                                    const frameIndex = col * paramPivotsB.pivotCount + row;
-                                    const colorFrame = new dbft.SlotColorFrame();
-                                    const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
-                                    const keyFrame = colorFrames[frameIndex];
-                                    colorFrame._position = Math.floor(progress * childAnimation.duration);
-                                    colorFrame.tweenEasing = 0.0;
-                                    colorFrame.value.aM = Math.max(Math.round(keyFrame * 100), 100);
-                                    colorTimeline.colorFrame.push(colorFrame);
-                                }
-
-                                modifyFrames(colorTimeline.colorFrame);
-                                childAnimation.slot.push(colorTimeline);
-                                // Create defromTimeline.
                                 const deformTimeline = new dbft.SlotDeformTimeline();
+                                colorTimeline.name = slot.name;
                                 deformTimeline.name = meshDisplay.name;
                                 deformTimeline.slot = slot.name;
 
                                 for (let row = 0; row < paramPivotsB.pivotCount; ++row) {
-                                    const frameIndex = col * paramPivotsB.pivotCount + row;
-                                    const deformFrame = new dbft.DeformFrame();
+                                    const frameIndex = col + row * paramPivotsA.pivotCount;
                                     const progress = (paramPivotsB.pivotValue[row] - paramDefB.minValue) / totalValueB;
-                                    const keyFrame = deformFrames[frameIndex];
-                                    deformFrame._position = Math.floor(progress * childAnimation.duration);
-                                    deformFrame.tweenEasing = 0.0;
+                                    const l2ColorFrame = l2ColorFrames[frameIndex];
+                                    const l2DeformFrame = l2DeformFrames[frameIndex];
+                                    const colorFrame = new dbft.SlotColorFrame();
+                                    const deformFrame = new dbft.DeformFrame();
+                                    deformFrame._position = colorFrame._position = Math.floor(progress * childAnimation.duration);
+                                    deformFrame.tweenEasing = colorFrame.tweenEasing = 0.0;
+                                    colorFrame.value.aM = Math.max(Math.round(l2ColorFrame * 100), 100);
                                     createDeformFrame(
                                         deformFrame,
-                                        keyFrame,
+                                        l2DeformFrame,
                                         meshDisplay.vertices,
                                         isSurfaceParent,
                                         slot.parent !== rootBone.name
                                     );
+                                    colorTimeline.colorFrame.push(colorFrame);
                                     deformTimeline.frame.push(deformFrame);
                                 }
 
-                                modifyFrames(deformTimeline.frame);
+                                childAnimation.slot.push(colorTimeline);
                                 childAnimation.ffd.push(deformTimeline);
-                                createAnimationController(animationA, animationB, childAnimationName, (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA * 2.0 - 1.0);
+                                modifyFrames(colorTimeline.colorFrame);
+                                modifyFrames(deformTimeline.frame);
+                                createAnimationController(
+                                    animationA, animationB, animation, childAnimation,
+                                    (paramPivotsA.pivotValue[col] - paramDefA.minValue) / totalValueA * 2.0 - 1.0
+                                );
                             }
                             break;
                         }
@@ -1020,32 +1036,38 @@ export default function (data: Input): dbft.DragonBones | null {
 
 function createDeformFrame(
     deformFrame: dbft.DeformFrame,
-    keyFrame: number[],
+    l2DeformFrame: number[],
     pose: number[],
     isSurfaceParent: boolean,
     isRotatedParent: boolean
 ): void {
-    for (let j = 0, lJ = keyFrame.length; j < lJ; j += 2) {
+    for (let j = 0, lJ = l2DeformFrame.length; j < lJ; j += 2) {
         if (isSurfaceParent) { // Scale.
-            deformFrame.vertices[j] = (keyFrame[j] - 0.5) * 400.0 - pose[j];
-            deformFrame.vertices[j + 1] = (keyFrame[j + 1] - 0.5) * 400.0 - pose[j + 1];
+            deformFrame.vertices[j] = (l2DeformFrame[j] - 0.5) * 400.0 - pose[j];
+            deformFrame.vertices[j + 1] = (l2DeformFrame[j + 1] - 0.5) * 400.0 - pose[j + 1];
         }
         else if (isRotatedParent) { // Rotate.
-            rotateMatrix.transformPoint(keyFrame[j], keyFrame[j + 1], geom.helpPointA);
+            rotateMatrix.transformPoint(l2DeformFrame[j], l2DeformFrame[j + 1], geom.helpPointA);
             deformFrame.vertices[j] = geom.helpPointA.x - pose[j];
             deformFrame.vertices[j + 1] = geom.helpPointA.y - pose[j + 1];
         }
         else { // Offset.
-            deformFrame.vertices[j] = keyFrame[j] - pose[j] - model.canvasWidth * 0.5;
-            deformFrame.vertices[j + 1] = keyFrame[j + 1] - pose[j + 1] - model.canvasHeight;
+            deformFrame.vertices[j] = l2DeformFrame[j] - pose[j] - model.canvasWidth * 0.5;
+            deformFrame.vertices[j + 1] = l2DeformFrame[j + 1] - pose[j + 1] - model.canvasHeight;
         }
     }
 }
 
-function createAnimationController(animationA: dbft.Animation, animationB: dbft.Animation, childAnimationName: string, positionX: number): void {
-    if (!animationB.getAnimationTimeline(childAnimationName)) {
+function createAnimationController(
+    animationA: dbft.Animation,
+    animationB: dbft.Animation,
+    animation: dbft.Animation,
+    childAnimation: dbft.Animation,
+    positionX: number
+): void {
+    {
         const animationTimeline = new dbft.AnimationTimeline();
-        animationTimeline.name = childAnimationName;
+        animationTimeline.name = childAnimation.name;
         animationTimeline.x = positionX;
         const frameBegin = new dbft.FloatFrame();
         const frameEnd = new dbft.FloatFrame();
@@ -1056,25 +1078,42 @@ function createAnimationController(animationA: dbft.Animation, animationB: dbft.
         frameEnd.value = 1.0;
         frameEnd.tweenEasing = 0.0;
         animationTimeline.progressFrame.push(frameBegin, frameEnd);
+        animation.animation.push(animationTimeline);
         modifyFrames(animationTimeline.progressFrame);
-        animationB.animation.push(animationTimeline);
     }
 
-    if (!animationA.getAnimationTimeline(animationB.name)) {
+    if (!animationB.getAnimationTimeline(animation.name)) {
         const animationTimeline = new dbft.AnimationTimeline();
-        animationTimeline.name = animationB.name;
+        animationTimeline.name = animation.name;
+        const frameBegin = new dbft.FloatFrame();
+        const frameEnd = new dbft.FloatFrame();
+        frameBegin._position = 0;
+        frameBegin.value = 0.0;
+        frameBegin.tweenEasing = 0.0;
+        frameEnd._position = animationB.duration;
+        frameEnd.value = 1.0;
+        frameEnd.tweenEasing = 0.0;
+        animationTimeline.progressFrame.push(frameBegin, frameEnd);
+        animationB.animation.push(animationTimeline);
+        modifyFrames(animationTimeline.progressFrame);
+    }
+
+    if (!animationA.getAnimationTimeline(animation.name)) {
+        const animationTimeline = new dbft.AnimationTimeline();
+        animationTimeline.name = animation.name;
         const frameBegin = new dbft.BoneTranslateFrame();
         const frameEnd = new dbft.BoneTranslateFrame();
         frameBegin._position = 0;
         frameBegin.x = -1.0;
-        // frameBegin.x = 0.0;
+        // frameBegin.x = 1.0;
         frameBegin.tweenEasing = 0.0;
         frameEnd._position = animationA.duration;
         frameEnd.x = 1.0;
+        // frameBegin.x = 0.0;
         frameEnd.tweenEasing = 0.0;
         animationTimeline.parameterFrame.push(frameBegin, frameEnd);
-        modifyFrames(animationTimeline.parameterFrame);
         animationA.animation.push(animationTimeline);
+        modifyFrames(animationTimeline.parameterFrame);
     }
 }
 

@@ -111,9 +111,14 @@ export enum BlendMode {
 }
 
 export enum AnimationType {
-    "Normal",
-    "Tree",
-    "Node",
+    Normal = "normal",
+    Tree = "tree",
+    Node = "node",
+}
+
+export enum AnimationBlendType {
+    None = "none",
+    E1D = "1d",
 }
 
 export enum TimelineType {
@@ -136,11 +141,6 @@ export enum TimelineType {
     AnimationProgress = 40,
     AnimationWeight = 41,
     AnimationParameter = 42
-}
-
-export enum AnimationBlendType {
-    None = 0,
-    E1D,
 }
 
 export enum TweenType {
@@ -1053,6 +1053,7 @@ export class Animation extends BaseData {
     fadeInTime: number = 0.0;
     name: string = "default";
     type: AnimationType = AnimationType.Normal;
+    blendType: AnimationBlendType = AnimationBlendType.None;
     readonly frame: ActionFrame[] = [];
     readonly bone: BoneTimeline[] = [];
     readonly surface: DeformTimeline[] = [];
