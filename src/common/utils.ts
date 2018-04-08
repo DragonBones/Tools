@@ -19,6 +19,25 @@ export function rgbaToHex(r: number, g: number, b: number, a: number): string {
     return result;
 }
 
+if (!String.prototype.padStart) {
+    String.prototype.padStart = function (maxLength: number, fillString: string = ' ') {
+        const source = this;
+        if (source.length >= maxLength) return String(source);
+
+        const fillLength = maxLength - source.length;
+        let times = Math.ceil(fillLength / fillString.length);
+
+        while (times >>= 1) {
+            fillString += fillString;
+            if (times === 1) {
+                fillString += fillString;
+            }
+        }
+
+        return fillString.slice(0, fillLength) + source;
+    };
+}
+
 export function getEnumFormString(enumerator: any, type: string | number, defaultType: number = -1): number {
     if (typeof type === "number") {
         return type;

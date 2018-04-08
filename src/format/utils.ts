@@ -54,6 +54,10 @@ export function getTextureAtlases(filePath: string, rawName: string | null = nul
         }
     }
 
+    if (suffix === "atlas") {
+        return textureAtlases;
+    }
+
     if (suffix !== "tex") {
         textureAtlases = getTextureAtlases(filePath, null, "tex");
     }

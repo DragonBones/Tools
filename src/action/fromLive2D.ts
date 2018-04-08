@@ -2,52 +2,53 @@ import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 import * as l2ft from "../format/live2DFormat";
 
-type Input = {
-    name: string;
-    data: l2ft.ModelImpl;
-    textureAtlas: string;
-    textureAtlasWidth: number;
-    textureAtlasHeight: number;
-};
-
 const rotateMatrix = geom.helpMatrixA;
 const helpAffineA = new l2ft.Transform();
 const helpAffineB = new l2ft.Transform();
 const helpVerticesA: number[] = [];
 const helpVerticesB: number[] = [];
 
-let model: l2ft.ModelImpl;
+let modelConfig: l2ft.ModelConfig;
 let result: dbft.DragonBones;
 let armature: dbft.Armature;
 let defaultSkin: dbft.Skin;
 /**
  * Convert Live2D format to DragonBones format.
  */
-export default function (data: Input): dbft.DragonBones | null {
-    model = data.data;
-    const drawList = model.tempDrawList;
-    // Create textureAtlas.
-    const textureAtlas = new dbft.TextureAtlas();
-    textureAtlas.name = data.textureAtlas;
-    textureAtlas.width = data.textureAtlasWidth;
-    textureAtlas.height = data.textureAtlasHeight;
-    textureAtlas.scale = 1.0;
-    textureAtlas.imagePath = data.textureAtlas + ".png";
-    // Create subTexutres.
-    const subTexture = new dbft.Texture();
-    subTexture.name = textureAtlas.name;
-    subTexture.x = 0;
-    subTexture.y = 0;
-    subTexture.width = data.textureAtlasWidth;
-    subTexture.height = data.textureAtlasHeight;
-    textureAtlas.SubTexture.push(subTexture);
+export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
+    modelConfig = data;
+    const drawList = modelConfig.modelImpl.tempDrawList;
     // Create dragonBones.
     result = new dbft.DragonBones();
-    result.frameRate = model.frameRate;
+    result.frameRate = modelConfig.modelImpl.frameRate; //
     result.name = data.name;
     result.version = dbft.DATA_VERSION_5_5;
     result.compatibleVersion = dbft.DATA_VERSION_5_5;
-    result.textureAtlas.push(textureAtlas);
+    // Create textureAtlas.
+    let textureIndex = 0;
+    for (const l2Texture of modelConfig.textures) {
+        if (typeof l2Texture === "string") {
+            continue;
+        }
+
+        const textureAtlas = new dbft.TextureAtlas();
+        textureAtlas.name = modelConfig.name;
+        textureAtlas.width = l2Texture.width;
+        textureAtlas.height = l2Texture.height;
+        textureAtlas.imagePath = l2Texture.file;
+
+        const subTexture = new dbft.Texture();
+        subTexture.name = textureIndex.toString();
+        subTexture.x = 0;
+        subTexture.y = 0;
+        subTexture.width = textureAtlas.width;
+        subTexture.height = textureAtlas.height;
+        textureAtlas.SubTexture.push(subTexture);
+        textureIndex++;
+
+        result.textureAtlas.push(textureAtlas);
+    }
+
     // Create armatures.
     armature = new dbft.Armature();
     armature.name = data.name;
@@ -61,9 +62,9 @@ export default function (data: Input): dbft.DragonBones | null {
     rotateMatrix.identity();
     rotateMatrix.rotate(Math.PI * 0.5);
 
-    for (const partsData of model.partsDataList) {
+    for (const partsData of modelConfig.modelImpl.partsDataList) {
         for (const baseData of partsData.baseDataList) {
-            const isSurfaceParent = model.isSurface(baseData.targetBaseDataID);
+            const isSurfaceParent = modelConfig.modelImpl.isSurface(baseData.targetBaseDataID);
             const paramPivotTable = baseData.pivotManager.paramPivotTable;
 
             if (baseData instanceof l2ft.AffineData) {
@@ -75,7 +76,7 @@ export default function (data: Input): dbft.DragonBones | null {
                 switch (paramPivotTable.length) {
                     case 1: {
                         const paramPivots = paramPivotTable[0];
-                        const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+                        const paramDef = modelConfig.modelImpl.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
                         let index = paramPivots.pivotValue.indexOf(paramDef.defaultValue);
                         if (index >= 0) {
                             helpAffineA.copyFrom(baseData.affines[index]);
@@ -100,8 +101,8 @@ export default function (data: Input): dbft.DragonBones | null {
                     case 2: {
                         const paramPivotsA = paramPivotTable[0];
                         const paramPivotsB = paramPivotTable[1];
-                        const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
-                        const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
+                        const paramDefA = modelConfig.modelImpl.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+                        const paramDefB = modelConfig.modelImpl.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
 
                         let indexA = paramPivotsA.pivotValue.indexOf(paramDefA.defaultValue);
                         let indexB = paramPivotsB.pivotValue.indexOf(paramDefB.defaultValue);
@@ -193,8 +194,8 @@ export default function (data: Input): dbft.DragonBones | null {
                     bone.transform.skX = helpAffineA.rotateDeg;
                 }
                 else { // Rotate and offset.
-                    bone.transform.x = helpAffineA.originX - model.canvasWidth * 0.5;
-                    bone.transform.y = helpAffineA.originY - model.canvasHeight;
+                    bone.transform.x = helpAffineA.originX - modelConfig.modelImpl.canvasWidth * 0.5;
+                    bone.transform.y = helpAffineA.originY - modelConfig.modelImpl.canvasHeight;
                     bone.transform.skY = helpAffineA.rotateDeg - 90.0;
                     bone.transform.skX = helpAffineA.rotateDeg - 90.0;
                 }
@@ -214,7 +215,7 @@ export default function (data: Input): dbft.DragonBones | null {
                 switch (paramPivotTable.length) {
                     case 1: {
                         const paramPivots = paramPivotTable[0];
-                        const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+                        const paramDef = modelConfig.modelImpl.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
                         let index = paramPivots.pivotValue.indexOf(paramDef.defaultValue);
                         if (index >= 0) {
                             vertivesCopyFrom(helpVerticesA, baseData.pivotPoints[index]);
@@ -240,8 +241,8 @@ export default function (data: Input): dbft.DragonBones | null {
                     case 2: {
                         const paramPivotsA = paramPivotTable[0];
                         const paramPivotsB = paramPivotTable[1];
-                        const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
-                        const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
+                        const paramDefA = modelConfig.modelImpl.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+                        const paramDefB = modelConfig.modelImpl.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
 
                         let indexA = paramPivotsA.pivotValue.indexOf(paramDefA.defaultValue);
                         let indexB = paramPivotsB.pivotValue.indexOf(paramDefB.defaultValue);
@@ -338,8 +339,8 @@ export default function (data: Input): dbft.DragonBones | null {
                         surface.vertices[i + 1] = geom.helpPointA.y;
                     }
                     else { // Offset.
-                        surface.vertices[i] = helpVerticesA[i] - model.canvasWidth * 0.5;
-                        surface.vertices[i + 1] = helpVerticesA[i + 1] - model.canvasHeight;
+                        surface.vertices[i] = helpVerticesA[i] - modelConfig.modelImpl.canvasWidth * 0.5;
+                        surface.vertices[i + 1] = helpVerticesA[i + 1] - modelConfig.modelImpl.canvasHeight;
                     }
                 }
 
@@ -354,7 +355,7 @@ export default function (data: Input): dbft.DragonBones | null {
     defaultSkin = new dbft.Skin();
 
     for (const drawData of drawList) {
-        const isSurfaceParent = model.isSurface(drawData.targetBaseDataID);
+        const isSurfaceParent = modelConfig.modelImpl.isSurface(drawData.targetBaseDataID);
         const paramPivotTable = drawData.pivotManager.paramPivotTable;
 
         if (drawData instanceof l2ft.MeshData) {
@@ -367,7 +368,7 @@ export default function (data: Input): dbft.DragonBones | null {
             // Create displays.
             const display = new dbft.MeshDisplay();
             display.name = drawData.drawDataID;
-            display.path = subTexture.name;
+            display.path = (drawData.textureIndex >= 0 ? drawData.textureIndex : 0).toString();
             // UVs.
             for (const value of drawData.uvmap) {
                 display.uvs.push(value);
@@ -380,7 +381,7 @@ export default function (data: Input): dbft.DragonBones | null {
             switch (paramPivotTable.length) {
                 case 1: {
                     const paramPivots = paramPivotTable[0];
-                    const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+                    const paramDef = modelConfig.modelImpl.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
                     let index = paramPivots.pivotValue.indexOf(paramDef.defaultValue);
                     if (index >= 0) {
                         vertivesCopyFrom(helpVerticesA, drawData.pivotPoints[index]);
@@ -406,8 +407,8 @@ export default function (data: Input): dbft.DragonBones | null {
                 case 2: {
                     const paramPivotsA = paramPivotTable[0];
                     const paramPivotsB = paramPivotTable[1];
-                    const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
-                    const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
+                    const paramDefA = modelConfig.modelImpl.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+                    const paramDefB = modelConfig.modelImpl.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
 
                     let indexA = paramPivotsA.pivotValue.indexOf(paramDefA.defaultValue);
                     let indexB = paramPivotsB.pivotValue.indexOf(paramDefB.defaultValue);
@@ -504,8 +505,8 @@ export default function (data: Input): dbft.DragonBones | null {
                     display.vertices[i + 1] = geom.helpPointA.y;
                 }
                 else { // Offset.
-                    display.vertices[i] = helpVerticesA[i] - model.canvasWidth * 0.5;
-                    display.vertices[i + 1] = helpVerticesA[i + 1] - model.canvasHeight;
+                    display.vertices[i] = helpVerticesA[i] - modelConfig.modelImpl.canvasWidth * 0.5;
+                    display.vertices[i + 1] = helpVerticesA[i + 1] - modelConfig.modelImpl.canvasHeight;
                 }
             }
 
@@ -527,11 +528,11 @@ export default function (data: Input): dbft.DragonBones | null {
 
     armature.skin.push(defaultSkin);
     // Create animations.
-    if (model.paramDefSet.paramDefSet.length > 0) {
-        for (const partsData of model.partsDataList) {
+    if (modelConfig.modelImpl.paramDefSet.paramDefSet.length > 0) {
+        for (const partsData of modelConfig.modelImpl.partsDataList) {
             // Create bone timelines.
             for (const baseData of partsData.baseDataList) {
-                const isSurfaceParent = model.isSurface(baseData.targetBaseDataID);
+                const isSurfaceParent = modelConfig.modelImpl.isSurface(baseData.targetBaseDataID);
                 const paramPivotTable = baseData.pivotManager.paramPivotTable;
 
                 if (baseData instanceof l2ft.AffineData) {
@@ -548,7 +549,7 @@ export default function (data: Input): dbft.DragonBones | null {
 
                         case 1: {
                             const paramPivots = paramPivotTable[0];
-                            const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+                            const paramDef = modelConfig.modelImpl.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
                             const totalValue = paramDef.maxValue - paramDef.minValue;
                             // Create animation.
                             let animation = armature.getAnimation(paramPivots.paramID) as dbft.Animation | null;
@@ -586,8 +587,8 @@ export default function (data: Input): dbft.DragonBones | null {
 
                                 if (!bone.parent || isSurfaceParent) {
                                     if (!bone.parent) {
-                                        translateFrame.x = x - bone.transform.x - model.canvasWidth * 0.5;
-                                        translateFrame.y = y - bone.transform.y - model.canvasHeight;
+                                        translateFrame.x = x - bone.transform.x - modelConfig.modelImpl.canvasWidth * 0.5;
+                                        translateFrame.y = y - bone.transform.y - modelConfig.modelImpl.canvasHeight;
                                     }
                                     else {
                                         translateFrame.x = x - bone.transform.x;
@@ -621,8 +622,8 @@ export default function (data: Input): dbft.DragonBones | null {
                         case 2: {
                             const paramPivotsA = paramPivotTable[0];
                             const paramPivotsB = paramPivotTable[1];
-                            const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
-                            const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
+                            const paramDefA = modelConfig.modelImpl.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+                            const paramDefB = modelConfig.modelImpl.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
                             const totalValueA = paramDefA.maxValue - paramDefA.minValue;
                             const totalValueB = paramDefB.maxValue - paramDefB.minValue;
                             // Create parameters animaiton.
@@ -694,8 +695,8 @@ export default function (data: Input): dbft.DragonBones | null {
 
                                     if (!bone.parent || isSurfaceParent) {
                                         if (!bone.parent) {
-                                            translateFrame.x = x - bone.transform.x - model.canvasWidth * 0.5;
-                                            translateFrame.y = y - bone.transform.y - model.canvasHeight;
+                                            translateFrame.x = x - bone.transform.x - modelConfig.modelImpl.canvasWidth * 0.5;
+                                            translateFrame.y = y - bone.transform.y - modelConfig.modelImpl.canvasHeight;
                                         }
                                         else {
                                             translateFrame.x = x - bone.transform.x;
@@ -747,7 +748,7 @@ export default function (data: Input): dbft.DragonBones | null {
 
                         case 1: {
                             const paramPivots = paramPivotTable[0];
-                            const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+                            const paramDef = modelConfig.modelImpl.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
                             const totalValue = paramDef.maxValue - paramDef.minValue;
                             // Create animation.
                             let animation = armature.getAnimation(paramPivots.paramID) as dbft.Animation | null;
@@ -786,8 +787,8 @@ export default function (data: Input): dbft.DragonBones | null {
                         case 2: {
                             const paramPivotsA = paramPivotTable[0];
                             const paramPivotsB = paramPivotTable[1];
-                            const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
-                            const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
+                            const paramDefA = modelConfig.modelImpl.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+                            const paramDefB = modelConfig.modelImpl.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
                             const totalValueA = paramDefA.maxValue - paramDefA.minValue;
                             const totalValueB = paramDefB.maxValue - paramDefB.minValue;
                             // Create parameters animaiton.
@@ -870,7 +871,7 @@ export default function (data: Input): dbft.DragonBones | null {
             }
             // Create slot timeines.
             for (const drawData of partsData.drawDataList) {
-                const isSurfaceParent = model.isSurface(drawData.targetBaseDataID);
+                const isSurfaceParent = modelConfig.modelImpl.isSurface(drawData.targetBaseDataID);
                 const paramPivotTable = drawData.pivotManager.paramPivotTable;
 
                 if (drawData instanceof l2ft.MeshData) {
@@ -889,7 +890,7 @@ export default function (data: Input): dbft.DragonBones | null {
 
                         case 1: {
                             const paramPivots = paramPivotTable[0];
-                            const paramDef = model.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
+                            const paramDef = modelConfig.modelImpl.getParamDef(paramPivots.paramID) as l2ft.ParamDefFloat;
                             const totalValue = paramDef.maxValue - paramDef.minValue;
                             // Create animation.
                             let animation = armature.getAnimation(paramPivots.paramID) as dbft.Animation | null;
@@ -937,8 +938,8 @@ export default function (data: Input): dbft.DragonBones | null {
                         case 2: {
                             const paramPivotsA = paramPivotTable[0];
                             const paramPivotsB = paramPivotTable[1];
-                            const paramDefA = model.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
-                            const paramDefB = model.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
+                            const paramDefA = modelConfig.modelImpl.getParamDef(paramPivotsA.paramID) as l2ft.ParamDefFloat;
+                            const paramDefB = modelConfig.modelImpl.getParamDef(paramPivotsB.paramID) as l2ft.ParamDefFloat;
                             const totalValueA = paramDefA.maxValue - paramDefA.minValue;
                             const totalValueB = paramDefB.maxValue - paramDefB.minValue;
                             // Create parameters animaiton.
@@ -1031,6 +1032,50 @@ export default function (data: Input): dbft.DragonBones | null {
         }
     }
 
+    // Create motion animations.
+    if (modelConfig.motions) {
+        for (const motionName in modelConfig.motions) {
+            let index = 0;
+            const motionConfigs = modelConfig.motions[motionName];
+            for (const motionConfig of motionConfigs) {
+                if (!motionConfig.motion) {
+                    continue;
+                }
+
+                const animationName = motionName + "_" + index.toString().padStart(2, "0");
+                const animation = new dbft.Animation();
+                animation.playTimes = 0;
+                animation.name = animationName;
+                animation.type = dbft.AnimationType.Tree;
+
+                for (const timelineName in motionConfig.motion.values) {
+                    const paramDef = modelConfig.modelImpl.getParamDef(timelineName);
+                    if (!paramDef) {
+                        continue;
+                    }
+
+                    const values = motionConfig.motion.values[timelineName];
+                    const timeline = new dbft.AnimationTimeline();
+                    timeline.name = timelineName;
+
+                    for (const value of values) {
+                        const frame = new dbft.FloatFrame();
+                        frame.tweenEasing = 0;
+                        frame.value = (value - paramDef.minValue) / (paramDef.maxValue - paramDef.minValue);
+                        timeline.progressFrame.push(frame);
+                    }
+
+                    animation.duration = Math.max(values.length, animation.duration);
+                    animation.animation.push(timeline);
+                }
+
+                armature.animation.push(animation);
+
+                index++;
+            }
+        }
+    }
+
     return result;
 }
 
@@ -1052,8 +1097,8 @@ function createDeformFrame(
             deformFrame.vertices[j + 1] = geom.helpPointA.y - pose[j + 1];
         }
         else { // Offset.
-            deformFrame.vertices[j] = l2DeformFrame[j] - pose[j] - model.canvasWidth * 0.5;
-            deformFrame.vertices[j + 1] = l2DeformFrame[j + 1] - pose[j + 1] - model.canvasHeight;
+            deformFrame.vertices[j] = l2DeformFrame[j] - pose[j] - modelConfig.modelImpl.canvasWidth * 0.5;
+            deformFrame.vertices[j + 1] = l2DeformFrame[j + 1] - pose[j + 1] - modelConfig.modelImpl.canvasHeight;
         }
     }
 }
@@ -1161,6 +1206,10 @@ function vertivesMinus(source: number[], target: number[]): void {
 }
 
 function vertivesInterpolation(source: number[], targetA: number[], targetB: number[], progress: number): void {
+    if (!targetA) { 
+        debugger;
+    }
+    
     source.length = targetA.length;
 
     const helper: number[] = [];

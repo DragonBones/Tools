@@ -14,7 +14,7 @@ const SEARCH_GROUP_NAME = "search";
 function modifyResourcesPath(file: string): string {
     const index = file.indexOf(RESOURCE_PATH);
     if (index > 0) {
-        file = file.substr(index + 9);
+        file = file.substr(index + RESOURCE_PATH.length + 1);
     }
 
     file = file.replace(/\\/g, "/");
@@ -30,28 +30,30 @@ function execute(): void {
     const files = nodeUtils.filterFileList(root, /\.(json)$/i);
 
     for (let i = 0, l = files.length; i < l; ++i) {
-        const dragonBonesFile = files[i];
-        if (include && dragonBonesFile.indexOf(include) < 0) {
+        const file = files[i];
+        if (include && file.indexOf(include) < 0) {
             continue;
         }
 
-        const fileString = fs.readFileSync(dragonBonesFile).toString();
+        const fileDir = path.dirname(file);
+        const fileName = path.basename(file, ".json");
+        const fileString = fs.readFileSync(file).toString();
         if (!dbft.isDragonBonesString(fileString)) {
             continue;
         }
 
-        const dragonBonesJSON = JSON.parse(fs.readFileSync(dragonBonesFile).toString());
+        const dragonBonesJSON = JSON.parse(fs.readFileSync(file).toString());
         const dataName = dragonBonesJSON.name;
 
         resourcesJSON.addResource(
             dataName,
             resft.ResourceType.JSON,
-            modifyResourcesPath(dragonBonesFile),
+            modifyResourcesPath(file),
             PRELOAD_NAME, SEARCH_GROUP_NAME
         );
 
         // Binary
-        const binaryFile = dragonBonesFile.replace(".json", ".dbbin");
+        const binaryFile = path.join(fileDir, fileName + ".dbbin");
         if (fs.existsSync(binaryFile)) {
             console.log(binaryFile);
 
@@ -76,43 +78,45 @@ function execute(): void {
         //     );
         // }
 
-        const textureAtlases = dbUtils.getTextureAtlases(dragonBonesFile); // TextureAtlas config and TextureAtlas.
-        if (textureAtlases.length > 0) {
-            for (let i = 0, l = textureAtlases.length; i < l; ++i) {
-                const textureAtlasConfig = textureAtlases[i];
-                const textureAtlas = textureAtlasConfig.replace(".json", ".png");
-
-                resourcesJSON.addResource(
-                    dataName + "_texture_config_" + i,
-                    resft.ResourceType.JSON,
-                    modifyResourcesPath(textureAtlasConfig),
-                    PRELOAD_NAME
-                );
-
+        const textureAtlass = dragonBonesJSON.textureAtlas as any[];
+        if (textureAtlass) {
+            for (let i = 0, l = textureAtlass.length; i < l; ++i) {
+                const textureAtlas = textureAtlass[i];
+                const textureAtlasFile = path.join(fileDir, textureAtlas.imagePath);
                 resourcesJSON.addResource(
                     dataName + "_texture_" + i,
                     resft.ResourceType.Image,
-                    modifyResourcesPath(textureAtlas),
+                    modifyResourcesPath(textureAtlasFile),
                     PRELOAD_NAME
                 );
 
-                console.log(textureAtlasConfig);
-                console.log(textureAtlas);
+                console.log(textureAtlasFile);
             }
         }
         else {
-            const textureAtlases = dbUtils.getTextureAtlases(dragonBonesFile, undefined, undefined, ".png"); // TextureAtlas.
-            for (let i = 0, l = textureAtlases.length; i < l; ++i) {
-                const textureAtlas = textureAtlases[i];
+            const textureAtlass = dbUtils.getTextureAtlases(file); // TextureAtlas config and TextureAtlas.
+            if (textureAtlass.length > 0) {
+                for (let i = 0, l = textureAtlass.length; i < l; ++i) {
+                    const textureAtlasConfig = textureAtlass[i];
+                    const textureAtlas = textureAtlasConfig.replace(".json", ".png");
 
-                resourcesJSON.addResource(
-                    dataName + "_texture_" + i,
-                    resft.ResourceType.Image,
-                    modifyResourcesPath(textureAtlas),
-                    PRELOAD_NAME
-                );
+                    resourcesJSON.addResource(
+                        dataName + "_texture_config_" + i,
+                        resft.ResourceType.JSON,
+                        modifyResourcesPath(textureAtlasConfig),
+                        PRELOAD_NAME
+                    );
 
-                console.log(textureAtlas);
+                    resourcesJSON.addResource(
+                        dataName + "_texture_" + i,
+                        resft.ResourceType.Image,
+                        modifyResourcesPath(textureAtlas),
+                        PRELOAD_NAME
+                    );
+
+                    console.log(textureAtlasConfig);
+                    console.log(textureAtlas);
+                }
             }
         }
     }

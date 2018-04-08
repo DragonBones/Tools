@@ -1,7 +1,92 @@
-
 /**
  * Live2D format.
  */
+export interface ModelConfig {
+    type: string;
+    name: string;
+    model: string;
+    physics?: string;
+    pose?: string;
+    readonly layout?: { center_x: number, y: number, width: number };
+    //
+    readonly textures: (string | { file: string, width: number, height: number })[];
+    readonly hit_areas?: { name: string, id: string }[];
+    readonly expressions?: { name: string, file: string }[];
+    readonly motions?: {
+        [key: string]: {
+            file: string;
+            fade_in?: number;
+            fade_out?: number;
+            sound?: string;
+            //
+            motion?: { frameRate: number, values: { [key: string]: number[] } } | null;
+        }[];
+    };
+    //
+    modelImpl: ModelImpl;
+}
+
+export function parseModel(buffer: ArrayBuffer): ModelImpl | null {
+    const reader = new Live2DReader(buffer);
+    const num = reader.readByte();
+    const num2 = reader.readByte();
+    const num3 = reader.readByte();
+
+    if (((num !== 0x6d) || (num2 !== 0x6f)) || (num3 !== 0x63)) {
+        console.log("Invalid model data.");
+        return null;
+    }
+
+    const version = reader.readByte();
+    reader.version = version;
+    if (version > 11) {
+        console.log("Invalid model version:", version);
+        return null;
+    }
+
+    const model = reader.readObject() as ModelImpl;
+
+    return model;
+}
+
+export function parseMotion(rawData: string) {
+    let index = rawData.indexOf("# Live2D Animator Motion Data");
+    if (index < 0) {
+        console.log("Invalid motion data.");
+        return null;
+    }
+
+    rawData = rawData.replace(/\n/g, "");
+    rawData = rawData.replace(/\r\r/, "\r");
+    rawData = rawData.replace(/\r\r/, "\r");
+
+    const motion = { frameRate: 30, values: {} as any };
+    const lines = rawData.split(`\r`);
+
+    for (let i = 1, l = lines.length; i < l; ++i) {
+        const line = lines[i];
+        if (i === 1) {
+
+        }
+        else {
+            const kv = line.split("=");
+            if (kv.length < 2) {
+                continue;
+            }
+
+            const key = kv[0];
+            if (key.indexOf(":") < 0) {
+                motion.values[key] = kv[1].split(",").map(value => Number(value));
+            }
+            else {
+                // TODO
+            }
+        }
+    }
+
+    return motion;
+}
+
 export class Live2dObjectTag {
     public static readonly MODEL: number = 0x88;//129
     public static readonly PARAM_DEF: number = 0x83;//129
@@ -345,7 +430,7 @@ export class MeshData extends DisplayData {
     numPolygons: number;
     numPts: number;
     optionFlag: number;
-    textureNo: number = -1;
+    textureIndex: number = -1;
 
     readonly indexArray: number[] = [];
     readonly pivotPoints: number[][] = [];
@@ -357,7 +442,7 @@ export class MeshData extends DisplayData {
     public read(reader: Live2DReader): void {
         super.read(reader);
 
-        this.textureNo = reader.readInt();
+        this.textureIndex = reader.readInt();
         this.numPts = reader.readInt();
         this.numPolygons = reader.readInt();
 
@@ -473,7 +558,7 @@ export class ModelImpl implements ISerializable {
     readonly partsDataList: PartsData[] = [];
 
     //
-    frameRate: number = 24;
+    frameRate: number = 30;
     readonly tempDrawList: IDrawData[] = [];
 
     public read(reader: Live2DReader): void {
