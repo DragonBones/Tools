@@ -116,11 +116,11 @@ export class Transform implements ISerializable {
 
     public reflectX = false;
     public reflectY = false;
-    public x = 0.0;
-    public y = 0.0;
-    public rotate = 0.0;
-    public scaleX = 1.0;
-    public scaleY = 1.0;
+    public x: number;
+    public y: number;
+    public rotate: number;
+    public scaleX: number;
+    public scaleY: number;
 
     public read(reader: BinaryReader): void {
         this.x = reader.readFloat();
@@ -199,7 +199,7 @@ export class Color {
 }
 
 export class UVInfo {
-    convertedTextureNo: number = -1;
+    convertedTextureIndex: number = -1;
     enabled: boolean;
     offsetX: number;
     offsetY: number;
@@ -215,7 +215,7 @@ export class Model implements ISerializable {
     public parts: Part[];
     //
     public frameRate: number = 30;
-    public readonly displays: BaseDisplay[] = [];
+    public readonly displays: BaseDisplay[] = []; // TODO
 
     public read(reader: BinaryReader): void {
         this.animations = reader.readObject();
@@ -257,15 +257,15 @@ export class Model implements ISerializable {
         //sort by pose order
         this.displays.sort((a, b) => {
             if (a instanceof Display && b instanceof Display) {
-                return a.zOrders[0] > b.zOrders[0] ? 1 : -1;
+                return a.zOrderFrames[0] > b.zOrderFrames[0] ? 1 : -1;
             }
             return -1;
         });
     }
 
     public getBone(name: string) {
-        for (const partsData of this.parts) {
-            for (const bone of partsData.bones) {
+        for (const part of this.parts) {
+            for (const bone of part.bones) {
                 if (bone.name === name) {
                     return bone;
                 }
@@ -276,8 +276,8 @@ export class Model implements ISerializable {
     }
 
     public getDisplay(name: string) {
-        for (const partsData of this.parts) {
-            for (const display of partsData.displays) {
+        for (const part of this.parts) {
+            for (const display of part.displays) {
                 if (display.name === name) {
                     return display;
                 }
@@ -287,10 +287,10 @@ export class Model implements ISerializable {
         return null;
     }
 
-    public getTimelineInfo(paramId: string): TimelineInfo | null {
-        for (const param of this.animations.timelines) {
-            if (param.name === paramId) {
-                return param;
+    public getTimelineInfo(name: string): TimelineInfo | null {
+        for (const timelineInfo of this.animations.timelines) {
+            if (timelineInfo.name === name) {
+                return timelineInfo;
             }
         }
 
@@ -322,7 +322,7 @@ export abstract class BaseBone implements ISerializable {
     public name: string;
     public parent: string;
     public animation: Animation;
-    public pivotOpacity: number[] | null = null;
+    public alphaFrames: number[] | null = null;
 
     public read(reader: BinaryReader): void {
         this.name = reader.readObject();
@@ -331,7 +331,7 @@ export abstract class BaseBone implements ISerializable {
 
     protected _readOpacity(reader: BinaryReader): void {
         if (reader.version >= 10) {
-            this.pivotOpacity = reader.readArrayFloat();
+            this.alphaFrames = reader.readArrayFloat();
         }
     }
 }
@@ -382,32 +382,20 @@ export abstract class Display extends BaseDisplay {
     public static readonly TYPE_DD_PATH_STROKE = 4;
 
     public zOrder: number;
-    public readonly clipNames: string[] = [];
-    public readonly zOrders: number[] = [];
-    public readonly alphaFrames: number[] = [];
+    public alphaFrames: number[];
+    public zOrderFrames: number[];
+    public clipedNames: string[] | null = null;
 
     public read(reader: BinaryReader): void {
         this.name = reader.readObject();
         this.parent = reader.readObject();
         this.animation = reader.readObject();
         this.zOrder = reader.readInt();
-
-        let list = reader.readArrayInt();
-        this.zOrders.length = list.length;
-        for (let i = 0, l = list.length; i < l; i++) {
-            this.zOrders[i] = list[i];
-        }
-
-        list = reader.readArrayFloat();
-        this.alphaFrames.length = list.length;
-        for (let i = 0, l = list.length; i < l; i++) {
-            this.alphaFrames[i] = list[i];
-        }
+        this.zOrderFrames = reader.readArrayInt();
+        this.alphaFrames = reader.readArrayFloat();
 
         if (reader.version >= 11) {
-            const aid = reader.readObject();
-
-            // this.clipIDList = aid;
+            this.clipedNames = reader.readObject();
         }
     }
 }
@@ -418,12 +406,12 @@ export class Mesh extends Display {
     public static readonly COLOR_COMPOSITION_MULTIPLY = 2;
     public static readonly MASK_COLOR_COMPOSITION = 30;
 
-    public culling: boolean;
+    public culling: boolean = false;
     public vertexCount: number;
     public triangleCount: number;
     public textureIndex: number;
-    public colorCompositionType: number;
-    public colorGroupIndex: number;
+    public colorCompositionType: number = 0;
+    public colorGroupIndex: number = -1;
     public optionFlag: number;
 
     public indices: number[];
@@ -431,7 +419,7 @@ export class Mesh extends Display {
     public uvs: number[] = [];
     public optionData: any = {};
 
-    // readonly uvInfo: UVInfo = new UVInfo();
+    // public readonly uvInfo = new UVInfo();// TODO
 
     public read(reader: BinaryReader): void {
         super.read(reader);
@@ -540,7 +528,7 @@ export class BinaryReader {
 
     private _offset: number = 0;
     private _bitCount: number = 0;
-    private _bitBuff: number = 0;
+    private _bitBuffer: number = 0;
     private readonly _dataView: DataView;
     private readonly _readedObjects: Array<any> = new Array<any>();
 
@@ -741,17 +729,17 @@ export class BinaryReader {
 
     public readBit(): boolean {
         if (this._bitCount === 0) {
-            this._bitBuff = this.readByte();
+            this._bitBuffer = this.readByte();
         }
         else if (this._bitCount === 8) {
-            this._bitBuff = this.readByte();
+            this._bitBuffer = this.readByte();
             this._bitCount = 0;
         }
 
         const bitCount = this._bitCount++;
         // this._bitCount = bitCount + 1;
 
-        return (((this._bitBuff >> (7 - bitCount)) & 1) === 1);
+        return (((this._bitBuffer >> (7 - bitCount)) & 1) === 1);
     }
 
     public readBool(): boolean {
