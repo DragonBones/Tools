@@ -217,98 +217,31 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     }
                 }
 
-                for (const timeline of animation.bone) {
-                    for (const frame of timeline.frame) {
-                        frame.transform.skX = Number(geom.normalizeDegree(frame.transform.skX).toFixed(2));
-                        frame.transform.skY = Number(geom.normalizeDegree(frame.transform.skY).toFixed(2));
-                        frame.transform.toFixed();
-                    }
-
-                    for (const frame of timeline.translateFrame) {
-                        frame.x = Number(frame.x.toFixed(2));
-                        frame.y = Number(frame.y.toFixed(2));
-                    }
-
-                    for (const frame of timeline.rotateFrame) {
-                        frame.rotate = Number(geom.normalizeDegree(frame.rotate).toFixed(2));
-                        frame.skew = Number(geom.normalizeDegree(frame.skew).toFixed(2));
-                    }
-
-                    for (const frame of timeline.scaleFrame) {
-                        frame.x = Number(frame.x.toFixed(2));
-                        frame.y = Number(frame.y.toFixed(2));
-                    }
-                }
-
-                for (const timeline of animation.surface) {
-                    for (const frame of timeline.frame) {
-                        frame.offset += formatDeform(frame.vertices);
-                    }
-                }
-
-                for (const timeline of animation.slot) {
-                    for (const frame of timeline.frame) {
-                        frame.color.toFixed();
-                    }
-
-                    for (const frame of timeline.colorFrame) {
-                        frame.value.toFixed();
-                    }
-                }
-
-                for (const timeline of animation.ffd) {
-                    timeline.skin = timeline.skin || "default";
-
-                    const meshName = timeline.skin + "_" + timeline.slot + "_" + timeline.name;
-                    const mesh = armature.getMesh(timeline.skin, timeline.slot, timeline.name) as dbft.MeshDisplay;
-                    const matrix = meshMatrices[meshName];
-
-                    for (const frame of timeline.frame) {
-                        if (matrix) {
-                            let inSide = 0;
-                            let x = 0.0;
-                            let y = 0.0;
-                            for (let i = 0, l = mesh.vertices.length; i < l; i += 2) {
-                                inSide = 0;
-                                if (i < frame.offset || i - frame.offset >= frame.vertices.length) {
-                                    x = 0.0;
-                                }
-                                else {
-                                    inSide = 1;
-                                    x = frame.vertices[i - frame.offset];
-                                }
-
-                                if (i + 1 < frame.offset || i + 1 - frame.offset >= frame.vertices.length) {
-                                    y = 0.0;
-                                }
-                                else {
-                                    if (inSide === 0) {
-                                        inSide = -1;
-                                    }
-
-                                    y = frame.vertices[i + 1 - frame.offset];
-                                }
-
-                                if (inSide !== 0) {
-                                    matrix.transformPoint(x, y, geom.helpPointA, true);
-
-                                    if (inSide === 1) {
-                                        frame.vertices[i - frame.offset] = geom.helpPointA.x;
-                                    }
-
-                                    frame.vertices[i + 1 - frame.offset] = geom.helpPointA.y;
-                                }
-                            }
-                        }
-
-                        frame.offset += formatDeform(frame.vertices);
-                    }
-                }
-
                 for (let i = 0, l = animation.bone.length; i < l; ++i) {
                     const timeline = animation.bone[i];
                     const bone = armature.getBone(timeline.name);
                     if (bone) {
+                        for (const frame of timeline.frame) {
+                            frame.transform.skX = Number(geom.normalizeDegree(frame.transform.skX).toFixed(2));
+                            frame.transform.skY = Number(geom.normalizeDegree(frame.transform.skY).toFixed(2));
+                            frame.transform.toFixed();
+                        }
+
+                        for (const frame of timeline.translateFrame) {
+                            frame.x = Number(frame.x.toFixed(2));
+                            frame.y = Number(frame.y.toFixed(2));
+                        }
+
+                        for (const frame of timeline.rotateFrame) {
+                            frame.rotate = Number(geom.normalizeDegree(frame.rotate).toFixed(2));
+                            frame.skew = Number(geom.normalizeDegree(frame.skew).toFixed(2));
+                        }
+
+                        for (const frame of timeline.scaleFrame) {
+                            frame.x = Number(frame.x.toFixed(2));
+                            frame.y = Number(frame.y.toFixed(2));
+                        }
+
                         cleanFrame(timeline.frame);
                         cleanFrame(timeline.translateFrame);
                         cleanFrame(timeline.rotateFrame);
@@ -364,6 +297,10 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     const surface = armature.getBone(timeline.name);
 
                     if (surface) {
+                        for (const frame of timeline.frame) {
+                            frame.offset += formatDeform(frame.vertices);
+                        }
+
                         cleanFrame(timeline.frame);
 
                         if (timeline.frame.length === 1) {
@@ -387,6 +324,14 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     const timeline = animation.slot[i];
                     const slot = armature.getSlot(timeline.name);
                     if (slot) {
+                        for (const frame of timeline.frame) {
+                            frame.color.toFixed();
+                        }
+
+                        for (const frame of timeline.colorFrame) {
+                            frame.value.toFixed();
+                        }
+
                         cleanFrame(timeline.frame);
                         cleanFrame(timeline.displayFrame);
                         cleanFrame(timeline.colorFrame);
@@ -431,6 +376,53 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     const mesh = armature.getMesh(timeline.skin, timeline.slot, timeline.name);
 
                     if (slot && mesh) {
+                        timeline.skin = timeline.skin || "default";
+
+                        const meshName = timeline.skin + "_" + timeline.slot + "_" + timeline.name;
+                        const mesh = armature.getMesh(timeline.skin, timeline.slot, timeline.name) as dbft.MeshDisplay;
+                        const matrix = meshMatrices[meshName];
+
+                        for (const frame of timeline.frame) {
+                            if (matrix) {
+                                let inSide = 0;
+                                let x = 0.0;
+                                let y = 0.0;
+                                for (let i = 0, l = mesh.vertices.length; i < l; i += 2) {
+                                    inSide = 0;
+                                    if (i < frame.offset || i - frame.offset >= frame.vertices.length) {
+                                        x = 0.0;
+                                    }
+                                    else {
+                                        inSide = 1;
+                                        x = frame.vertices[i - frame.offset];
+                                    }
+
+                                    if (i + 1 < frame.offset || i + 1 - frame.offset >= frame.vertices.length) {
+                                        y = 0.0;
+                                    }
+                                    else {
+                                        if (inSide === 0) {
+                                            inSide = -1;
+                                        }
+
+                                        y = frame.vertices[i + 1 - frame.offset];
+                                    }
+
+                                    if (inSide !== 0) {
+                                        matrix.transformPoint(x, y, geom.helpPointA, true);
+
+                                        if (inSide === 1) {
+                                            frame.vertices[i - frame.offset] = geom.helpPointA.x;
+                                        }
+
+                                        frame.vertices[i + 1 - frame.offset] = geom.helpPointA.y;
+                                    }
+                                }
+                            }
+
+                            frame.offset += formatDeform(frame.vertices);
+                        }
+
                         cleanFrame(timeline.frame);
 
                         if (timeline.frame.length === 1) {
@@ -446,6 +438,59 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     }
 
                     animation.ffd.splice(i, 1);
+                    i--;
+                    l--;
+                }
+
+                for (let i = 0, l = animation.animation.length; i < l; ++i) {
+                    const timeline = animation.animation[i];
+                    const childAnimation = armature.getAnimation(timeline.name);
+
+                    if (childAnimation) {
+                        for (const frame of timeline.progressFrame) {
+                            frame.value = Number(frame.value.toFixed(2));
+                        }
+
+                        for (const frame of timeline.weightFrame) {
+                            frame.value = Number(frame.value.toFixed(2));
+                        }
+
+                        for (const frame of timeline.parameterFrame) {
+                            frame.x = Number(frame.x.toFixed(2));
+                            frame.y = Number(frame.x.toFixed(2));
+                        }
+
+                        cleanFrame(timeline.progressFrame);
+                        cleanFrame(timeline.weightFrame);
+                        cleanFrame(timeline.parameterFrame);
+
+                        if (timeline.progressFrame.length === 1) {
+                            const frame = timeline.progressFrame[0];
+                            if (frame.value === 0) {
+                                timeline.progressFrame.length = 0;
+                            }
+                        }
+
+                        if (timeline.weightFrame.length === 1) {
+                            const frame = timeline.weightFrame[0];
+                            if (frame.value === 1) {
+                                timeline.weightFrame.length = 0;
+                            }
+                        }
+
+                        if (timeline.parameterFrame.length === 1) {
+                            const frame = timeline.parameterFrame[0];
+                            if (frame.x === 0 && frame.y === 0) {
+                                timeline.parameterFrame.length = 0;
+                            }
+                        }
+
+                        if (timeline.progressFrame.length > 0 || timeline.weightFrame.length > 0 || timeline.parameterFrame.length > 0) {
+                            continue;
+                        }
+                    }
+
+                    animation.animation.splice(i, 1);
                     i--;
                     l--;
                 }

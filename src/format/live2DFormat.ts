@@ -167,13 +167,13 @@ export class Transform implements ISerializable {
         return this;
     }
 
-    public interpolation(valueA: this, valueB: this, progress: number): this {
+    public interpolation(valueA: this, valueB: this, t: number): this {
         Transform._helper.copyFrom(valueB).minus(valueA);
-        Transform._helper.x *= progress;
-        Transform._helper.y *= progress;
-        Transform._helper.scaleX *= progress;
-        Transform._helper.scaleY *= progress;
-        Transform._helper.rotate *= progress;
+        Transform._helper.x *= t;
+        Transform._helper.y *= t;
+        Transform._helper.scaleX *= t;
+        Transform._helper.scaleY *= t;
+        Transform._helper.rotate *= t;
         this.copyFrom(valueA).add(Transform._helper as any); // 
 
         return this;
@@ -436,8 +436,9 @@ export class Mesh extends Display {
             if (this.optionFlag !== 0) {
                 if ((this.optionFlag & 1) !== 0) {
                     this.colorGroupIndex = reader.readInt();
-                    this.optionData.Add("BK_OPTION_COLOR", this.colorGroupIndex); // TODO
+                    this.optionData["BK_OPTION_COLOR"] = this.colorGroupIndex;
                 }
+
                 if ((this.optionFlag & 30) !== 0) {
                     this.colorCompositionType = (this.optionFlag & 30) >> 1;
                 }
@@ -819,7 +820,7 @@ export class BinaryReader {
     public readUTF8(): string {
         this._bitCount = 0;
         const count = this.readNumber();
-        const result = new Uint8Array();
+        const result = new Uint8Array(count);
 
         for (let i = 0; i < count; i++) {
             result[i] = this.readByte();
