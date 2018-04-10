@@ -436,6 +436,7 @@ function getPose<T>(
     const l2Timeline = l2Timelines[level];
     const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
     let index = 0;
+    let count = 1;
 
     if (l2TimelineInfo.default <= l2Timeline.frames[0]) {
         index = 0;
@@ -445,6 +446,10 @@ function getPose<T>(
     }
     else {
         index = l2Timeline.frames.indexOf(l2TimelineInfo.default);
+    }
+
+    for (let i = 0; i < level; ++i) {
+        count *= l2Timelines[i].frameCount;
     }
 
     if (index < 0) {
@@ -461,7 +466,7 @@ function getPose<T>(
                     );
                 }
 
-                index = offset + index * l2Timelines[level - 1].frameCount;
+                index = offset + index * count;
 
                 return action(
                     getPose(l2Timelines, frames, action, level - 1, index - 1), getPose(l2Timelines, frames, action, level - 1, index),
@@ -477,7 +482,7 @@ function getPose<T>(
             return frames[offset + index];
         }
 
-        index = offset + index * l2Timelines[level - 1].frameCount;
+        index = offset + count;
 
         return getPose(l2Timelines, frames, action, level - 1, index);
     }
@@ -486,11 +491,12 @@ function getPose<T>(
 function createAnimation<F, T extends { name: string }>(
     l2Timelines: l2ft.Timeline[], frames: F[], target: T,
     action: (l2Timeline: l2ft.Timeline, frames: F[], target: T, offset: number, blendAnimation: dbft.Animation) => void,
-    level: number = -1, offset: number = -1, parentAnimation: dbft.Animation | null = null, blendAnimation: dbft.Animation | null = null
+    level: number = -1, offset: number = -1, index: number = -1, parentAnimation: dbft.Animation | null = null
 ): void {
     if (level < 0) {
         level = l2Timelines.length - 1;
         offset = 0;
+        index = 0;
     }
 
     const l2Timeline = l2Timelines[level];
@@ -505,102 +511,81 @@ function createAnimation<F, T extends { name: string }>(
         armature.animation.unshift(animation);
     }
 
-    if (parentAnimation && !animation.getAnimationTimeline(parentAnimation.name)) {
-        const animationTimeline = new dbft.AnimationTimeline();
-        animationTimeline.name = parentAnimation.name;
+    if (l2Timelines.length === 1) {
+        action(l2Timeline, frames, target, offset, animation);
+        return;
+    }
+
+    const blendAnimation = new dbft.Animation();
+    blendAnimation.playTimes = 0;
+    blendAnimation.duration = animation.duration;
+    blendAnimation.type = dbft.AnimationType.Node;
+    blendAnimation.blendType = dbft.AnimationBlendType.E1D;
+    armature.animation.push(blendAnimation);
+    //
+    const blendTimeline = new dbft.AnimationTimeline();
+
+    if (level === 0) {
         const frameBegin = new dbft.FloatFrame();
         const frameEnd = new dbft.FloatFrame();
         frameBegin._position = 0;
         frameBegin.value = 0.0;
         frameBegin.tweenEasing = 0.0;
-        frameEnd._position = parentAnimation.duration;
+        frameEnd._position = animation.duration;
         frameEnd.value = 1.0;
-        animationTimeline.progressFrame.push(frameBegin, frameEnd);
-        modifyFrames(animationTimeline.progressFrame);
-        animation.animation.push(animationTimeline);
+        blendTimeline.progressFrame.push(frameBegin, frameEnd);
+        modifyFrames(blendTimeline.progressFrame);
+    }
+    else {
+        const frameBegin = new dbft.BoneTranslateFrame();
+        const frameEnd = new dbft.BoneTranslateFrame();
+        frameBegin._position = 0;
+        frameBegin.tweenEasing = 0.0;
+        frameBegin.x = -1.0;
+        frameEnd._position = animation.duration;
+        frameEnd.x = 1.0;
+        blendTimeline.parameterFrame.push(frameBegin, frameEnd);
+        modifyFrames(blendTimeline.parameterFrame);
     }
 
-    if (!blendAnimation) {
-        blendAnimation = armature.getAnimation(target.name) as dbft.Animation | null;
-
-        if (!blendAnimation) {
-            blendAnimation = new dbft.Animation();
-            blendAnimation.playTimes = 0;
-            blendAnimation.duration = animation.duration;
-            blendAnimation.name = target.name;
-            blendAnimation.type = dbft.AnimationType.Node;
-            blendAnimation.blendType = dbft.AnimationBlendType.E1D;
-            armature.animation.push(blendAnimation);
-        }
-
-        if (!animation.getAnimationTimeline(blendAnimation.name)) {
-            const animationTimeline = new dbft.AnimationTimeline();
-            animationTimeline.name = blendAnimation.name;
-            const frameBegin = new dbft.BoneTranslateFrame();
-            const frameEnd = new dbft.BoneTranslateFrame();
+    if (parentAnimation) {
+        if (!animation.getAnimationTimeline(parentAnimation.name)) {
+            const childTimeline = new dbft.AnimationTimeline();
+            const frameBegin = new dbft.FloatFrame();
+            const frameEnd = new dbft.FloatFrame();
+            childTimeline.name = parentAnimation.name;
             frameBegin._position = 0;
+            frameBegin.value = 0.0;
             frameBegin.tweenEasing = 0.0;
-            frameBegin.x = -1.0;
             frameEnd._position = animation.duration;
-            frameEnd.x = 1.0;
-            animationTimeline.parameterFrame.push(frameBegin, frameEnd);
-            modifyFrames(animationTimeline.parameterFrame);
-            animation.animation.push(animationTimeline);
+            frameEnd.value = 1.0;
+            childTimeline.progressFrame.push(frameBegin, frameEnd);
+            modifyFrames(childTimeline.progressFrame);
+            animation.animation.push(childTimeline);
         }
+        const parentL2Timleine = l2Timelines[level + 1];
+        const parentL2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(parentL2Timleine.name) as l2ft.TimelineInfo;
+        const totalValue = parentL2TimelineInfo.maximum - parentL2TimelineInfo.minimum;
+        blendTimeline.x = (parentL2Timleine.frames[index] - parentL2TimelineInfo.minimum) / totalValue * 2.0 - 1.0;
+        blendTimeline.name = blendAnimation.name = `${target.name}_${(l2Timelines.length - 2 - level).toString()}_${index.toString().padStart(2, "0")}`;
+        parentAnimation.animation.push(blendTimeline);
+    }
+    else {
+        blendTimeline.name = blendAnimation.name = target.name;
+        animation.animation.push(blendTimeline);
     }
 
     if (level === 0) {
-        action(l2Timeline, frames, target, offset, blendAnimation);
+        action(l2Timeline, frames, target, offset + index * l2Timeline.frameCount, blendAnimation);
     }
     else {
-        const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
-        const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
+        let count = 1;
+        for (let i = 0; i < level; ++i) {
+            count *= l2Timelines[i].frameCount;
+        }
 
         for (let i = 0, l = l2Timeline.frameCount; i < l; ++i) {
-            const childAnimationName = `${target.name}_${(l2Timelines.length - 1 - level).toString()}_${i.toString().padStart(2, "0")}`;
-            let childAnimation = armature.getAnimation(childAnimationName) as dbft.Animation | null;
-
-            if (!childAnimation) {
-                childAnimation = new dbft.Animation();
-                childAnimation.playTimes = 0;
-                childAnimation.duration = animation.duration;
-                childAnimation.name = childAnimationName;
-                childAnimation.type = dbft.AnimationType.Node;
-                armature.animation.push(childAnimation);
-            }
-
-            if (level === 1) {
-                const animationTimeline = new dbft.AnimationTimeline();
-                animationTimeline.x = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue * 2.0 - 1.0;
-                animationTimeline.name = childAnimation.name;
-                const frameBegin = new dbft.FloatFrame();
-                const frameEnd = new dbft.FloatFrame();
-                frameBegin._position = 0;
-                frameBegin.value = 0.0;
-                frameBegin.tweenEasing = 0.0;
-                frameEnd._position = blendAnimation.duration;
-                frameEnd.value = 1.0;
-                animationTimeline.progressFrame.push(frameBegin, frameEnd);
-                modifyFrames(animationTimeline.progressFrame);
-                blendAnimation.animation.push(animationTimeline);
-            }
-            else {
-                const animationTimeline = new dbft.AnimationTimeline();
-                animationTimeline.x = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue * 2.0 - 1.0;
-                animationTimeline.name = childAnimation.name;
-                const frameBegin = new dbft.BoneTranslateFrame();
-                const frameEnd = new dbft.BoneTranslateFrame();
-                frameBegin._position = 0;
-                frameBegin.tweenEasing = 0.0;
-                frameBegin.x = -1.0;
-                frameEnd._position = blendAnimation.duration;
-                frameEnd.x = 1.0;
-                animationTimeline.parameterFrame.push(frameBegin, frameEnd);
-                modifyFrames(animationTimeline.parameterFrame);
-                blendAnimation.animation.push(animationTimeline);
-            }
-
-            createAnimation(l2Timelines, frames, target, action, level - 1, offset + i * l2Timelines[level - 1].frameCount, blendAnimation, childAnimation);
+            createAnimation(l2Timelines, frames, target, action, level - 1, offset + index * count, i, blendAnimation);
         }
     }
 }
