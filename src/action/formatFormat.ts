@@ -457,7 +457,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
                         for (const frame of timeline.parameterFrame) {
                             frame.x = Number(frame.x.toFixed(2));
-                            frame.y = Number(frame.x.toFixed(2));
+                            frame.y = Number(frame.y.toFixed(2));
                         }
 
                         cleanFrame(timeline.progressFrame);
