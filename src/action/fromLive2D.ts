@@ -3,6 +3,7 @@ import * as dbft from "../format/dragonBonesFormat";
 import * as l2ft from "../format/live2DFormat";
 
 const rotateMatrix = geom.helpMatrixA;
+const rotateMatrix = geom.helpMatrixA;
 let modelConfig: l2ft.ModelConfig;
 let result: dbft.DragonBones;
 let armature: dbft.Armature;
@@ -83,20 +84,40 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                 if (isSurfaceParent) { // Scale and rotate.
                     bone.transform.x = (poseTransform.x - 0.5) * 400.0;
                     bone.transform.y = (poseTransform.y - 0.5) * 400.0;
-                    bone.transform.skY = poseTransform.rotate - 90.0;
-                    bone.transform.skX = poseTransform.rotate - 90.0;
-                    bone.inheritScale = false;
+
+                    if (poseTransform.reflectX || poseTransform.reflectY) {
+                        bone.transform.skY = poseTransform.rotate + 90.0;
+                        bone.transform.skX = poseTransform.rotate + 90.0;
+                    }
+                    else {
+                        bone.transform.skY = poseTransform.rotate - 90.0;
+                        bone.transform.skX = poseTransform.rotate - 90.0;
+                    }
                 }
                 else if (bone.parent) { // Rotate.
                     rotateMatrix.transformPoint(poseTransform.x, poseTransform.y, bone.transform);
                     bone.transform.skY = poseTransform.rotate;
                     bone.transform.skX = poseTransform.rotate;
+
+                    const parentTransform = (l2Parent as l2ft.Bone).transformFrames[0];
+
+                    if (parentTransform.reflectX || parentTransform.reflectY) {
+                        bone.transform.skY = poseTransform.rotate + 180.0;
+                        bone.transform.skX = poseTransform.rotate + 180.0;
+                    }
                 }
                 else { // Rotate and offset.
                     bone.transform.x = poseTransform.x - modelConfig.modelImpl.stageWidth * 0.5;
                     bone.transform.y = poseTransform.y - modelConfig.modelImpl.stageHeight;
-                    bone.transform.skY = poseTransform.rotate - 90.0;
-                    bone.transform.skX = poseTransform.rotate - 90.0;
+
+                    if (poseTransform.reflectX || poseTransform.reflectY) {
+                        bone.transform.skY = poseTransform.rotate + 90.0;
+                        bone.transform.skX = poseTransform.rotate + 90.0;
+                    }
+                    else {
+                        bone.transform.skY = poseTransform.rotate - 90.0;
+                        bone.transform.skX = poseTransform.rotate - 90.0;
+                    }
                 }
 
                 bone.transform.scX = poseTransform.scaleX * (poseTransform.reflectX ? -1.0 : 1.0);
@@ -132,6 +153,11 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                         rotateMatrix.transformPoint(poseVertices[i], poseVertices[i + 1], geom.helpPointA);
                         surface.vertices[i] = geom.helpPointA.x;
                         surface.vertices[i + 1] = geom.helpPointA.y;
+
+                        const parentTransform = (l2Parent as l2ft.Bone).transformFrames[0];
+                        if (parentTransform.reflectX) {
+
+                        }
                     }
                     else { // Offset.
                         surface.vertices[i] = poseVertices[i] - modelConfig.modelImpl.stageWidth * 0.5;
