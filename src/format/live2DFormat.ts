@@ -257,7 +257,7 @@ export class Model implements ISerializable {
         //sort by pose order
         this.displays.sort((a, b) => {
             if (a instanceof Display && b instanceof Display) {
-                return a.zOrderFrames[0] > b.zOrderFrames[0] ? 1 : -1;
+                return a.zOrder > b.zOrder ? 1 : -1;
             }
             return -1;
         });
