@@ -447,6 +447,9 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     const childAnimation = armature.getAnimation(timeline.name);
 
                     if (childAnimation) {
+                        timeline.x = Number(timeline.x.toFixed(2));
+                        timeline.y = Number(timeline.y.toFixed(2));
+
                         for (const frame of timeline.progressFrame) {
                             frame.value = Number(frame.value.toFixed(2));
                         }

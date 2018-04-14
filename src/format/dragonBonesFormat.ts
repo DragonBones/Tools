@@ -798,6 +798,8 @@ export class Slot extends BaseData {
     readonly color: ColorTransform = new ColorTransform();
     readonly actions: OldAction[] = []; // Deprecated.
     userData: UserData | null = null;
+    //
+    _zOrder: number = -1;
 }
 
 export class IKConstraint extends BaseData {

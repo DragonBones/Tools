@@ -215,7 +215,7 @@ export class Model implements ISerializable {
     public parts: Part[];
     //
     public frameRate: number = 30;
-    public readonly displays: BaseDisplay[] = []; // TODO
+    public readonly displays: BaseDisplay[] = [];
 
     public read(reader: BinaryReader): void {
         this.animations = reader.readObject();
@@ -249,7 +249,9 @@ export class Model implements ISerializable {
                 }
             }
 
+            let index = 0;
             for (const display of part.displays) {
+                display.index = index++;
                 this.displays.push(display);
             }
         }
@@ -257,7 +259,7 @@ export class Model implements ISerializable {
         //sort by pose order
         this.displays.sort((a, b) => {
             if (a instanceof Display && b instanceof Display) {
-                return a.zOrder > b.zOrder ? 1 : -1;
+                return a.zOrder * 1000 + a.index > b.zOrder * 1000 + b.index ? 1 : -1;
             }
             return -1;
         });
@@ -337,6 +339,7 @@ export abstract class BaseBone implements ISerializable {
 }
 
 export abstract class BaseDisplay implements ISerializable {
+    public index: number;
     public name: string;
     public parent: string;
     public animation: Animation;

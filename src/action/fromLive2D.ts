@@ -204,6 +204,14 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
         const l2Timelines = l2Display.animation.timelines;
 
         if (l2Display instanceof l2ft.Mesh) {
+            // const zOrder = getPose(l2Timelines, l2Display.zOrderFrames, (a, b, t) => {
+            //     return a;
+            // });
+
+            const alpha = getPose(l2Timelines, l2Display.alphaFrames, (a, b, t) => {
+                return b === null ? a : a + (b - a) * t;
+            });
+
             const poseVertices = getPose(l2Timelines, l2Display.deformFrames, (a, b, t) => {
                 const result = new Array<number>();
                 if (b) {
@@ -219,7 +227,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
             const slot = new dbft.Slot();
             slot.name = l2Display.name;
             slot.parent = l2Display.parent;
-            slot.color.aM = Math.max(Math.round(l2Display.alphaFrames[0] * 100), 100); // TODO
+            slot.color.aM = Math.max(Math.round(alpha * 100), 100);
             armature.slot.push(slot);
             // Create displays.
             const display = new dbft.MeshDisplay();
@@ -470,6 +478,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
 
                     const values = motionConfig.motion.values[timelineName];
                     const timeline = new dbft.AnimationTimeline();
+                    let prevFrame: dbft.FloatFrame | null = null;
                     timeline.name = timelineName;
 
                     for (let i = 0, l = values.length; i < l; ++i) {
@@ -482,6 +491,12 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
 
                         frame.value = (value - l2TimelineInfo.minimum) / (l2TimelineInfo.maximum - l2TimelineInfo.minimum);
                         timeline.progressFrame.push(frame);
+
+                        if (prevFrame && Math.abs(prevFrame.value - frame.value) > 0.99) {
+                            prevFrame.tweenEasing = NaN;
+                        }
+
+                        prevFrame = frame;
                     }
 
                     animation.duration = Math.max(values.length, animation.duration);
@@ -642,8 +657,14 @@ function createAnimation<F, T extends { name: string }>(
         const parentL2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(parentL2Timleine.name) as l2ft.TimelineInfo;
         const totalValue = parentL2TimelineInfo.maximum - parentL2TimelineInfo.minimum;
         let blendName = target.name;
+
+        let i = 0;
         for (const value of indices) {
-            blendName += "_" + (value).toString().padStart(2, "0");
+            if (i > 0) {
+                blendName += "_" + (value).toString().padStart(2, "0");
+            }
+
+            i++;
         }
 
         blendTimeline.x = (parentL2Timleine.frames[index] - parentL2TimelineInfo.minimum) / totalValue * 2.0 - 1.0;
@@ -651,7 +672,7 @@ function createAnimation<F, T extends { name: string }>(
         parentAnimation.animation.push(blendTimeline);
     }
     else {
-        blendTimeline.name = blendAnimation.name = target.name;
+        blendTimeline.name = blendAnimation.name = target.name + "_A";
         animation.animation.push(blendTimeline);
     }
 
