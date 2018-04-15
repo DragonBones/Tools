@@ -5,13 +5,51 @@ export interface ModelConfig {
     type: string;
     name: string;
     model: string;
-    physics?: string;
+    //
+    physics?: string | {
+        type: string;
+        physics_hair: {
+            label: string;
+            comment: string;
+            setup: {
+                length: number;
+                regist: number;
+                mass: number;
+            };
+            src: {
+                id: string;
+                ptype: "x" | "y" | "angle";
+                scale: number;
+                weight: number;
+            }[];
+            targets: {
+                id: string;
+                ptype: "x" | "y" | "angle";
+                scale: number;
+                weight: number;
+            }[];
+        }[];
+    };
     pose?: string;
     readonly layout?: { center_x: number, y: number, width: number };
     //
     readonly textures: (string | { file: string, width: number, height: number })[];
     readonly hit_areas?: { name: string, id: string }[];
-    readonly expressions?: { name: string, file: string }[];
+    readonly expressions?: {
+        name: string;
+        file: string;
+        //
+        expression?: {
+            fade_in?: number;
+            fade_out?: number;
+            params?: {
+                id: string;
+                val: number;
+                def?: number;
+                calc?: "add" | "mult";
+            }[];
+        };
+    }[];
     readonly motions?: {
         [key: string]: {
             file: string;
@@ -19,7 +57,13 @@ export interface ModelConfig {
             fade_out?: number;
             sound?: string;
             //
-            motion?: { frameRate: number, values: { [key: string]: number[] } } | null;
+            motion?: {
+                frameRate: number;
+                fade_in: number;
+                fade_out: number;
+                values: { [key: string]: number[] };
+                alphas: { [key: string]: number[] };
+            } | null;
         }[];
     };
     //
@@ -60,13 +104,32 @@ export function parseMotion(rawData: string) {
     rawData = rawData.replace(/\r\r/, "\r");
     rawData = rawData.replace(/\r\r/, "\r");
 
-    const motion = { frameRate: 30, values: {} as any };
+    const motion = { frameRate: 30, fade_in: 0, fade_out: 0, values: {} as any, alphas: {} as any };
     const lines = rawData.split(`\r`);
 
     for (let i = 1, l = lines.length; i < l; ++i) {
-        const line = lines[i];
-        if (i === 1) {
+        let line = lines[i];
+        if (line.indexOf("#") >= 0) {
 
+        }
+        else if (line.indexOf("$") >= 0) {
+            line.replace("$", "");
+            const kv = line.split("=");
+            if (kv.length < 2) {
+                continue;
+            }
+
+            if (kv[0] === "fps") {
+                motion.frameRate = Number(kv[1]);
+            }
+            else if (kv[0] === "fadein") {
+                motion.fade_in = Number(kv[1]);
+            }
+            else if (kv[0] === "fadeout") {
+                motion.fade_out = Number(kv[1]);
+            }
+            else {
+            }
         }
         else {
             const kv = line.split("=");
@@ -74,12 +137,15 @@ export function parseMotion(rawData: string) {
                 continue;
             }
 
-            const key = kv[0];
+            let key = kv[0];
             if (key.indexOf(":") < 0) {
                 motion.values[key] = kv[1].split(",").map(value => Number(value));
             }
+            else if (key.indexOf("visible") >= 0) {
+                key = key.split(":").pop() as string;
+                motion.alphas[key] = kv[1].split(",").map(value => Number(value));
+            }
             else {
-                // TODO
             }
         }
     }
@@ -214,7 +280,7 @@ export class Model implements ISerializable {
     public animations: AnimationInfo;
     public parts: Part[];
     //
-    public frameRate: number = 30;
+    public frameCount: number = 120;
     public readonly displays: BaseDisplay[] = [];
 
     public read(reader: BinaryReader): void {
@@ -238,14 +304,10 @@ export class Model implements ISerializable {
                         }
                     }
 
-                    this.frameRate = Math.max(
-                        Math.ceil((timelineInfo.maximum - timelineInfo.minimum) / internal),
-                        this.frameRate
+                    this.frameCount = Math.max(
+                        Math.ceil((timelineInfo.maximum - timelineInfo.minimum) / internal) * 3,
+                        this.frameCount
                     );
-
-                    if (this.frameRate % 2) {
-                        this.frameRate++;
-                    }
                 }
             }
 
@@ -261,8 +323,19 @@ export class Model implements ISerializable {
             if (a instanceof Display && b instanceof Display) {
                 return a.zOrder * 1000 + a.index > b.zOrder * 1000 + b.index ? 1 : -1;
             }
+
             return -1;
         });
+    }
+
+    public getPart(name: string) {
+        for (const part of this.parts) {
+            if (part.name === name) {
+                return part;
+            }
+        }
+
+        return null;
     }
 
     public getBone(name: string) {

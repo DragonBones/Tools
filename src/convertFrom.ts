@@ -201,6 +201,19 @@ function execute(): void {
                     }
                 }
 
+                if (modelConfig.expressions) {
+                    for (const k in modelConfig.expressions) {
+                        const expressionConfig = modelConfig.expressions[k];
+                        const expressionURL = path.join(fileDir, expressionConfig.file);
+                        if (fs.existsSync(expressionURL)) {
+                            expressionConfig.expression = JSON.parse(fs.readFileSync(expressionURL, "utf-8"));
+                        }
+                        else {
+                            console.log("File does not exist.", expressionURL);
+                        }
+                    }
+                }
+
                 const result = fromLive2D(modelConfig);
                 if (result === null) {
                     continue;

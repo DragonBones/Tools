@@ -178,7 +178,6 @@ function execute(): void {
                         console.log(outputFile);
                     }
                 }
-
                 break;
             }
 

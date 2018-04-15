@@ -222,8 +222,8 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     const bone = armature.getBone(timeline.name);
                     if (bone) {
                         for (const frame of timeline.frame) {
-                            frame.transform.skX = Number(geom.normalizeDegree(frame.transform.skX).toFixed(2));
-                            frame.transform.skY = Number(geom.normalizeDegree(frame.transform.skY).toFixed(2));
+                            frame.transform.skX = geom.normalizeDegree(frame.transform.skX);
+                            frame.transform.skY = geom.normalizeDegree(frame.transform.skY);
                             frame.transform.toFixed();
                         }
 
@@ -238,8 +238,8 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                         }
 
                         for (const frame of timeline.scaleFrame) {
-                            frame.x = Number(frame.x.toFixed(2));
-                            frame.y = Number(frame.y.toFixed(2));
+                            frame.x = Number(frame.x.toFixed(4));
+                            frame.y = Number(frame.y.toFixed(4));
                         }
 
                         cleanFrame(timeline.frame);
@@ -447,25 +447,28 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     const childAnimation = armature.getAnimation(timeline.name);
 
                     if (childAnimation) {
-                        timeline.x = Number(timeline.x.toFixed(2));
-                        timeline.y = Number(timeline.y.toFixed(2));
+                        timeline.x = Number(timeline.x.toFixed(4));
+                        timeline.y = Number(timeline.y.toFixed(4));
 
                         for (const frame of timeline.progressFrame) {
-                            frame.value = Number(frame.value.toFixed(2));
+                            frame.value = Number(frame.value.toFixed(4));
                         }
 
                         for (const frame of timeline.weightFrame) {
-                            frame.value = Number(frame.value.toFixed(2));
+                            frame.value = Number(frame.value.toFixed(4));
                         }
 
                         for (const frame of timeline.parameterFrame) {
-                            frame.x = Number(frame.x.toFixed(2));
-                            frame.y = Number(frame.y.toFixed(2));
+                            frame.x = Number(frame.x.toFixed(4));
+                            frame.y = Number(frame.y.toFixed(4));
                         }
 
                         cleanFrame(timeline.progressFrame);
                         cleanFrame(timeline.weightFrame);
                         cleanFrame(timeline.parameterFrame);
+                        //
+                        cleanFrameB(timeline.progressFrame);
+                        cleanFrameB(timeline.weightFrame);
 
                         if (timeline.progressFrame.length === 1) {
                             const frame = timeline.progressFrame[0];
@@ -608,4 +611,36 @@ function cleanFrame(frames: dbft.Frame[]): void {
             prevFrame = frame;
         }
     }
+}
+
+function cleanFrameB(frames: dbft.FloatFrame[]): void {
+    let prevFrameA: dbft.FloatFrame | null = null;
+    let prevFrameB: dbft.FloatFrame | null = null;
+
+    for (let i = 0, l = frames.length; i < l; ++i) {
+        const frame = frames[i];
+
+        if (
+            i !== l - 1 &&
+            prevFrameA && prevFrameB &&
+            prevFrameA.getTweenEnabled() && prevFrameB.getTweenEnabled() &&
+            equalB(prevFrameA, prevFrameB, frame)
+        ) {
+            prevFrameA.duration += prevFrameB.duration;
+
+            frames.splice(i - 1, 1);
+            i--;
+            l--;
+
+            prevFrameB = frame;
+        }
+        else {
+            prevFrameA = prevFrameB;
+            prevFrameB = frame;
+        }
+    }
+}
+
+function equalB(a: dbft.FloatFrame, b: dbft.FloatFrame, c: dbft.FloatFrame): boolean {
+    return Math.abs((b.value - a.value) / a.duration - (c.value - b.value) / b.duration) < 0.01;
 }

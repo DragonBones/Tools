@@ -33,11 +33,11 @@ export enum BinaryOffset {
     WeigthFloatOffset = 1,
     WeigthBoneIndices = 2,
 
-    MeshVertexCount = 0,
-    MeshTriangleCount = 1,
-    MeshFloatOffset = 2,
-    MeshWeightOffset = 3,
-    MeshVertexIndices = 4,
+    GeometryVertexCount = 0,
+    GeometryTriangleCount = 1,
+    GeometryFloatOffset = 2,
+    GeometryWeightOffset = 3,
+    GeometryVertexIndices = 4,
 
     TimelineScale = 0,
     TimelineOffset = 1,
@@ -554,8 +554,10 @@ export function mergeActionToAnimation(
     }
 }
 
-export class BaseData {
+export abstract class BaseData {
     extra: Map<any> | null = null;
+
+    clearToBinary(): void { }
 }
 
 export class DragonBones extends BaseData {
@@ -769,13 +771,14 @@ export class Bone extends BaseData {
     _global: Transform | null = null;
 }
 
-export class Surface extends Bone {
+export class Surface extends Bone implements VerticesData {
     type: BoneType | string = BoneType[BoneType.Surface].toLowerCase();
     offset: number = -1; // Binary.
-
     segmentX: number = 0;
     segmentY: number = 0;
     readonly vertices: number[] = [];
+    readonly weights: number[] = []; //
+    readonly bones: number[] = []; //
 
     constructor(isDefault: boolean = false) {
         super();
@@ -787,6 +790,10 @@ export class Surface extends Bone {
 
     clearToBinary(): void {
         this.vertices.length = 0;
+    }
+
+    get vertexCount(): number {
+        return (this.segmentX + 1) * (this.segmentY + 1);
     }
 }
 
@@ -863,9 +870,6 @@ export abstract class Display extends BaseData {
     type: DisplayType | string = DisplayType[DisplayType.Image].toLowerCase();
     name: string = "";
     readonly transform: Transform = new Transform();
-
-    clearToBinary(): void {
-    }
 }
 
 export abstract class BoundingBoxDisplay extends Display {
@@ -1120,7 +1124,14 @@ export class AnimationBinary extends BaseData {
     readonly surface: Map<number[]> = {};
     readonly slot: Map<number[]> = {};
     readonly constraint: Map<number[]> = {};
-    readonly animation: Map<number[]> = {};
+    readonly animation: Map<AnimationTimelineBinary[]> = {};
+}
+
+export class AnimationTimelineBinary extends BaseData {
+    type: TimelineType = TimelineType.AnimationProgress;
+    offset: number = 0;
+    x: number = 0.0;
+    y: number = 0.0;
 }
 
 export abstract class Timeline extends BaseData {
@@ -1899,6 +1910,7 @@ export const compressConfig = [
     new SlotDeformTimeline(),
     new IKConstraintTimeline(),
     new AnimationTimeline(),
+    new AnimationTimelineBinary(),
     new FloatFrame(),
     new BoneTranslateFrame(),
     new ActionFrame(),
