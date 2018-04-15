@@ -227,7 +227,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
             const slot = new dbft.Slot();
             slot.name = l2Display.name;
             slot.parent = l2Parent ? l2Parent.name : "";
-            slot.color.aM = Math.max(Math.round(alpha * 100), 100);
+            // slot.color.aM = Math.min(Math.round(alpha * 100), 100); TODO
             armature.slot.push(slot);
             // Create displays.
             const display = new dbft.MeshDisplay();
@@ -436,7 +436,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     //         const frame = new dbft.SlotColorFrame();
                     //         frame._position = Math.floor(progress * parentAnimation.duration);
                     //         frame.tweenEasing = i === l2Timeline.frameCount - 1 ? NaN : 0.0;
-                    //         frame.color.aM = Math.max(Math.round(l2Frame * 100), 100);
+                    //         frame.color.aM = Math.min(Math.round(l2Frame * 100), 100);
                     //         timeline.colorFrame.push(frame);
                     //     }
 
@@ -550,7 +550,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                                     duration += frame.duration;
                                 }
 
-                                frame.value.aM = Math.max(Math.round(alpha * 100), 100);
+                                frame.value.aM = Math.min(Math.round(alpha * 100), 100);
+                                timeline.colorFrame.push(frame);
                             }
 
                             animation.slot.push(timeline);

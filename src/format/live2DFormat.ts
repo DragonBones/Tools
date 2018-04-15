@@ -141,7 +141,7 @@ export function parseMotion(rawData: string) {
             if (key.indexOf(":") < 0) {
                 motion.values[key] = kv[1].split(",").map(value => Number(value));
             }
-            else if (key.indexOf("visible") >= 0) {
+            else if (key.indexOf("VISIBLE") >= 0) {
                 key = key.split(":").pop() as string;
                 motion.alphas[key] = kv[1].split(",").map(value => Number(value));
             }

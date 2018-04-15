@@ -3,6 +3,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import * as commander from "commander";
 import * as object from "./common/object";
+import * as utils from "./common/utils";
 import * as nodeUtils from "./common/nodeUtils";
 import * as dbft from "./format/dragonBonesFormat";
 import * as spft from "./format/spineFormat";
@@ -206,7 +207,7 @@ function execute(): void {
                         const expressionConfig = modelConfig.expressions[k];
                         const expressionURL = path.join(fileDir, expressionConfig.file);
                         if (fs.existsSync(expressionURL)) {
-                            expressionConfig.expression = JSON.parse(fs.readFileSync(expressionURL, "utf-8"));
+                            expressionConfig.expression = JSON.parse(utils.formatJSONString(fs.readFileSync(expressionURL, "utf-8")));
                         }
                         else {
                             console.log("File does not exist.", expressionURL);

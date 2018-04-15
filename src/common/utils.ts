@@ -1,3 +1,12 @@
+export function formatJSONString(string: string): string {
+    let firstCode = string.charCodeAt(0);
+    if (firstCode < 0x20 || firstCode > 0x7f) {
+        string = string.substring(1); // 去除第一个字符  
+    }
+
+    return string;
+}
+
 export function rgbaToHex(r: number, g: number, b: number, a: number): string {
     let result = "";
     let s = Math.round(r).toString(16);
