@@ -10,7 +10,7 @@
 * 答：看看浏览器是否是大牌浏览器，尽量不要使用山寨杂牌浏览器。
 
 * 问：为什么浏览器是大牌的仍然无法导出文件或无法预览？
-* 答：有可能是 DragonBonesPro 的缓存损坏造成的，建议删除缓存文件夹 `C:\Users\YourName\AppData\Roaming\DragonBonesPro\Local Store`。
+* 答：有可能是 DragonBonesPro 的缓存损坏造成的，建议删除缓存文件夹 `C:\Users\你的用户名\AppData\Roaming\DragonBonesPro\Local Store`。
 
 * 问：为什么导入的 Spine 文件不太正确？
 * 答：DragonBonesPro 的导入插件做的不好，可以尝试我们提供的全新转换方式 [DragonBones Tools](https://github.com/DragonBones/Tools) ，这个全新的转换插件需要依赖 NodeJS 和 npm。转换后的文件可以在 [DragonBones Viewer](https://dbplayer.egret-labs.org/viewer/v1/index.html) 中查看（将转换出来的文件全选，然后拖拽到窗口即可），这些文件可以在龙骨运行时中良好的运行，但是无法在 DragonBones Pro 中运行，因为 DragonBones Pro 开发的不完善。
