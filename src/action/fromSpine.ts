@@ -504,7 +504,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
             iF = 0;
             for (const spFrame of spTimeline.translate) {
-                const frame = new dbft.BoneTranslateFrame();
+                const frame = new dbft.DoubleValueFrame0();
                 frame._position = Math.floor(spFrame.time * result.frameRate);
                 frame.x = spFrame.x;
                 frame.y = -spFrame.y;
@@ -541,7 +541,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
             iF = 0;
             for (const spFrame of spTimeline.scale) {
-                const frame = new dbft.BoneScaleFrame();
+                const frame = new dbft.DoubleValueFrame1();
                 frame._position = Math.floor(spFrame.time * result.frameRate);
                 frame.x = spFrame.x;
                 frame.y = spFrame.y;
@@ -597,7 +597,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
                 const timelines = slots[slotName];
                 for (const timelineName in timelines) {
                     const meshName = timelineName;
-                    const meshDisplay = armature.getMesh(skinName, slotName, meshName);
+                    const meshDisplay = armature.getDisplay(skinName, slotName, meshName) as dbft.MeshDisplay | null;
                     if (!meshDisplay) {
                         continue;
                     }
@@ -610,7 +610,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
 
                     iF = 0;
                     for (const spFrame of spFrames) {
-                        const frame = new dbft.DeformFrame();
+                        const frame = new dbft.MutilpleValueFrame();
                         frame._position = Math.floor(spFrame.time * result.frameRate);
                         setTweenFormSP(frame, spFrame, iF++ === spFrames.length - 1);
                         timeline.frame.push(frame);
@@ -741,7 +741,7 @@ export default function (data: Input, forPro: boolean = false): dbft.DragonBones
             animation.zOrder = new dbft.ZOrderTimeline();
 
             for (const spFrame of spAnimation.drawOrder) {
-                const frame = new dbft.ZOrderFrame();
+                const frame = new dbft.MutilpleValueFrame();
                 frame._position = Math.floor(spFrame.time * result.frameRate);
 
                 for (const v of spFrame.offsets) {

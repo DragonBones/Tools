@@ -92,6 +92,10 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
             }
             // Modify bone timelines.
             for (const timeline of animation.bone) {
+                if (timeline instanceof dbft.TypeTimeline) {
+                    continue;
+                }
+
                 const bone = armature.getBone(timeline.name);
                 if (!bone) {
                     continue;
@@ -102,9 +106,9 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                 // Bone frame to transform frame.
                 for (let i = 0, l = timeline.frame.length; i < l; ++i) {
                     const frame = timeline.frame[i];
-                    const translateFrame = new dbft.BoneTranslateFrame();
+                    const translateFrame = new dbft.DoubleValueFrame0();
                     const rotateFrame = new dbft.BoneRotateFrame();
-                    const scaleFrame = new dbft.BoneScaleFrame();
+                    const scaleFrame = new dbft.DoubleValueFrame1();
                     timeline.translateFrame.push(translateFrame);
                     timeline.rotateFrame.push(rotateFrame);
                     timeline.scaleFrame.push(scaleFrame);
@@ -196,14 +200,6 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                             position += frame.duration;
                         }
                     }
-                }
-                // Color to value.
-                for (const colorFrame of timeline.colorFrame) {
-                    if (!colorFrame.color.equal(normalColor) && colorFrame.value.equal(normalColor)) {
-                        colorFrame.value.copyFrom(colorFrame.color);
-                    }
-
-                    colorFrame.color.identity();
                 }
             }
         }

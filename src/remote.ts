@@ -6,11 +6,10 @@ import * as dbft from "./format/dragonBonesFormat";
 import * as spft from "./format/spineFormat";
 import fromSpine from "./action/fromSpine";
 import toFormat from "./action/toFormat";
-import toV45 from "./action/toV45";
 import toNew from "./action/toNew";
 import toBinary from "./action/toBinary";
 import toWeb from "./action/toWeb";
-import toSpine from "./action/toSpine";
+// import toSpine from "./action/toSpine";
 import format from "./action/formatFormat";
 
 type Input = {
@@ -148,26 +147,6 @@ gate.actions["/convert"] = (request, response) => {
                         break;
                     }
 
-                    case "v45": {
-                        toV45(dragonBonesData);
-                        format(dragonBonesData);
-
-                        if (input.compress !== false) {
-                            object.compress(dragonBonesData, dbft.compressConfig);
-                        }
-
-                        const result = JSON.stringify(dragonBonesData);
-                        toOutput.push(
-                            new Output(
-                                result,
-                                dragonBonesData.name,
-                                "_ske.json",
-                                "string"
-                            )
-                        );
-                        break;
-                    }
-
                     case "player":
                     case "viewer": {
                         toNew(dragonBonesData, true);
@@ -195,35 +174,35 @@ gate.actions["/convert"] = (request, response) => {
                     }
 
                     case "spine": {
-                        toNew(dragonBonesData, true);
-                        format(dragonBonesData);
-                        const result = toSpine(dragonBonesData, input.config, false);
+                        // toNew(dragonBonesData, true);
+                        // format(dragonBonesData);
+                        // const result = toSpine(dragonBonesData, input.config, false);
 
-                        for (const spine of result.spines) {
-                            if (input.compress !== false) {
-                                object.compress(spine, spft.compressConfig);
-                            }
+                        // for (const spine of result.spines) {
+                        //     if (input.compress !== false) {
+                        //         object.compress(spine, spft.compressConfig);
+                        //     }
 
-                            toOutput.push(
-                                new Output(
-                                    JSON.stringify(spine),
-                                    result.spines.length > 1 ? `${dragonBonesData.name}_${spine.skeleton.name}` : dragonBonesData.name,
-                                    ".json",
-                                    "string"
-                                )
-                            );
-                        }
+                        //     toOutput.push(
+                        //         new Output(
+                        //             JSON.stringify(spine),
+                        //             result.spines.length > 1 ? `${dragonBonesData.name}_${spine.skeleton.name}` : dragonBonesData.name,
+                        //             ".json",
+                        //             "string"
+                        //         )
+                        //     );
+                        // }
 
-                        if (result.textureAtlas) {
-                            toOutput.push(
-                                new Output(
-                                    result.textureAtlas,
-                                    dragonBonesData.name,
-                                    ".atlas",
-                                    "string"
-                                )
-                            );
-                        }
+                        // if (result.textureAtlas) {
+                        //     toOutput.push(
+                        //         new Output(
+                        //             result.textureAtlas,
+                        //             dragonBonesData.name,
+                        //             ".atlas",
+                        //             "string"
+                        //         )
+                        //     );
+                        // }
                         break;
                     }
 

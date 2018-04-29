@@ -317,15 +317,6 @@ export class Model implements ISerializable {
                 this.displays.push(display);
             }
         }
-
-        //sort by pose order
-        this.displays.sort((a, b) => {
-            if (a instanceof Display && b instanceof Display) {
-                return a.zOrder * 1000 + a.index > b.zOrder * 1000 + b.index ? 1 : -1;
-            }
-
-            return -1;
-        });
     }
 
     public getPart(name: string) {

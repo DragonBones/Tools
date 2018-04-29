@@ -32,6 +32,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
         textureAtlas.width = l2Texture.width;
         textureAtlas.height = l2Texture.height;
         textureAtlas.imagePath = l2Texture.file;
+        result.textureAtlas.push(textureAtlas);
 
         const subTexture = new dbft.Texture();
         subTexture.name = result.name + "_" + textureIndex.toString().padStart(2, "0");
@@ -41,15 +42,12 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
         subTexture.height = textureAtlas.height;
         textureAtlas.SubTexture.push(subTexture);
         textureIndex++;
-
-        result.textureAtlas.push(textureAtlas);
     }
-
-    // Create armatures.
+    // Create armature.
     armature = new dbft.Armature();
     armature.name = data.name;
     result.armature.push(armature);
-    // Create bones.
+    // Create root bone.
     const rootBone = new dbft.Bone();
     rootBone.name = "DST_BASE";
     rootBone.length = 150.0;
@@ -63,10 +61,27 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
     for (const l2Part of modelConfig.modelImpl.parts) {
         for (const l2Bone of l2Part.bones) {
             const l2Parent = modelConfig.modelImpl.getBone(l2Bone.parent);
-            const isSurfaceParent = l2Parent !== null && l2Parent instanceof l2ft.Surface;
+            const isSurfaceParent = l2Parent && l2Parent instanceof l2ft.Surface;
             const l2Timelines = l2Bone.animation.timelines;
 
             if (l2Bone instanceof l2ft.Bone) {
+                const bone = new dbft.Bone();
+                bone.length = 150.0;
+
+                if (l2Bone.alphaFrames) {
+                    bone.alpha = getPose(l2Timelines, l2Bone.alphaFrames, (a, b, t) => {
+                        if (b) {
+                            return a + (b - a) * t;
+                        }
+
+                        return a;
+                    });
+                }
+
+                bone.name = l2Bone.name;
+                bone.parent = l2Parent ? (l2Parent.name === rootBone.name ? "" : l2Parent.name) : "";
+                armature.bone.push(bone);
+                //
                 const poseTransform = getPose(l2Timelines, l2Bone.transformFrames, (a, b, t) => {
                     const result = new l2ft.Transform();
                     if (b) {
@@ -79,16 +94,11 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     return result;
                 });
 
-                const bone = new dbft.Bone();
-                bone.length = 150.0;
-                bone.name = l2Bone.name;
-                bone.parent = l2Parent ? (l2Parent.name === rootBone.name ? "" : l2Parent.name) : "";
-
                 if (isSurfaceParent) { // Scale and rotate.
                     bone.transform.x = (poseTransform.x - 0.5) * 400.0;
                     bone.transform.y = (poseTransform.y - 0.5) * 400.0;
 
-                    if (poseTransform.reflectX || poseTransform.reflectY) {
+                    if (poseTransform.reflectX !== poseTransform.reflectY) {
                         bone.transform.skY = poseTransform.rotate + 90.0;
                         bone.transform.skX = poseTransform.rotate + 90.0;
                     }
@@ -102,25 +112,29 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                 }
                 else if (bone.parent) { // Rotate.
                     rotateMatrixA.transformPoint(poseTransform.x, poseTransform.y, bone.transform);
-
+                    //
                     const parentTransform = (l2Parent as l2ft.Bone).transformFrames[0];
-
-                    if (poseTransform.reflectX || poseTransform.reflectY) {
-                        bone.transform.skY = poseTransform.rotate + 180.0;
-                        bone.transform.skX = poseTransform.rotate + 180.0;
-                    }
-                    else {
+                    if (parentTransform.reflectX !== parentTransform.reflectY) {
                         bone.transform.skY = poseTransform.rotate;
                         bone.transform.skX = poseTransform.rotate;
-                    }
 
-                    if (parentTransform.reflectX || parentTransform.reflectY) {
-                        bone.transform.skY = poseTransform.rotate;
-                        bone.transform.skX = poseTransform.rotate;
-                        bone.transform.scX = poseTransform.scaleX * (poseTransform.reflectX ? 1.0 : -1.0);
-                        bone.transform.scY = poseTransform.scaleY * (poseTransform.reflectY ? -1.0 : 1.0);
+                        if (poseTransform.reflectX !== poseTransform.reflectY) {
+                        }
+                        else {
+                            bone.transform.scX = poseTransform.scaleX * (parentTransform.reflectY ? -1.0 : 1.0);
+                            bone.transform.scY = poseTransform.scaleY * (parentTransform.reflectX ? -1.0 : 1.0);
+                        }
                     }
                     else {
+                        if (poseTransform.reflectX !== poseTransform.reflectY) {
+                            bone.transform.skY = poseTransform.rotate + 180.0;
+                            bone.transform.skX = poseTransform.rotate + 180.0;
+                        }
+                        else {
+                            bone.transform.skY = poseTransform.rotate;
+                            bone.transform.skX = poseTransform.rotate;
+                        }
+
                         bone.transform.scX = poseTransform.scaleX * (poseTransform.reflectX ? -1.0 : 1.0);
                         bone.transform.scY = poseTransform.scaleY * (poseTransform.reflectY ? -1.0 : 1.0);
                     }
@@ -129,7 +143,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     bone.transform.x = poseTransform.x - modelConfig.modelImpl.stageWidth * 0.5;
                     bone.transform.y = poseTransform.y - modelConfig.modelImpl.stageHeight;
 
-                    if (poseTransform.reflectX || poseTransform.reflectY) {
+                    if (poseTransform.reflectX !== poseTransform.reflectY) {
                         bone.transform.skY = poseTransform.rotate + 90.0;
                         bone.transform.skX = poseTransform.rotate + 90.0;
                     }
@@ -143,16 +157,21 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                 }
 
                 if (!bone.transform.scX) {
-                    bone.transform.scX = 0.0000001;
+                    bone.transform.scX = 0.000001;
                 }
 
                 if (!bone.transform.scY) {
-                    bone.transform.scY = 0.0000001;
+                    bone.transform.scY = 0.000001;
                 }
-
-                armature.bone.push(bone);
             }
             else if (l2Bone instanceof l2ft.Surface) {
+                const surface = new dbft.Surface();
+                surface.segmentX = l2Bone.segmentX;
+                surface.segmentY = l2Bone.segmentY;
+                surface.name = l2Bone.name;
+                surface.parent = l2Parent ? (l2Parent.name === rootBone.name ? "" : l2Parent.name) : "";
+                armature.bone.push(surface);
+                //
                 const poseVertices = getPose(l2Timelines, l2Bone.deformFrames, (a, b, t) => {
                     const result = new Array<number>();
                     if (b) {
@@ -164,12 +183,6 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
 
                     return result;
                 });
-                const surface = new dbft.Surface();
-                surface.segmentX = l2Bone.segmentX;
-                surface.segmentY = l2Bone.segmentY;
-                surface.name = l2Bone.name;
-                surface.parent = l2Parent ? (l2Parent.name === rootBone.name ? "" : l2Parent.name) : "";
-                surface.vertices.length = poseVertices.length;
 
                 for (let i = 0, l = poseVertices.length; i < l; i += 2) {
                     if (isSurfaceParent) { // Scale.
@@ -187,8 +200,6 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                         surface.vertices[i + 1] = poseVertices[i + 1] - modelConfig.modelImpl.stageHeight;
                     }
                 }
-
-                armature.bone.push(surface);
             }
         }
     }
@@ -197,6 +208,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
     // armature.localToGlobal();
     // Create slots and skins.
     defaultSkin = new dbft.Skin();
+    armature.skin.push(defaultSkin);
 
     for (const l2Display of l2Displays) {
         const l2Parent = modelConfig.modelImpl.getBone(l2Display.parent);
@@ -204,30 +216,21 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
         const l2Timelines = l2Display.animation.timelines;
 
         if (l2Display instanceof l2ft.Mesh) {
-            // const zOrder = getPose(l2Timelines, l2Display.zOrderFrames, (a, b, t) => {
-            //     return a;
-            // });
-
-            const alpha = getPose(l2Timelines, l2Display.alphaFrames, (a, b, t) => {
-                return b === null ? a : a + (b - a) * t;
-            });
-
-            const poseVertices = getPose(l2Timelines, l2Display.deformFrames, (a, b, t) => {
-                const result = new Array<number>();
-                if (b) {
-                    vertivesInterpolation(result, a, b, t);
-                }
-                else {
-                    vertivesCopyFrom(result, a);
-                }
-
-                return result;
-            });
-            // Create slots.
+            // Create slot.
             const slot = new dbft.Slot();
             slot.name = l2Display.name;
             slot.parent = l2Parent ? l2Parent.name : "";
-            // slot.color.aM = Math.min(Math.round(alpha * 100), 100); TODO
+            slot.alpha = getPose(l2Timelines, l2Display.alphaFrames, (a, b, t) => {
+                if (b) {
+                    return a + (b - a) * t;
+                }
+
+                return a;
+            });
+            slot._zOrder = getPose(l2Timelines, l2Display.zOrderFrames, (a, _b, _t) => {
+                return a;
+            }) * 100 + l2Display.index;
+            // slot.color;
             armature.slot.push(slot);
             // Create displays.
             const display = new dbft.MeshDisplay();
@@ -242,7 +245,17 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                 display.triangles.push(index);
             }
             // Vertices.
-            display.vertices.length = poseVertices.length;
+            const poseVertices = getPose(l2Timelines, l2Display.deformFrames, (a, b, t) => {
+                const result = new Array<number>();
+                if (b) {
+                    vertivesInterpolation(result, a, b, t);
+                }
+                else {
+                    vertivesCopyFrom(result, a);
+                }
+
+                return result;
+            });
 
             for (let i = 0, l = poseVertices.length; i < l; i += 2) {
                 if (isSurfaceParent) { // Scale.
@@ -259,13 +272,12 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     display.vertices[i + 1] = poseVertices[i + 1] - modelConfig.modelImpl.stageHeight;
                 }
             }
-
             // const edges = dbft.getEdgeFormTriangles(display.triangles);
             // for (const value of edges) {
             //     display.edges.push(value);
             // }
 
-            // SkinSlot.
+            // Create skinSlot.
             const skinSlot = new dbft.SkinSlot();
             skinSlot.name = l2Display.name;
             skinSlot.display.push(display);
@@ -273,7 +285,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
         }
     }
 
-    armature.skin.push(defaultSkin);
+    armature.sortSlots();
     // Create animations.
     if (modelConfig.modelImpl.animations.timelines.length > 0) {
         for (const l2Part of modelConfig.modelImpl.parts) {
@@ -288,19 +300,59 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                 const l2Parent = modelConfig.modelImpl.getBone(l2Bone.parent);
                 const isSurfaceParent = l2Parent !== null && l2Parent instanceof l2ft.Surface;
 
+                if (l2Bone.alphaFrames) {
+                    let hasAlpha = false;
+                    for (const alpha of l2Bone.alphaFrames) {
+                        if (alpha !== bone.alpha) {
+                            hasAlpha = true;
+                            break;
+                        }
+                    }
+
+                    if (hasAlpha) {
+                        createAnimation(l2Timelines, l2Bone.alphaFrames, bone, (l2Timeline, l2Frames, target, offset, blendAnimation) => {
+                            const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
+                            const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
+                            const timeline = new dbft.TypeTimeline();
+                            timeline.type = dbft.TimelineType.BoneAlpha;
+                            timeline.name = target.name;
+
+                            for (let i = 0; i < l2Timeline.frameCount; ++i) {
+                                const progress = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue;
+                                const l2Frame = l2Frames[offset + i];
+                                const frame = new dbft.SingleValueFrame1();
+                                frame._position = Math.floor(progress * blendAnimation.duration);
+                                frame.tweenEasing = i === l2Timeline.frameCount - 1 ? NaN : 0.0;
+                                frame.value = l2Frame;
+                                timeline.frame.push(frame);
+                            }
+
+                            dbft.modifyFramesByPosition(timeline.frame);
+                            blendAnimation.timeline.push(timeline);
+                        });
+                    }
+                }
+
                 if (l2Bone instanceof l2ft.Bone) {
                     createAnimation(l2Timelines, l2Bone.transformFrames, bone, (l2Timeline, l2Frames, target, offset, blendAnimation) => {
                         const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
                         const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
-                        const timeline = new dbft.BoneTimeline();
-                        timeline.name = target.name;
+                        const translateTimeline = new dbft.TypeTimeline();
+                        const rotateTimeline = new dbft.TypeTimeline();
+                        const scaleTimeline = new dbft.TypeTimeline();
+                        translateTimeline.type = dbft.TimelineType.BoneTranslate;
+                        rotateTimeline.type = dbft.TimelineType.BoneRotate;
+                        scaleTimeline.type = dbft.TimelineType.BoneScale;
+                        translateTimeline.name = target.name;
+                        rotateTimeline.name = target.name;
+                        scaleTimeline.name = target.name;
 
                         for (let i = 0; i < l2Timeline.frameCount; ++i) {
                             const progress = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue;
                             const l2Frame = l2Frames[offset + i];
-                            const translateFrame = new dbft.BoneTranslateFrame();
-                            const rotateFrame = new dbft.BoneRotateFrame();
-                            const scaleFrame = new dbft.BoneScaleFrame();
+                            const translateFrame = new dbft.DoubleValueFrame0();
+                            const rotateFrame = new dbft.DoubleValueFrame0();
+                            const scaleFrame = new dbft.DoubleValueFrame1();
                             let x = 0.0;
                             let y = 0.0;
 
@@ -321,22 +373,22 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                                     translateFrame.x = x - target.transform.x;
                                     translateFrame.y = y - target.transform.y;
 
-                                    if (l2Frame.reflectX || l2Frame.reflectY) {
-                                        rotateFrame.rotate = l2Frame.rotate + 90.0 - target.transform.skY;
+                                    if (l2Frame.reflectX !== l2Frame.reflectY) {
+                                        rotateFrame.x = l2Frame.rotate + 90.0 - target.transform.skY;
                                     }
                                     else {
-                                        rotateFrame.rotate = l2Frame.rotate - 90.0 - target.transform.skY;
+                                        rotateFrame.x = l2Frame.rotate - 90.0 - target.transform.skY;
                                     }
                                 }
                                 else {
                                     translateFrame.x = x - target.transform.x - modelConfig.modelImpl.stageWidth * 0.5;
                                     translateFrame.y = y - target.transform.y - modelConfig.modelImpl.stageHeight;
 
-                                    if (l2Frame.reflectX || l2Frame.reflectY) {
-                                        rotateFrame.rotate = l2Frame.rotate + 90.0 - target.transform.skY;
+                                    if (l2Frame.reflectX !== l2Frame.reflectY) {
+                                        rotateFrame.x = l2Frame.rotate + 90.0 - target.transform.skY;
                                     }
                                     else {
-                                        rotateFrame.rotate = l2Frame.rotate - 90.0 - target.transform.skY;
+                                        rotateFrame.x = l2Frame.rotate - 90.0 - target.transform.skY;
                                     }
                                 }
 
@@ -347,50 +399,57 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                                 rotateMatrixA.transformPoint(x, y, translateFrame);
                                 translateFrame.x -= target.transform.x;
                                 translateFrame.y -= target.transform.y;
-
+                                //
                                 const parentTransform = (l2Parent as l2ft.Bone).transformFrames[0];
+                                if (parentTransform.reflectX !== parentTransform.reflectY) {
+                                    rotateFrame.x = l2Frame.rotate - target.transform.skY;
 
-                                if (l2Frame.reflectX || l2Frame.reflectY) {
-                                    rotateFrame.rotate = l2Frame.rotate + 180 - target.transform.skY;
+                                    if (l2Frame.reflectX !== l2Frame.reflectY) {
+                                    }
+                                    else {
+                                        scaleFrame.x = l2Frame.scaleX * (parentTransform.reflectY ? -1.0 : 1.0) / target.transform.scX;
+                                        scaleFrame.y = l2Frame.scaleY * (parentTransform.reflectX ? -1.0 : 1.0) / target.transform.scY;
+                                    }
                                 }
                                 else {
-                                    rotateFrame.rotate = l2Frame.rotate - target.transform.skY;
-                                }
+                                    if (l2Frame.reflectX !== l2Frame.reflectY) {
+                                        rotateFrame.x = l2Frame.rotate + 180 - target.transform.skY;
+                                    }
+                                    else {
+                                        rotateFrame.x = l2Frame.rotate - target.transform.skY;
+                                    }
 
-                                if (parentTransform.reflectX || parentTransform.reflectY) {
-                                    rotateFrame.rotate = l2Frame.rotate - target.transform.skY;
-                                    scaleFrame.x = l2Frame.scaleX * (l2Frame.reflectX ? 1.0 : -1.0) / target.transform.scX;
-                                    scaleFrame.y = l2Frame.scaleY * (l2Frame.reflectY ? -1.0 : 1.0) / target.transform.scY;
-                                }
-                                else {
                                     scaleFrame.x = l2Frame.scaleX * (l2Frame.reflectX ? -1.0 : 1.0) / target.transform.scX;
                                     scaleFrame.y = l2Frame.scaleY * (l2Frame.reflectY ? -1.0 : 1.0) / target.transform.scY;
                                 }
                             }
 
-                            timeline.translateFrame.push(translateFrame);
-                            timeline.rotateFrame.push(rotateFrame);
-                            timeline.scaleFrame.push(scaleFrame);
+                            translateTimeline.frame.push(translateFrame);
+                            rotateTimeline.frame.push(rotateFrame);
+                            scaleTimeline.frame.push(scaleFrame);
                         }
 
-                        modifyFrames(timeline.translateFrame);
-                        modifyFrames(timeline.rotateFrame);
-                        modifyFrames(timeline.scaleFrame);
-                        blendAnimation.bone.push(timeline);
+                        dbft.modifyFramesByPosition(translateTimeline.frame);
+                        dbft.modifyFramesByPosition(rotateTimeline.frame);
+                        dbft.modifyFramesByPosition(scaleTimeline.frame);
+                        blendAnimation.timeline.push(translateTimeline);
+                        blendAnimation.timeline.push(rotateTimeline);
+                        blendAnimation.timeline.push(scaleTimeline);
                     });
                 }
                 else if (l2Bone instanceof l2ft.Surface) {
-                    createAnimation(l2Timelines, l2Bone.deformFrames, bone as dbft.Surface, (l2Timeline, l2Frames, target, offset, parentAnimation) => {
+                    createAnimation(l2Timelines, l2Bone.deformFrames, bone as dbft.Surface, (l2Timeline, l2Frames, target, offset, blendAnimation) => {
                         const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
                         const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
-                        const timeline = new dbft.DeformTimeline();
+                        const timeline = new dbft.TypeTimeline();
+                        timeline.type = dbft.TimelineType.Surface;
                         timeline.name = target.name;
 
                         for (let i = 0; i < l2Timeline.frameCount; ++i) {
                             const progress = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue;
                             const l2Frame = l2Frames[offset + i];
-                            const frame = new dbft.DeformFrame();
-                            frame._position = Math.floor(progress * parentAnimation.duration);
+                            const frame = new dbft.MutilpleValueFrame();
+                            frame._position = Math.floor(progress * blendAnimation.duration);
                             frame.tweenEasing = i === l2Timeline.frameCount - 1 ? NaN : 0.0;
                             createDeformFrame(
                                 frame,
@@ -402,8 +461,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                             timeline.frame.push(frame);
                         }
 
-                        modifyFrames(timeline.frame);
-                        parentAnimation.surface.push(timeline);
+                        dbft.modifyFramesByPosition(timeline.frame);
+                        blendAnimation.timeline.push(timeline);
                     });
                 }
             }
@@ -419,43 +478,87 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                 const isSurfaceParent = l2Parent !== null && l2Parent instanceof l2ft.Surface;
 
                 if (l2Display instanceof l2ft.Mesh) {
-                    const meshDisplay = armature.getMesh(defaultSkin.name, l2Display.name, l2Display.name);
+                    const meshDisplay = armature.getDisplay(defaultSkin.name, l2Display.name, l2Display.name) as dbft.MeshDisplay | null;
                     if (!meshDisplay) {
                         continue;
                     }
-                    //
-                    // createAnimation(l2Timelines, l2Display.alphaFrames, meshDisplay, (l2Timeline, l2Frames, target, offset, parentAnimation) => {
-                    //     const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
-                    //     const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
-                    //     const timeline = new dbft.SlotTimeline();
-                    //     timeline.name = target.name;
 
-                    //     for (let i = 0; i < l2Timeline.frameCount; ++i) {
-                    //         const progress = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue;
-                    //         const l2Frame = l2Frames[offset + i];
-                    //         const frame = new dbft.SlotColorFrame();
-                    //         frame._position = Math.floor(progress * parentAnimation.duration);
-                    //         frame.tweenEasing = i === l2Timeline.frameCount - 1 ? NaN : 0.0;
-                    //         frame.color.aM = Math.min(Math.round(l2Frame * 100), 100);
-                    //         timeline.colorFrame.push(frame);
-                    //     }
+                    let hasZOrder = false;
+                    let prevZorder = NaN;
+                    for (const zOrder of l2Display.zOrderFrames) {
+                        if (prevZorder === prevZorder && zOrder !== prevZorder) {
+                            hasZOrder = true;
+                            break;
+                        }
 
-                    //     modifyFrames(timeline.frame);
-                    //     parentAnimation.slot.push(timeline);
-                    // });
+                        prevZorder = zOrder;
+                    }
+
+                    if (hasZOrder) {
+                        createAnimation(l2Timelines, l2Display.zOrderFrames, meshDisplay, (l2Timeline, l2Frames, target, offset, blendAnimation) => {
+                            const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
+                            const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
+                            const timeline = new dbft.TypeTimeline();
+                            timeline.type = dbft.TimelineType.SlotZIndex;
+                            timeline.name = target.name;
+
+                            for (let i = 0; i < l2Timeline.frameCount; ++i) {
+                                const progress = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue;
+                                const l2Frame = l2Frames[offset + i];
+                                const frame = new dbft.SingleValueFrame0();
+                                frame._position = Math.floor(progress * blendAnimation.duration);
+                                frame.value = l2Frame;
+                                timeline.frame.push(frame);
+                            }
+
+                            dbft.modifyFramesByPosition(timeline.frame);
+                            blendAnimation.timeline.push(timeline);
+                        });
+                    }
+
+                    let hasAlpha = false;
+                    for (const alpha of l2Display.alphaFrames) {
+                        if (alpha !== slot.alpha) {
+                            hasAlpha = true;
+                            break;
+                        }
+                    }
+
+                    if (hasAlpha) {
+                        createAnimation(l2Timelines, l2Display.alphaFrames, meshDisplay, (l2Timeline, l2Frames, target, offset, blendAnimation) => {
+                            const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
+                            const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
+                            const timeline = new dbft.TypeTimeline();
+                            timeline.type = dbft.TimelineType.SlotAlpha;
+                            timeline.name = target.name;
+
+                            for (let i = 0; i < l2Timeline.frameCount; ++i) {
+                                const progress = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue;
+                                const l2Frame = l2Frames[offset + i];
+                                const frame = new dbft.SingleValueFrame1();
+                                frame._position = Math.floor(progress * blendAnimation.duration);
+                                frame.tweenEasing = i === l2Timeline.frameCount - 1 ? NaN : 0.0;
+                                frame.value = l2Frame;
+                                timeline.frame.push(frame);
+                            }
+
+                            dbft.modifyFramesByPosition(timeline.frame);
+                            blendAnimation.timeline.push(timeline);
+                        });
+                    }
                     //
-                    createAnimation(l2Timelines, l2Display.deformFrames, meshDisplay, (l2Timeline, l2Frames, target, offset, parentAnimation) => {
+                    createAnimation(l2Timelines, l2Display.deformFrames, meshDisplay, (l2Timeline, l2Frames, target, offset, blendAnimation) => {
                         const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
                         const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
-                        const timeline = new dbft.SlotDeformTimeline();
+                        const timeline = new dbft.TypeTimeline();
+                        timeline.type = dbft.TimelineType.SlotDeform;
                         timeline.name = target.name;
-                        timeline.slot = target.name;
 
                         for (let i = 0; i < l2Timeline.frameCount; ++i) {
                             const progress = (l2Timeline.frames[i] - l2TimelineInfo.minimum) / totalValue;
                             const l2Frame = l2Frames[offset + i];
-                            const frame = new dbft.DeformFrame();
-                            frame._position = Math.floor(progress * parentAnimation.duration);
+                            const frame = new dbft.MutilpleValueFrame();
+                            frame._position = Math.floor(progress * blendAnimation.duration);
                             frame.tweenEasing = i === l2Timeline.frameCount - 1 ? NaN : 0.0;
                             createDeformFrame(
                                 frame,
@@ -467,8 +570,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                             timeline.frame.push(frame);
                         }
 
-                        modifyFrames(timeline.frame);
-                        parentAnimation.ffd.push(timeline);
+                        dbft.modifyFramesByPosition(timeline.frame);
+                        blendAnimation.timeline.push(timeline);
                     });
                 }
             }
@@ -498,15 +601,20 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                         continue;
                     }
 
+                    if (!armature.getAnimation(timelineName)) {
+                        continue;
+                    }
+
                     let duration = 0;
                     const values = motionConfig.motion.values[timelineName];
-                    const timeline = new dbft.AnimationTimeline();
-                    let prevFrame: dbft.FloatFrame | null = null;
+                    const timeline = new dbft.TypeTimeline();
+                    let prevFrame: dbft.SingleValueFrame0 | null = null;
+                    timeline.type = dbft.TimelineType.AnimationProgress;
                     timeline.name = timelineName;
 
                     for (let i = 0, l = values.length; i < l; ++i) {
                         const value = values[i];
-                        const frame = new dbft.FloatFrame();
+                        const frame = new dbft.SingleValueFrame0();
 
                         if (i !== l - 1) {
                             frame.tweenEasing = 0;
@@ -514,9 +622,9 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                         }
 
                         frame.value = (value - l2TimelineInfo.minimum) / (l2TimelineInfo.maximum - l2TimelineInfo.minimum);
-                        timeline.progressFrame.push(frame);
+                        timeline.frame.push(frame);
 
-                        if (prevFrame && prevFrame.value - frame.value > 0.30) { //
+                        if (prevFrame && Math.abs(prevFrame.value - frame.value) > 0.4) { //
                             prevFrame.tweenEasing = NaN;
                         }
 
@@ -524,7 +632,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     }
 
                     animation.duration = Math.max(duration, animation.duration);
-                    animation.animation.push(timeline);
+                    animation.timeline.push(timeline);
                 }
 
                 for (const timelineName in motionConfig.motion.alphas) {
@@ -538,7 +646,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
 
                     for (const l2Display of part.displays) {
                         if (l2Display instanceof l2ft.Mesh) {
-                            const timeline = new dbft.SlotTimeline();
+                            const timeline = new dbft.TypeTimeline();
+                            timeline.type = dbft.TimelineType.SlotColor;
                             timeline.name = l2Display.name;
 
                             for (let i = 0, l = alphas.length; i < l; ++i) {
@@ -550,11 +659,11 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                                     duration += frame.duration;
                                 }
 
-                                frame.value.aM = Math.min(Math.round(alpha * 100), 100);
-                                timeline.colorFrame.push(frame);
+                                frame.value.aM = alpha;
+                                timeline.frame.push(frame);
                             }
 
-                            animation.slot.push(timeline);
+                            animation.timeline.push(timeline);
                         }
                     }
 
@@ -567,7 +676,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
         }
     }
 
-    if (modelConfig.expressions) {
+    if (modelConfig.expressions) { // Create expression animations.
         for (const expressionConfig of modelConfig.expressions) {
             const expression = expressionConfig.expression;
             if (!expression || !expression.params || expression.params.length === 0) {
@@ -586,19 +695,20 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     continue;
                 }
 
-                const timeline = new dbft.AnimationTimeline();
+                const timeline = new dbft.TypeTimeline();
+                timeline.type = dbft.TimelineType.AnimationProgress;
                 timeline.name = l2TimelineInfo.name;
-
-                const frame = new dbft.FloatFrame();
+                //
+                const frame = new dbft.SingleValueFrame0();
                 frame.value = (timelineConfig.val - l2TimelineInfo.minimum) / (l2TimelineInfo.maximum - l2TimelineInfo.minimum);
-                timeline.progressFrame.push(frame);
+                timeline.frame.push(frame);
 
                 if (timelineConfig.def) {
                     // TODO
                 }
 
                 animation.duration = 0;
-                animation.animation.push(timeline);
+                animation.timeline.push(timeline);
             }
 
             armature.animation.unshift(animation);
@@ -655,10 +765,8 @@ function getPose<T>(
                     );
                 }
 
-                index = offset + index * count;
-
                 return action(
-                    getPose(l2Timelines, frames, action, level - 1, index - 1), getPose(l2Timelines, frames, action, level - 1, index),
+                    getPose(l2Timelines, frames, action, level - 1, offset + (index - 1) * count), getPose(l2Timelines, frames, action, level - 1, offset + index * count),
                     progress
                 );
             }
@@ -671,9 +779,9 @@ function getPose<T>(
             return frames[offset + index];
         }
 
-        index = offset + count;
+        offset += index * count;
 
-        return getPose(l2Timelines, frames, action, level - 1, index);
+        return getPose(l2Timelines, frames, action, level - 1, offset);
     }
 }
 
@@ -685,7 +793,12 @@ function createAnimation<F, T extends { name: string }>(
     const level = l2Timelines.length - indices.length;
     const index = indices[indices.length - 1];
     const l2Timeline = l2Timelines[level];
+    let blendName = target.name;
     let animation = armature.getAnimation(l2Timeline.name) as dbft.Animation | null;
+
+    if (l2Timelines.length > 2) {
+        console.log(blendName);
+    }
 
     if (!animation) {
         animation = new dbft.Animation();
@@ -700,28 +813,23 @@ function createAnimation<F, T extends { name: string }>(
         action(l2Timeline, frames, target, 0, animation);
         return;
     }
-
-    const blendAnimation = new dbft.Animation();
-    blendAnimation.playTimes = 0;
-    blendAnimation.duration = animation.duration;
-    blendAnimation.type = dbft.AnimationType.Node;
-    blendAnimation.blendType = dbft.AnimationBlendType.E1D;
-    armature.animation.push(blendAnimation);
-    //
-    const blendTimeline = new dbft.AnimationTimeline();
-    const frameBegin = new dbft.FloatFrame();
-    const frameEnd = new dbft.FloatFrame();
-    frameBegin._position = 0;
-    frameBegin.value = 0.0;
-    frameBegin.tweenEasing = 0.0;
-    frameEnd._position = animation.duration;
-    frameEnd.value = 1.0;
-    blendTimeline.progressFrame.push(frameBegin, frameEnd);
-    modifyFrames(blendTimeline.progressFrame);
+    else if (level === 0 && !animation.getAnimationTimeline(blendName, dbft.TimelineType.AnimationProgress)) {
+        const blendTimeline = new dbft.TypeTimeline();
+        const frameBegin = new dbft.SingleValueFrame0();
+        const frameEnd = new dbft.SingleValueFrame0();
+        frameBegin._position = 0;
+        frameBegin.value = 0.0;
+        frameBegin.tweenEasing = 0.0;
+        frameEnd._position = animation.duration;
+        frameEnd.value = 1.0;
+        blendTimeline.type = dbft.TimelineType.AnimationProgress;
+        blendTimeline.name = blendName;
+        blendTimeline.frame.push(frameBegin, frameEnd);
+        dbft.modifyFramesByPosition(blendTimeline.frame);
+        animation.timeline.push(blendTimeline);
+    }
 
     if (parentAnimation) {
-        let blendName = target.name;
-
         let i = 0;
         for (const value of indices) {
             if (i > 0) {
@@ -730,31 +838,52 @@ function createAnimation<F, T extends { name: string }>(
 
             i++;
         }
-
-        blendTimeline.name = blendAnimation.name = blendName;
         //
         const parentL2Timleine = l2Timelines[level + 1];
         const parentL2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(parentL2Timleine.name) as l2ft.TimelineInfo;
         const totalValue = parentL2TimelineInfo.maximum - parentL2TimelineInfo.minimum;
         const childTimeline = new dbft.AnimationTimeline();
-        const frameBegin = new dbft.BoneTranslateFrame();
-        const frameEnd = new dbft.BoneTranslateFrame();
+        const frameBegin = new dbft.SingleValueFrame0();
+        const frameEnd = new dbft.SingleValueFrame0();
+        childTimeline.type = dbft.TimelineType.AnimationProgress;
         childTimeline.x = (parentL2Timleine.frames[index] - parentL2TimelineInfo.minimum) / totalValue * 2.0 - 1.0;
-        childTimeline.name = blendAnimation.name;
+        childTimeline.name = blendName;
         frameBegin._position = 0;
-        frameBegin.x = -1.0;
+        frameBegin.value = 0;
         frameBegin.tweenEasing = 0.0;
         frameEnd._position = parentAnimation.duration;
-        frameEnd.x = 1.0;
-        childTimeline.parameterFrame.push(frameBegin, frameEnd);
-        modifyFrames(childTimeline.parameterFrame);
-        parentAnimation.animation.push(childTimeline);
-    }
-    else {
-        blendTimeline.name = blendAnimation.name = target.name + "_A";
+        frameEnd.value = 1.0;
+        childTimeline.frame.push(frameBegin, frameEnd);
+        dbft.modifyFramesByPosition(childTimeline.frame);
+        parentAnimation.timeline.push(childTimeline);
     }
 
-    animation.animation.push(blendTimeline);
+    let blendAnimation = armature.getAnimation(blendName) as dbft.Animation | null;
+    if (!blendAnimation) {
+        blendAnimation = new dbft.Animation();
+        blendAnimation.playTimes = 0;
+        blendAnimation.duration = animation.duration;
+        blendAnimation.type = dbft.AnimationType.Node;
+        blendAnimation.blendType = level !== 0 ? dbft.AnimationBlendType.E1D : dbft.AnimationBlendType.None;
+        blendAnimation.name = blendName;
+        armature.animation.push(blendAnimation);
+
+        if (level !== 0) {
+            const blendTimeline = new dbft.TypeTimeline();
+            const frameBegin = new dbft.DoubleValueFrame0();
+            const frameEnd = new dbft.DoubleValueFrame0();
+            frameBegin._position = 0;
+            frameBegin.x = -1.0;
+            frameBegin.tweenEasing = 0.0;
+            frameEnd._position = animation.duration;
+            frameEnd.x = 1.0;
+            blendTimeline.type = dbft.TimelineType.AnimationParameter;
+            blendTimeline.name = blendAnimation.name;
+            blendTimeline.frame.push(frameBegin, frameEnd);
+            dbft.modifyFramesByPosition(blendTimeline.frame);
+            animation.timeline.push(blendTimeline);
+        }
+    }
 
     if (level === 0) {
         let offset = 0;
@@ -783,7 +912,7 @@ function createAnimation<F, T extends { name: string }>(
 }
 
 function createDeformFrame(
-    deformFrame: dbft.DeformFrame,
+    deformFrame: dbft.MutilpleValueFrame,
     l2DeformFrame: number[],
     pose: number[],
     isSurfaceParent: boolean,
@@ -791,39 +920,17 @@ function createDeformFrame(
 ): void {
     for (let j = 0, lJ = l2DeformFrame.length; j < lJ; j += 2) {
         if (isSurfaceParent) { // Scale.
-            deformFrame.vertices[j] = (l2DeformFrame[j] - 0.5) * 400.0 - pose[j];
-            deformFrame.vertices[j + 1] = (l2DeformFrame[j + 1] - 0.5) * 400.0 - pose[j + 1];
+            deformFrame.value[j] = (l2DeformFrame[j] - 0.5) * 400.0 - pose[j];
+            deformFrame.value[j + 1] = (l2DeformFrame[j + 1] - 0.5) * 400.0 - pose[j + 1];
         }
         else if (isRotatedParent) { // Rotate.
             rotateMatrixA.transformPoint(l2DeformFrame[j], l2DeformFrame[j + 1], geom.helpPointA);
-            deformFrame.vertices[j] = geom.helpPointA.x - pose[j];
-            deformFrame.vertices[j + 1] = geom.helpPointA.y - pose[j + 1];
+            deformFrame.value[j] = geom.helpPointA.x - pose[j];
+            deformFrame.value[j + 1] = geom.helpPointA.y - pose[j + 1];
         }
         else { // Offset.
-            deformFrame.vertices[j] = l2DeformFrame[j] - pose[j] - modelConfig.modelImpl.stageWidth * 0.5;
-            deformFrame.vertices[j + 1] = l2DeformFrame[j + 1] - pose[j + 1] - modelConfig.modelImpl.stageHeight;
-        }
-    }
-}
-
-function modifyFrames(frames: dbft.Frame[]): void {
-    if (frames.length === 0) {
-        return;
-    }
-
-    if (frames[0]._position !== 0) {
-        const frame = new (frames[0] as any).constructor() as dbft.Frame;
-        if (frame instanceof dbft.TweenFrame) {
-            frame.tweenEasing = 0.0;
-        }
-
-        frames.unshift(frame);
-    }
-
-    for (let i = 0, l = frames.length; i < l; ++i) {
-        const frame = frames[i];
-        if (i < l - 1) {
-            frame.duration = frames[i + 1]._position - frame._position;
+            deformFrame.value[j] = l2DeformFrame[j] - pose[j] - modelConfig.modelImpl.stageWidth * 0.5;
+            deformFrame.value[j + 1] = l2DeformFrame[j + 1] - pose[j + 1] - modelConfig.modelImpl.stageHeight;
         }
     }
 }

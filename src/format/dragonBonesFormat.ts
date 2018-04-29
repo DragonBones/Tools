@@ -1,5 +1,5 @@
 import * as utils from "../common/utils";
-import { normalizeDegree, Transform, ColorTransform, Point, Rectangle, helpMatrixA, helpMatrixB, helpPointA } from "./geom";
+import { normalizeDegree, Transform, ColorTransform, Point, Rectangle, helpMatrixA, helpMatrixB, helpPointA, Matrix } from "./geom";
 import * as dbftV23 from "./dragonBonesFormatV23";
 /**
  * DragonBones format.
@@ -19,7 +19,7 @@ export const DATA_VERSIONS: Array<string> = [
     DATA_VERSION_4_5,
     DATA_VERSION_5_0,
     DATA_VERSION_5_5,
-    DATA_VERSION_5_6
+    DATA_VERSION_5_6,
 ];
 
 export enum OffsetOrder {
@@ -129,12 +129,15 @@ export enum TimelineType {
     BoneTranslate = 11,
     BoneRotate = 12,
     BoneScale = 13,
+    BoneAlpha = 19,
 
     Surface = 50,
 
     SlotDisplay = 20,
     SlotColor = 21,
-    MeshDeform = 22,
+    SlotDeform = 22,
+    SlotZIndex = 23,
+    SlotAlpha = 24,
 
     IKConstraint = 30,
 
@@ -164,12 +167,16 @@ export interface VerticesData {
     readonly bones: number[];
 }
 
-export function isDragonBonesString(string: string): boolean {
+export function isDragonBonesString(string: string) {
     const testString = string.substr(0, Math.min(200, string.length));
     return testString.indexOf("armature") > 0 || testString.indexOf("textureAtlas") > 0;
 }
 
-export function getCurvePoint(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, t: number, result: Point): void {
+export function getCurvePoint(
+    x1: number, y1: number, x2: number, y2: number,
+    x3: number, y3: number, x4: number, y4: number,
+    t: number, result: Point
+) {
     const l_t = 1 - t;
     const powA = l_t * l_t;
     const powB = t * t;
@@ -182,7 +189,7 @@ export function getCurvePoint(x1: number, y1: number, x2: number, y2: number, x3
     result.y = kA * y1 + kB * y2 + kC * y3 + kD * y4;
 }
 
-export function getCurveEasingValue(t: number, curve: number[]): number {
+export function getCurveEasingValue(t: number, curve: number[]) {
     const curveCount = curve.length;
 
     if (curveCount % 3 === 1) {
@@ -250,7 +257,7 @@ export function getCurveEasingValue(t: number, curve: number[]): number {
     }
 }
 
-export function samplingEasingCurve(curve: Array<number>, samples: Array<number>, isOmited: boolean): void {
+export function samplingEasingCurve(curve: Array<number>, samples: Array<number>, isOmited: boolean) {
     const curveCount = curve.length;
     if (isOmited) { // The beginning and end vertices are omitted. (0.0, 0.0, ..., 1.0, 1.0)
         let stepIndex = -2;
@@ -332,7 +339,7 @@ export function samplingEasingCurve(curve: Array<number>, samples: Array<number>
     }
 }
 
-export function getEasingValue(tweenType: TweenType, progress: number, easing: number): number {
+export function getEasingValue(tweenType: TweenType, progress: number, easing: number) {
     let value = progress;
 
     switch (tweenType) {
@@ -352,7 +359,7 @@ export function getEasingValue(tweenType: TweenType, progress: number, easing: n
     return (value - progress) * easing + progress;
 }
 
-export function getEdgeFormTriangles(triangles: number[]): number[] {
+export function getEdgeFormTriangles(triangles: number[]) {
     const edges: number[][] = [];
     const lines: { [k: string]: [number, number] | null } = {};
     const addLine = (a: number, b: number): void => {
@@ -379,7 +386,7 @@ export function getEdgeFormTriangles(triangles: number[]): number[] {
 
     for (let k in lines) {
         const line = lines[k];
-        if (line !== null) {
+        if (line) {
             edges.push(line);
         }
     }
@@ -406,7 +413,7 @@ export function getEdgeFormTriangles(triangles: number[]): number[] {
     return result;
 }
 
-export function getFrameByPosition<T extends Frame>(frames: T[], position: number): T {
+export function getFrameByPosition<T extends Frame>(frames: T[], position: number) {
     let index = 0;
     let currentPosition = 0;
 
@@ -436,10 +443,10 @@ export function getFrameByPosition<T extends Frame>(frames: T[], position: numbe
     return frames[0];
 }
 
-export function getTextureFormTextureAtlases(name: string, textureAtlases: TextureAtlas[]): Texture | null {
+export function getTextureFormTextureAtlases(name: string, textureAtlases: TextureAtlas[]) {
     for (const textureAtlas of textureAtlases) {
         const texture = textureAtlas.getTexture(name);
-        if (texture !== null) {
+        if (texture) {
             return texture;
         }
     }
@@ -447,10 +454,11 @@ export function getTextureFormTextureAtlases(name: string, textureAtlases: Textu
     return null;
 }
 
-export function oldActionToNewAction(oldAction: OldAction): Action {
+export function oldActionToNewAction(oldAction: OldAction) {
     const newAction = new Action();
     newAction.type = ActionType.Play;
     newAction.name = oldAction.gotoAndPlay;
+
     return newAction;
 }
 
@@ -458,7 +466,7 @@ export function mergeActionToAnimation(
     animation: Animation, frame: dbftV23.AllFrame | BoneAllFrame | SlotAllFrame | SlotDisplayFrame, framePosition: number,
     bone: Bone | null, slot: Slot | null,
     forRuntime: boolean
-): void {
+) {
     const frames = animation.frame;
     const boneName = bone ? bone.name : "";
     const slotName = slot ? slot.name : "";
@@ -478,7 +486,7 @@ export function mergeActionToAnimation(
             insertFrame = eachFrame;
             break;
         }
-        else if (framePosition < position && prevFrame !== null) {
+        else if (framePosition < position && prevFrame) {
             prevFrame.duration = framePosition - (position - prevFrame.duration);
             insertFrame = new ActionFrame();
             insertFrame.duration = position - framePosition;
@@ -491,14 +499,14 @@ export function mergeActionToAnimation(
         frameIndex++;
     }
 
-    if (insertFrame === null && prevFrame !== null) {
+    if (!insertFrame && prevFrame) {
         prevFrame.duration = framePosition;
         insertFrame = new ActionFrame();
         insertFrame.duration = position - framePosition;
         frames.splice(frameIndex, 0, insertFrame);
     }
 
-    if (insertFrame !== null) {
+    if (insertFrame) {
         if (frame instanceof dbftV23.AllFrame || frame instanceof BoneAllFrame) {
             if (frame.event) {
                 const action = new Action();
@@ -554,10 +562,35 @@ export function mergeActionToAnimation(
     }
 }
 
+export function modifyFramesByPosition(frames: Frame[]): void {
+    if (frames.length === 0) {
+        return;
+    }
+
+    if (frames[0]._position !== 0) {
+        const frame = new (frames[0] as any).constructor() as Frame;
+        frame.copy(frames[0]);
+        frame._position = 0;
+
+        if (frame instanceof TweenFrame) {
+            frame.tweenEasing = 0.0;
+        }
+
+        frames.unshift(frame);
+    }
+
+    for (let i = 0, l = frames.length; i < l; ++i) {
+        const frame = frames[i];
+        if (i < l - 1) {
+            frame.duration = frames[i + 1]._position - frame._position;
+        }
+    }
+}
+
 export abstract class BaseData {
     extra: Map<any> | null = null;
 
-    clearToBinary(): void { }
+    clearToBinary() { }
 }
 
 export class DragonBones extends BaseData {
@@ -615,7 +648,7 @@ export class Armature extends BaseData {
     canvas: Canvas | null = null;
     userData: UserData | null = null;
 
-    sortBones(): void {
+    sortBones() {
         const total = this.bone.length;
         if (total <= 0) {
             return;
@@ -649,7 +682,11 @@ export class Armature extends BaseData {
         }
     }
 
-    getBone(name: string): Bone | null {
+    sortSlots() {
+        this.slot.sort((a, b) => a._zOrder > b._zOrder ? 1 : -1);
+    }
+
+    getBone(name: string) {
         for (const bone of this.bone) {
             if (bone.name === name) {
                 return bone;
@@ -659,7 +696,7 @@ export class Armature extends BaseData {
         return null;
     }
 
-    getSlot(name: string): Slot | null {
+    getSlot(name: string) {
         for (const slot of this.slot) {
             if (slot.name === name) {
                 return slot;
@@ -669,7 +706,7 @@ export class Armature extends BaseData {
         return null;
     }
 
-    getSkin(name: string): Skin | null {
+    getSkin(name: string) {
         for (const skin of this.skin) {
             if (skin.name === name) {
                 return skin;
@@ -679,19 +716,34 @@ export class Armature extends BaseData {
         return null;
     }
 
-    getMesh(skinName: string, slotName: string, displayName: string): MeshDisplay | null {
+    getDisplay(skinName: string, slotName: string, displayName: string) {
         const skin = this.getSkin(skinName);
         if (skin) {
             const slot = skin.getSlot(slotName);
             if (slot) {
-                return slot.getDisplay(displayName) as MeshDisplay;
+                return slot.getDisplay(displayName);
+            }
+        }
+
+        for (const skin of this.skin) {
+            const slot = skin.getSlot(slotName);
+            if (slot) {
+                return slot.getDisplay(displayName);
+            }
+
+            for (const slot of skin.slot) {
+                for (const display of slot.display) {
+                    if (display && display.name === displayName) {
+                        return display;
+                    }
+                }
             }
         }
 
         return null;
     }
 
-    getAnimation(animationName: string): Animation | AnimationBinary | null {
+    getAnimation(animationName: string) {
         for (const animation of this.animation) {
             if (animation.name === animationName) {
                 return animation;
@@ -701,7 +753,7 @@ export class Armature extends BaseData {
         return null;
     }
 
-    localToGlobal(): void {
+    localToGlobal() {
         for (const bone of this.bone) {
             if (!bone._global) {
                 bone._global = new Transform();
@@ -763,6 +815,7 @@ export class Bone extends BaseData {
     inheritScale: boolean = true;
     inheritReflection: boolean = true;
     length: number = 0.0;
+    alpha: number = 1.0;
     name: string = "";
     parent: string = "";
     readonly transform: Transform = new Transform();
@@ -788,11 +841,11 @@ export class Surface extends Bone implements VerticesData {
         }
     }
 
-    clearToBinary(): void {
+    clearToBinary() {
         this.vertices.length = 0;
     }
 
-    get vertexCount(): number {
+    get vertexCount() {
         return (this.segmentX + 1) * (this.segmentY + 1);
     }
 }
@@ -800,6 +853,7 @@ export class Surface extends Bone implements VerticesData {
 export class Slot extends BaseData {
     blendMode: BlendMode | string = BlendMode[BlendMode.Normal].toLowerCase();
     displayIndex: number = 0;
+    alpha: number = 1.0;
     name: string = "";
     parent: string = "";
     readonly color: ColorTransform = new ColorTransform();
@@ -839,7 +893,7 @@ export class Skin extends BaseData {
     readonly slot: SkinSlot[] = [];
     userData: UserData | null = null;
 
-    getSlot(name: string): SkinSlot | null {
+    getSlot(name: string) {
         for (const slot of this.slot) {
             if (slot.name === name) {
                 return slot;
@@ -855,7 +909,7 @@ export class SkinSlot extends BaseData {
     readonly display: (Display | null)[] = [];
     readonly actions: OldAction[] = []; // Deprecated.
 
-    getDisplay(name: string): Display | null {
+    getDisplay(name: string) {
         for (const display of this.display) {
             if (display && display.name === name) {
                 return display;
@@ -921,9 +975,10 @@ export class MeshDisplay extends Display {
     readonly edges: number[] = []; // Nonessential.
     readonly userEdges: number[] = []; // Nonessential.
 
+    _userEdges: boolean = true; // TODO
     _boneCount: number = 0;
     _weightCount: number = 0;
-    _userEdges: boolean = true; // TODO
+    _matrix: Matrix = new Matrix();
 
     constructor(isDefault: boolean = false) {
         super();
@@ -933,7 +988,7 @@ export class MeshDisplay extends Display {
         }
     }
 
-    clearToBinary(): void {
+    clearToBinary() {
         this.width = 0;
         this.height = 0;
         this.vertices.length = 0;
@@ -946,15 +1001,14 @@ export class MeshDisplay extends Display {
         this.userEdges.length = 0;
     }
 
-    getBonePoseOffset(boneIndex: number): number {
+    getBonePoseOffset(boneIndex: number) {
         for (let i = 0, l = this.bonePose.length; i < l; i += 7) {
             if (boneIndex === this.bonePose[i]) {
                 return i;
             }
         }
 
-        // Impossible.
-        return -1;
+        throw new Error();
     }
 }
 
@@ -992,7 +1046,7 @@ export class PathDisplay extends Display implements VerticesData {
         }
     }
 
-    clearToBinary(): void {
+    clearToBinary() {
         this.vertexCount = 0;
         this.vertices.length = 0;
         this.weights.length = 0;
@@ -1044,7 +1098,7 @@ export class PolygonBoundingBoxDisplay extends BoundingBoxDisplay implements Ver
         }
     }
 
-    clearToBinary(): void {
+    clearToBinary() {
         this.vertexCount = 0;
         // this.vertices.length = 0;
         this.weights.length = 0;
@@ -1053,23 +1107,23 @@ export class PolygonBoundingBoxDisplay extends BoundingBoxDisplay implements Ver
 }
 
 export class Animation extends BaseData {
+    type: AnimationType = AnimationType.Normal;
+    blendType: AnimationBlendType = AnimationBlendType.None;
     duration: number = 1;
     playTimes: number = 1;
     scale: number = 1.0;
     fadeInTime: number = 0.0;
     name: string = "default";
-    type: AnimationType = AnimationType.Normal;
-    blendType: AnimationBlendType = AnimationBlendType.None;
-    readonly frame: ActionFrame[] = [];
-    readonly bone: BoneTimeline[] = [];
-    readonly surface: DeformTimeline[] = [];
-    readonly slot: SlotTimeline[] = [];
-    readonly ffd: SlotDeformTimeline[] = [];
-    readonly ik: IKConstraintTimeline[] = [];
-    readonly animation: AnimationTimeline[] = [];
+    readonly frame: ActionFrame[] = []; // Deprecated.
+    readonly bone: BoneTimeline[] = []; // Deprecated.
+    readonly slot: SlotTimeline[] = []; // Deprecated.
+    readonly ffd: SlotDeformTimeline[] = []; // Deprecated.
+    readonly ik: IKConstraintTimeline[] = []; // Deprecated.
+    readonly timeline: TypeTimeline[] = [];
     zOrder: ZOrderTimeline | null = null;
 
-    getSlotTimeline(name: string): SlotTimeline | null {
+    // Deprecated.
+    getSlotTimeline(name: string) {
         for (const timeline of this.slot) {
             if (timeline.name === name) {
                 return timeline;
@@ -1079,17 +1133,8 @@ export class Animation extends BaseData {
         return null;
     }
 
-    getDeformTimeline(name: string): SlotDeformTimeline | null {
-        for (const timeline of this.ffd) {
-            if (timeline.name === name) {
-                return timeline;
-            }
-        }
-
-        return null;
-    }
-
-    getBoneTimeline(name: string): BoneTimeline | null {
+    // Deprecated.
+    getBoneTimeline(name: string) {
         for (const timeline of this.bone) {
             if (timeline.name === name) {
                 return timeline;
@@ -1099,9 +1144,9 @@ export class Animation extends BaseData {
         return null;
     }
 
-    getAnimationTimeline(name: string): AnimationTimeline | null {
-        for (const timeline of this.animation) {
-            if (timeline.name === name) {
+    getAnimationTimeline(name: string, type: TimelineType) {
+        for (const timeline of this.timeline) {
+            if (timeline.type === type && name === name) {
                 return timeline;
             }
         }
@@ -1111,27 +1156,16 @@ export class Animation extends BaseData {
 }
 
 export class AnimationBinary extends BaseData {
+    type: AnimationType = AnimationType.Normal;
+    blendType: AnimationBlendType = AnimationBlendType.None;
     duration: number = 0;
     playTimes: number = 1;
     scale: number = 1.0;
     fadeInTime: number = 0.0;
     name: string = "";
 
-    action: number = -1;
-    zOrder: number = -1;
     readonly offset: number[] = [];
-    readonly bone: Map<number[]> = {};
-    readonly surface: Map<number[]> = {};
-    readonly slot: Map<number[]> = {};
-    readonly constraint: Map<number[]> = {};
-    readonly animation: Map<AnimationTimelineBinary[]> = {};
-}
-
-export class AnimationTimelineBinary extends BaseData {
-    type: TimelineType = TimelineType.AnimationProgress;
-    offset: number = 0;
-    x: number = 0.0;
-    y: number = 0.0;
+    readonly timeline: TypeTimeline[] = [];
 }
 
 export abstract class Timeline extends BaseData {
@@ -1140,21 +1174,25 @@ export abstract class Timeline extends BaseData {
     name: string = "";
 }
 
-export class ZOrderTimeline extends Timeline {
-    readonly frame: ZOrderFrame[] = [];
-}
+export class TypeTimeline extends Timeline {
+    type: TimelineType = 0;
+    readonly frame: Frame[] = [];
 
-export class DeformTimeline extends Timeline {
-    readonly frame: DeformFrame[] = [];
+    clearToBinary() {
+        this.scale = 1.0;
+        this.frame.length = 0;
+    }
 }
-
+/**
+ * @deprecated
+ */
 export class BoneTimeline extends Timeline {
     readonly frame: BoneAllFrame[] = []; // Deprecated.
-    readonly translateFrame: BoneTranslateFrame[] = [];
+    readonly translateFrame: DoubleValueFrame0[] = [];
     readonly rotateFrame: BoneRotateFrame[] = [];
-    readonly scaleFrame: BoneScaleFrame[] = [];
+    readonly scaleFrame: DoubleValueFrame1[] = [];
 
-    insertFrame(frames: Frame[], position: number): number {
+    insertFrame(frames: Frame[], position: number) {
         let index = 0;
         let fromPosition = 0;
         let progress = 0.0;
@@ -1191,28 +1229,32 @@ export class BoneTimeline extends Timeline {
                 from = new BoneAllFrame();
                 frames.push(from);
             }
+
             insert = new BoneAllFrame();
         }
         else if (frames === this.translateFrame) {
             if (!from) {
-                from = new BoneTranslateFrame();
+                from = new DoubleValueFrame0();
                 frames.push(from);
             }
-            insert = new BoneTranslateFrame();
+
+            insert = new DoubleValueFrame0();
         }
         else if (frames === this.rotateFrame) {
             if (!from) {
                 from = new BoneRotateFrame();
                 frames.push(from);
             }
+
             insert = new BoneRotateFrame();
         }
         else if (frames === this.scaleFrame) {
             if (!from) {
-                from = new BoneScaleFrame();
+                from = new DoubleValueFrame1();
                 frames.push(from);
             }
-            insert = new BoneScaleFrame();
+
+            insert = new DoubleValueFrame1();
         }
         else {
             return -1;
@@ -1265,8 +1307,8 @@ export class BoneTimeline extends Timeline {
                 insert.transform.copyFrom(from.transform);
             }
         }
-        else if (from instanceof BoneTranslateFrame && insert instanceof BoneTranslateFrame) {
-            if (to instanceof BoneTranslateFrame) {
+        else if (from instanceof DoubleValueFrame0 && insert instanceof DoubleValueFrame0) {
+            if (to instanceof DoubleValueFrame0) {
                 insert.x = from.x + (to.x - from.x) * progress;
                 insert.y = from.y + (to.y - from.y) * progress;
             }
@@ -1307,8 +1349,8 @@ export class BoneTimeline extends Timeline {
                 insert.skew = from.skew;
             }
         }
-        else if (from instanceof BoneScaleFrame && insert instanceof BoneScaleFrame) {
-            if (to instanceof BoneScaleFrame) {
+        else if (from instanceof DoubleValueFrame1 && insert instanceof DoubleValueFrame1) {
+            if (to instanceof DoubleValueFrame1) {
                 insert.x = from.x + (to.x - from.x) * progress;
                 insert.y = from.y + (to.y - from.y) * progress;
             }
@@ -1324,13 +1366,15 @@ export class BoneTimeline extends Timeline {
         return index;
     }
 }
-
+/**
+ * @deprecated
+ */
 export class SlotTimeline extends Timeline {
     readonly frame: SlotAllFrame[] = []; // Deprecated.
     readonly displayFrame: SlotDisplayFrame[] = [];
     readonly colorFrame: SlotColorFrame[] = [];
 
-    insertFrame(frames: Frame[], position: number): number {
+    insertFrame(frames: Frame[], position: number) {
         let index = 0;
         let fromPosition = 0;
         let progress = 0.0;
@@ -1440,22 +1484,27 @@ export class SlotTimeline extends Timeline {
         return index;
     }
 }
-
-export class SlotDeformTimeline extends DeformTimeline {
-    skin: string = "default";
-    slot: string = "";
+/**
+ * @deprecated
+ */
+export class ZOrderTimeline extends TypeTimeline {
+}
+/**
+ * @deprecated
+ */
+export class IKConstraintTimeline extends TypeTimeline {
+}
+/**
+ * @deprecated
+ */
+export class SlotDeformTimeline extends TypeTimeline {
+    skin: string = ""; // Deprecated.
+    slot: string = ""; // Deprecated.
 }
 
-export class IKConstraintTimeline extends Timeline {
-    readonly frame: IKConstraintFrame[] = [];
-}
-
-export class AnimationTimeline extends Timeline {
+export class AnimationTimeline extends TypeTimeline {
     x: number = 0.0;
     y: number = 0.0;
-    readonly progressFrame: FloatFrame[] = [];
-    readonly weightFrame: FloatFrame[] = [];
-    readonly parameterFrame: BoneTranslateFrame[] = [];
 }
 
 export abstract class Frame extends BaseData {
@@ -1463,22 +1512,23 @@ export abstract class Frame extends BaseData {
     _position: number = -1;
 
     abstract equal(value: this): boolean;
+    abstract copy(value: this): void;
 }
 
 export abstract class TweenFrame extends Frame {
     tweenEasing: number = NaN;
     curve: number[] = [];
 
-    getTweenEnabled(): boolean {
+    getTweenEnabled() {
         return this.curve.length > 0 || !isNaN(this.tweenEasing);
     }
 
-    removeTween(): void {
+    removeTween() {
         this.tweenEasing = NaN;
         this.curve.length = 0;
     }
 
-    getTweenProgress(value: number): number {
+    getTweenProgress(value: number) {
         if (this.getTweenEnabled()) {
             if (this.curve.length > 0) {
                 return getCurveEasingValue(value, this.curve);
@@ -1504,44 +1554,67 @@ export abstract class TweenFrame extends Frame {
     }
 }
 
-export class FloatFrame extends TweenFrame {
+export class SingleValueFrame0 extends TweenFrame {
     value: number = 0.0;
 
-    equal(value: this): boolean {
+    equal(value: this) {
         return this.value === value.value;
+    }
+
+    copy(value: this) {
+        this.value = value.value;
     }
 }
 
-export class BoneTranslateFrame extends TweenFrame {
+export class SingleValueFrame1 extends TweenFrame {
+    value: number = 1.0;
+
+    equal(value: this) {
+        return this.value === value.value;
+    }
+
+    copy(value: this) {
+        this.value = value.value;
+    }
+}
+
+export class DoubleValueFrame0 extends TweenFrame {
     x: number = 0.0;
     y: number = 0.0;
 
-    equal(value: this): boolean {
+    equal(value: this) {
         return this.x === value.x && this.y === value.y;
     }
+
+    copy(value: this) {
+        this.x = value.x;
+        this.y = value.y;
+    }
 }
+export class DoubleValueFrame1 extends TweenFrame {
+    x: number = 1.0;
+    y: number = 1.0;
 
-export class ActionFrame extends Frame {
-    action: string = ""; // Deprecated.
-    event: string = ""; // Deprecated.
-    sound: string = ""; // Deprecated.
-    readonly events: Action[] = []; // Deprecated.
-    readonly actions: Action[] = [];
+    equal(value: this) {
+        return this.x === value.x && this.y === value.y;
+    }
 
-    equal(value: this): boolean {
-        // tslint:disable-next-line:no-unused-expression
-        value;
-        return !value;
+    copy(value: this) {
+        this.x = value.x;
+        this.y = value.y;
     }
 }
 
-export class ZOrderFrame extends Frame {
-    readonly zOrder: number[] = [];
+export class MutilpleValueFrame extends TweenFrame {
+    offset: number = 0;
+    readonly value: number[] = [];
+    readonly vertices: number[] = []; // Deprecated.
+    readonly zOrder: number[] = []; // Deprecated.
 
-    equal(value: this): boolean {
-        if (this.zOrder.length === value.zOrder.length) {
-            for (let i = 0, l = this.zOrder.length; i < l; ++i) {
-                if (this.zOrder[i] !== value.zOrder[i]) {
+    equal(value: this) {
+        if (this.offset === value.offset && this.value.length === value.value.length) {
+            for (let i = 0, l = this.value.length; i < l; ++i) {
+                if (this.value[i] !== value.value[i]) {
                     return false;
                 }
             }
@@ -1551,30 +1624,80 @@ export class ZOrderFrame extends Frame {
 
         return false;
     }
-}
 
-export class BoneAllFrame extends TweenFrame {
-    tweenRotate: number = 0;
+    copy(value: this) {
+        this.offset = value.offset;
+
+        this.value.length = 0;
+        this.zOrder.length = 0;
+        this.vertices.length = 0;
+
+        for (const v of value.value) {
+            this.value.push(v);
+        }
+
+        for (const v of value.zOrder) {
+            this.zOrder.push(v);
+        }
+
+        for (const v of value.vertices) {
+            this.vertices.push(v);
+        }
+    }
+}
+/**
+ * @deprecated
+ */
+export class ActionFrame extends Frame {
     action: string = ""; // Deprecated.
     event: string = ""; // Deprecated.
     sound: string = ""; // Deprecated.
-    readonly transform: Transform = new Transform();
+    readonly events: Action[] = []; // Deprecated.
+    readonly actions: Action[] = [];
 
-    equal(value: this): boolean {
-        return this.tweenRotate === 0 && !this.action && !this.event && !this.sound && this.transform.equal(value.transform);
+    equal(value: this) {
+        return !value;
+    }
+
+    copy(_value: this) {
     }
 }
+/**
+ * @deprecated
+ */
+export class BoneAllFrame extends TweenFrame {
+    tweenRotate: number = 0;
+    action: string = "";
+    event: string = "";
+    sound: string = "";
+    readonly transform: Transform = new Transform();
 
+    equal(value: this) {
+        return this.tweenRotate === 0 && !this.action && !this.event && !this.sound && this.transform.equal(value.transform);
+    }
+
+    copy(value: this) {
+        this.transform.copyFrom(value.transform);
+    }
+}
+/**
+ * @deprecated
+ */
 export class BoneRotateFrame extends TweenFrame {
     clockwise: number = 0;
     rotate: number = 0.0;
     skew: number = 0.0;
 
-    equal(value: this): boolean {
+    equal(value: this) {
         return this.clockwise === 0 && this.rotate === value.rotate && this.skew === value.skew;
     }
 
-    getTweenFrame(to: this, progress: number): this {
+    copy(value: this) {
+        this.rotate = value.rotate;
+        this.skew = value.skew;
+    }
+
+    getTweenFrame(to: this, progress: number) {
         if (progress === 0.0 || this.getTweenEnabled()) {
             return this;
         }
@@ -1601,72 +1724,67 @@ export class BoneRotateFrame extends TweenFrame {
 
         frame.skew = this.skew + (to.skew - this.skew) * progress;
 
-        return frame as any;
+        return frame;
     }
 }
-
-export class BoneScaleFrame extends TweenFrame {
-    x: number = 1.0;
-    y: number = 1.0;
-
-    equal(value: this): boolean {
-        return this.x === value.x && this.y === value.y;
-    }
-}
-
-export class DeformFrame extends TweenFrame {
-    offset: number = 0;
-    vertices: number[] = [];
-
-    equal(value: this): boolean {
-        if (this.offset === value.offset && this.vertices.length === value.vertices.length) {
-            for (let i = 0, l = this.vertices.length; i < l; ++i) {
-                if (this.vertices[i] !== value.vertices[i]) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-}
-
+/**
+ * @deprecated
+ */
 export class SlotAllFrame extends TweenFrame {
     displayIndex: number = 0;
     readonly color: ColorTransform = new ColorTransform();
     readonly actions: (OldAction | Action)[] = [];
 
-    equal(value: this): boolean {
+    equal(value: this) {
         return this.actions.length === 0 && this.displayIndex === value.displayIndex && this.color.equal(value.color);
     }
-}
 
+    copy(value: this) {
+        this.displayIndex = value.displayIndex;
+        this.color.copyFrom(value.color);
+    }
+}
+/**
+ * @deprecated
+ */
 export class SlotDisplayFrame extends Frame {
     value: number = 0;
     readonly actions: (OldAction | Action)[] = [];
 
-    equal(value: this): boolean {
+    equal(value: this) {
         return this.actions.length === 0 && this.value === value.value;
+    }
+
+    copy(value: this) {
+        this.value = value.value;
     }
 }
 
 export class SlotColorFrame extends TweenFrame {
     readonly value: ColorTransform = new ColorTransform();
-    readonly color: ColorTransform = new ColorTransform(); // Deprecated.
 
-    equal(value: this): boolean {
+    equal(value: this) {
         return this.value.equal(value.value);
     }
-}
 
+    copy(value: this) {
+        this.value.copyFrom(value.value);
+    }
+}
+/**
+ * @deprecated
+ */
 export class IKConstraintFrame extends TweenFrame {
     bendPositive: boolean = true;
     weight: number = 1.0;
 
-    equal(value: this): boolean {
+    equal(value: this) {
         return this.bendPositive === value.bendPositive && this.weight === value.weight;
+    }
+
+    copy(value: this) {
+        this.bendPositive = value.bendPositive;
+        this.weight = value.weight;
     }
 }
 
@@ -1678,7 +1796,7 @@ export class TextureAtlas extends BaseData {
     imagePath: string = "";
     readonly SubTexture: Texture[] = [];
 
-    getTexture(name: string): Texture | null {
+    getTexture(name: string) {
         for (const texture of this.SubTexture) {
             if (texture.name === name) {
                 return texture;
@@ -1710,7 +1828,7 @@ export const copyConfig = [
     },
     Armature, {
         bone: [
-            function (bone: any): { new(): (Bone | Surface) } | null {
+            function (bone: any) {
                 let type = bone.type;
                 if (type !== undefined) {
                     if (typeof type === "string") {
@@ -1755,7 +1873,7 @@ export const copyConfig = [
     },
     SkinSlot, {
         display: [
-            function (display: any): { new(): Display } | null {
+            function (display: any) {
                 let type = display.type;
                 if (type !== undefined) {
                     if (typeof type === "string") {
@@ -1811,7 +1929,7 @@ export const copyConfig = [
 
                 }
 
-                return null;
+                throw new Error();
             },
             Function
         ]
@@ -1823,23 +1941,79 @@ export const copyConfig = [
         frame: ActionFrame,
         zOrder: ZOrderTimeline,
         bone: BoneTimeline,
-        surface: DeformTimeline,
         slot: SlotTimeline,
         ffd: SlotDeformTimeline,
         ik: IKConstraintTimeline,
-        animation: AnimationTimeline,
+        timeline: [
+            function (timeline: any) {
+                if ("type" in timeline) {
+                    switch (timeline["type"]) {
+                        case TimelineType.AnimationParameter:
+                            return AnimationTimeline;
+
+                        default:
+                            return TypeTimeline;
+                    }
+                }
+
+                throw new Error();
+            },
+            Function
+        ],
+    },
+    TypeTimeline, {
+        frame: [
+            function (parent: any, frame: any) {
+                // tslint:disable-next-line:no-unused-expression
+                frame;
+
+                if ("type" in parent) {
+                    switch (parent["type"]) {
+                        case TimelineType.Action:
+                            return SingleValueFrame0;
+
+                        case TimelineType.SlotDisplay:
+                        case TimelineType.SlotZIndex:
+                        case TimelineType.AnimationProgress:
+                            return SingleValueFrame0;
+
+                        case TimelineType.BoneAlpha:
+                        case TimelineType.SlotAlpha:
+                        case TimelineType.AnimationWeight:
+                            return SingleValueFrame1;
+
+                        case TimelineType.BoneTranslate:
+                        case TimelineType.BoneRotate:
+                        case TimelineType.AnimationParameter:
+                            return DoubleValueFrame0;
+
+                        case TimelineType.BoneScale:
+                        case TimelineType.IKConstraint:
+                            return DoubleValueFrame1;
+
+                        case TimelineType.ZOrder:
+                        case TimelineType.Surface:
+                        case TimelineType.SlotDeform:
+                            return MutilpleValueFrame;
+
+                        case TimelineType.SlotColor:
+                            return SlotColorFrame;
+                    }
+                }
+
+                throw new Error();
+            },
+            Function,
+        ],
     },
     ZOrderTimeline, {
-        frame: ZOrderFrame
+        frame: MutilpleValueFrame,
     },
     BoneTimeline, {
         frame: BoneAllFrame,
-        translateFrame: BoneTranslateFrame,
+        translateFrame: DoubleValueFrame0,
         rotateFrame: BoneRotateFrame,
-        scaleFrame: BoneScaleFrame,
-    },
-    DeformTimeline, {
-        frame: DeformFrame,
+        scaleFrame: DoubleValueFrame1,
     },
     SlotTimeline, {
         frame: SlotAllFrame,
@@ -1847,25 +2021,20 @@ export const copyConfig = [
         colorFrame: SlotColorFrame,
     },
     SlotDeformTimeline, {
-        frame: DeformFrame
+        frame: MutilpleValueFrame,
     },
     IKConstraintTimeline, {
-        frame: IKConstraintFrame
-    },
-    AnimationTimeline, {
-        progressFrame: FloatFrame,
-        weightFrame: FloatFrame,
-        parameterFrame: BoneTranslateFrame,
+        frame: IKConstraintFrame,
     },
     ActionFrame, {
         actions: Action,
-        events: Action
+        events: Action,
     },
     SlotAllFrame, {
-        actions: OldAction
+        actions: OldAction,
     },
     SlotDisplayFrame, {
-        actions: OldAction
+        actions: OldAction,
     },
     TextureAtlas, {
         SubTexture: Texture,
@@ -1903,27 +2072,26 @@ export const compressConfig = [
 
     new Animation(),
     new AnimationBinary(),
+    new TypeTimeline(),
     new ZOrderTimeline(),
     new BoneTimeline(),
-    new DeformTimeline(),
     new SlotTimeline(),
     new SlotDeformTimeline(),
     new IKConstraintTimeline(),
     new AnimationTimeline(),
-    new AnimationTimelineBinary(),
-    new FloatFrame(),
-    new BoneTranslateFrame(),
+    new SingleValueFrame0(),
+    new SingleValueFrame1(),
+    new DoubleValueFrame0(),
+    new DoubleValueFrame1(),
+    new MutilpleValueFrame(),
     new ActionFrame(),
-    new ZOrderFrame(),
     new BoneAllFrame(),
     new BoneRotateFrame(),
-    new BoneScaleFrame(),
-    new DeformFrame(),
     new SlotAllFrame(),
     new SlotDisplayFrame(),
     new SlotColorFrame(),
     new IKConstraintFrame(),
 
     new TextureAtlas(),
-    new Texture()
+    new Texture(),
 ];

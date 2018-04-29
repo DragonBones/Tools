@@ -212,7 +212,7 @@ function V23ToV45(data: dbftV23.DragonBones): dbft.DragonBones | null {
 
             for (const slot of armature.slot) {
                 let timeline = animation.getSlotTimeline(slot.name);
-                if (timeline === null) {
+                if (!timeline) {
                     const frame = new dbft.SlotAllFrame();
                     frame.displayIndex = -1;
                     timeline = new dbft.SlotTimeline();
@@ -240,7 +240,7 @@ function globalToLocal(armature: dbft.Armature): void {
     const bones = armature.bone.concat().reverse();
     for (const bone of bones) {
         const parent = armature.getBone(bone.parent);
-        if (parent !== null) {
+        if (parent) {
             parent.transform.toMatrix(helpMatrix);
             helpMatrix.invert();
             helpMatrix.transformPoint(bone.transform.x, bone.transform.y, helpPoint);
@@ -255,14 +255,14 @@ function globalToLocal(armature: dbft.Armature): void {
 
         for (const animation of armature.animation as dbft.Animation[]) {
             const timeline = animation.getBoneTimeline(bone.name);
-            if (timeline === null) {
+            if (!timeline) {
                 continue;
             }
 
-            const parentTimeline = parent !== null ? animation.getBoneTimeline(parent.name) : null;
+            const parentTimeline = parent ? animation.getBoneTimeline(parent.name) : null;
             let position = 0;
             for (const frame of timeline.frame) {
-                if (parentTimeline !== null) {
+                if (parentTimeline) {
                     getTimelineFrameMatrix(parentTimeline, position, helpTransform);
                     helpTransform.toMatrix(helpMatrix);
                     helpMatrix.invert();
@@ -300,7 +300,7 @@ function getTimelineFrameMatrix(timeline: dbft.BoneTimeline, framePosition: numb
         position += frame.duration;
     }
 
-    if (currentFrame === null) {
+    if (!currentFrame) {
         currentFrame = timeline.frame[timeline.frame.length - 1];
     }
 
@@ -313,7 +313,7 @@ function getTimelineFrameMatrix(timeline: dbft.BoneTimeline, framePosition: numb
         nextFrame = timeline.frame[nextIndex];
     }
 
-    if (nextFrame === null) {
+    if (!nextFrame) {
         transform.copyFrom(currentFrame.transform);
     }
     else {
