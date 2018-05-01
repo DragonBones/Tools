@@ -227,9 +227,10 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
 
                 return a;
             });
-            slot._zOrder = getPose(l2Timelines, l2Display.zOrderFrames, (a, _b, _t) => {
+            slot.zIndex = getPose(l2Timelines, l2Display.zIndexFrames, (a, _b, _t) => {
                 return a;
-            }) * 100 + l2Display.index;
+            });
+            slot._zOrder = slot.zIndex * 100 + l2Display.zOrder;
             // slot.color;
             armature.slot.push(slot);
             // Create displays.
@@ -483,19 +484,19 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                         continue;
                     }
 
-                    let hasZOrder = false;
-                    let prevZorder = NaN;
-                    for (const zOrder of l2Display.zOrderFrames) {
-                        if (prevZorder === prevZorder && zOrder !== prevZorder) {
-                            hasZOrder = true;
+                    let hasZIndex = false;
+                    let prevZIndex = NaN;
+                    for (const zIndex of l2Display.zIndexFrames) {
+                        if (prevZIndex === prevZIndex && zIndex !== prevZIndex) {
+                            hasZIndex = true;
                             break;
                         }
 
-                        prevZorder = zOrder;
+                        prevZIndex = zIndex;
                     }
 
-                    if (hasZOrder) {
-                        createAnimation(l2Timelines, l2Display.zOrderFrames, meshDisplay, (l2Timeline, l2Frames, target, offset, blendAnimation) => {
+                    if (hasZIndex) {
+                        createAnimation(l2Timelines, l2Display.zIndexFrames, meshDisplay, (l2Timeline, l2Frames, target, offset, blendAnimation) => {
                             const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(l2Timeline.name) as l2ft.TimelineInfo;
                             const totalValue = l2TimelineInfo.maximum - l2TimelineInfo.minimum;
                             const timeline = new dbft.TypeTimeline();
@@ -796,16 +797,12 @@ function createAnimation<F, T extends { name: string }>(
     let blendName = target.name;
     let animation = armature.getAnimation(l2Timeline.name) as dbft.Animation | null;
 
-    if (l2Timelines.length > 2) {
-        console.log(blendName);
-    }
-
     if (!animation) {
         animation = new dbft.Animation();
         animation.playTimes = 0;
         animation.duration = modelConfig.modelImpl.frameCount;
         animation.name = l2Timeline.name;
-        animation.type = dbft.AnimationType.Node;
+        animation.type = dbft.AnimationType.Tree;
         armature.animation.unshift(animation);
     }
 
@@ -838,24 +835,26 @@ function createAnimation<F, T extends { name: string }>(
 
             i++;
         }
-        //
-        const parentL2Timleine = l2Timelines[level + 1];
-        const parentL2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(parentL2Timleine.name) as l2ft.TimelineInfo;
-        const totalValue = parentL2TimelineInfo.maximum - parentL2TimelineInfo.minimum;
-        const childTimeline = new dbft.AnimationTimeline();
-        const frameBegin = new dbft.SingleValueFrame0();
-        const frameEnd = new dbft.SingleValueFrame0();
-        childTimeline.type = dbft.TimelineType.AnimationProgress;
-        childTimeline.x = (parentL2Timleine.frames[index] - parentL2TimelineInfo.minimum) / totalValue * 2.0 - 1.0;
-        childTimeline.name = blendName;
-        frameBegin._position = 0;
-        frameBegin.value = 0;
-        frameBegin.tweenEasing = 0.0;
-        frameEnd._position = parentAnimation.duration;
-        frameEnd.value = 1.0;
-        childTimeline.frame.push(frameBegin, frameEnd);
-        dbft.modifyFramesByPosition(childTimeline.frame);
-        parentAnimation.timeline.push(childTimeline);
+
+        if (!parentAnimation.getAnimationTimeline(blendName, dbft.TimelineType.AnimationProgress)) {
+            const parentL2Timleine = l2Timelines[level + 1];
+            const parentL2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(parentL2Timleine.name) as l2ft.TimelineInfo;
+            const totalValue = parentL2TimelineInfo.maximum - parentL2TimelineInfo.minimum;
+            const childTimeline = new dbft.AnimationTimeline();
+            const frameBegin = new dbft.SingleValueFrame0();
+            const frameEnd = new dbft.SingleValueFrame0();
+            childTimeline.type = dbft.TimelineType.AnimationProgress;
+            childTimeline.x = (parentL2Timleine.frames[index] - parentL2TimelineInfo.minimum) / totalValue * 2.0 - 1.0;
+            childTimeline.name = blendName;
+            frameBegin._position = 0;
+            frameBegin.value = 0;
+            frameBegin.tweenEasing = 0.0;
+            frameEnd._position = parentAnimation.duration;
+            frameEnd.value = 1.0;
+            childTimeline.frame.push(frameBegin, frameEnd);
+            dbft.modifyFramesByPosition(childTimeline.frame);
+            parentAnimation.timeline.push(childTimeline);
+        }
     }
 
     let blendAnimation = armature.getAnimation(blendName) as dbft.Animation | null;
@@ -875,7 +874,7 @@ function createAnimation<F, T extends { name: string }>(
             frameBegin._position = 0;
             frameBegin.x = -1.0;
             frameBegin.tweenEasing = 0.0;
-            frameEnd._position = animation.duration;
+            frameEnd._position = blendAnimation.duration;
             frameEnd.x = 1.0;
             blendTimeline.type = dbft.TimelineType.AnimationParameter;
             blendTimeline.name = blendAnimation.name;

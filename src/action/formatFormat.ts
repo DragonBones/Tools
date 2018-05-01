@@ -448,12 +448,12 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
                             cleanFrame(frames);
 
-                            if (frames.length === 1) {
-                                const frame = frames[0];
-                                if (frame.value === 1.0) {
-                                    frames.length = 0;
-                                }
-                            }
+                            // if (frames.length === 1) {
+                            //     const frame = frames[0];
+                            //     if (frame.value === 1.0) {
+                            //         frames.length = 0;
+                            //     }
+                            // }
                             break;
                         }
 
@@ -498,6 +498,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                         case dbft.TimelineType.Surface:
                         case dbft.TimelineType.SlotDeform: {
                             const frames = timeline.frame as dbft.MutilpleValueFrame[];
+
                             for (const frame of frames) {
                                 frame.offset += formatDeform(frame.value);
                             }
@@ -537,7 +538,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                                 }
 
                                 cleanFrame(frames);
-                                // cleanFrameB(frames);
+                                cleanFrameB(frames);
                             }
                             break;
                         }
@@ -602,17 +603,17 @@ function formatDeform(deform: number[]) {
         }
     }
 
-    let end = deform.length - 1;
-    while (end > begin && deform[end] === 0.0) {
+    let end = deform.length;
+    while (end > begin && deform[end - 1] === 0.0) {
         end--;
     }
 
     let index = 0;
-    for (let i = begin; i < end + 1; ++i) {
+    for (let i = begin; i < end; ++i) {
         deform[index++] = deform[i];
     }
 
-    deform.length = end - begin + 1;
+    deform.length = end - begin;
 
     return begin;
 }

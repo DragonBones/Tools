@@ -313,7 +313,7 @@ export class Model implements ISerializable {
 
             let index = 0;
             for (const display of part.displays) {
-                display.index = index++;
+                display.zOrder = index++;
                 this.displays.push(display);
             }
         }
@@ -403,7 +403,7 @@ export abstract class BaseBone implements ISerializable {
 }
 
 export abstract class BaseDisplay implements ISerializable {
-    public index: number;
+    public zOrder: number;
     public name: string;
     public parent: string;
     public animation: Animation;
@@ -448,17 +448,17 @@ export abstract class Display extends BaseDisplay {
     public static readonly TYPE_DD_PATH = 3;
     public static readonly TYPE_DD_PATH_STROKE = 4;
 
-    public zOrder: number;
+    public zIndex: number;
     public alphaFrames: number[];
-    public zOrderFrames: number[];
+    public zIndexFrames: number[];
     public clipedNames: string[] | null = null;
 
     public read(reader: BinaryReader): void {
         this.name = reader.readObject();
         this.parent = reader.readObject();
         this.animation = reader.readObject();
-        this.zOrder = reader.readInt();
-        this.zOrderFrames = reader.readArrayInt();
+        this.zIndex = reader.readInt();
+        this.zIndexFrames = reader.readArrayInt();
         this.alphaFrames = reader.readArrayFloat();
 
         if (reader.version >= 11) {
@@ -532,7 +532,6 @@ export class AvatarTextureInfo {
 }
 
 export class AvatarPartsItem implements ISerializable {
-    public index: number;
     public name: string;
     public linkTo: string;
 

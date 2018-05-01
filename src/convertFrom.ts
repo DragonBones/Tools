@@ -23,8 +23,8 @@ function execute(): void {
         .option("-d, --delete", "Delete raw files after convert complete.")
         .parse(process.argv);
 
-    const input = path.resolve(commands["input"] as string || process.cwd());
-    const output = path.resolve(commands["output"] as string || "");
+    const input = path.resolve(path.normalize(commands["input"] as string || process.cwd()));
+    const output = "output" in commands ? path.resolve(path.normalize(commands["output"])) : input;
     const type = commands["type"] as string || "";
     const filter = commands["filter"] as string || "";
     const deleteRaw = commands["delete"] as boolean || false;
@@ -34,7 +34,6 @@ function execute(): void {
     switch (type) {
         case "spine": {
             const files = nodeUtils.filterFileList(input, /\.(json)$/i);
-
             for (const file of files) {
                 if (filter && file.indexOf(filter) < 0) {
                     continue;
@@ -136,19 +135,20 @@ function execute(): void {
 
         case "live2d": {
             const files = nodeUtils.filterFileList(input, /\.(model.json)$/i);
-
             for (const file of files) {
                 if (filter && file.indexOf(filter) < 0) {
                     continue;
                 }
                 // Parse config.
-                const fileDir = path.dirname(file);
+                const dirURL = path.dirname(file);
                 const fileName = path.basename(file, ".model.json");
                 const fileString = fs.readFileSync(file, "utf-8");
                 const modelConfig = JSON.parse(fileString) as l2ft.ModelConfig;
+                const modelURL = path.join(dirURL, modelConfig.model);
+                const deleteFiles = [file];
                 modelConfig.name = modelConfig.name || fileName;
+
                 // Parse model.
-                const modelURL = path.join(fileDir, modelConfig.model);
                 if (fs.existsSync(modelURL)) {
                     const fileBuffer = fs.readFileSync(modelURL);
                     const model = l2ft.parseModel(fileBuffer.buffer as ArrayBuffer);
@@ -158,6 +158,7 @@ function execute(): void {
                     }
 
                     modelConfig.modelImpl = model;
+                    deleteFiles.push(modelURL);
                 }
                 else {
                     console.log("File does not exist.", modelURL);
@@ -166,7 +167,7 @@ function execute(): void {
 
                 for (let i = 0, l = modelConfig.textures.length; i < l; ++i) { // Parse textures.
                     const textureURI = modelConfig.textures[i] as string;
-                    const textureURL = path.join(fileDir, textureURI);
+                    const textureURL = path.join(dirURL, textureURI);
 
                     if (fs.existsSync(textureURL)) {
                         const texture = { file: textureURI, width: 0, height: 0 };
@@ -191,9 +192,10 @@ function execute(): void {
                     for (const k in modelConfig.motions) {
                         const motionConfigs = modelConfig.motions[k];
                         for (const motionConfig of motionConfigs) {
-                            const motionURL = path.join(fileDir, motionConfig.file);
+                            const motionURL = path.join(dirURL, motionConfig.file);
                             if (fs.existsSync(motionURL)) {
                                 motionConfig.motion = l2ft.parseMotion(fs.readFileSync(motionURL, "utf-8"));
+                                deleteFiles.push(motionURL);
                             }
                             else {
                                 console.log("File does not exist.", motionURL);
@@ -205,9 +207,10 @@ function execute(): void {
                 if (modelConfig.expressions) {
                     for (const k in modelConfig.expressions) {
                         const expressionConfig = modelConfig.expressions[k];
-                        const expressionURL = path.join(fileDir, expressionConfig.file);
+                        const expressionURL = path.join(dirURL, expressionConfig.file);
                         if (fs.existsSync(expressionURL)) {
                             expressionConfig.expression = JSON.parse(utils.formatJSONString(fs.readFileSync(expressionURL, "utf-8")));
+                            deleteFiles.push(expressionURL);
                         }
                         else {
                             console.log("File does not exist.", expressionURL);
@@ -220,48 +223,44 @@ function execute(): void {
                     continue;
                 }
 
-                const outputDir = output ? fileDir.replace(input, output) : fileDir;
-                const outputFile = path.join(outputDir, fileName + "_ske.json");
+                const outputDirURL = dirURL.replace(input, output);
+                const outputURL = path.join(outputDirURL, fileName + "_ske.json");
                 format(result);
-                console.log(outputFile);
+                console.log(outputURL);
 
-                for (const textureAtlas of result.textureAtlas) {
-                    const textureAtlasImageFile = path.join(fileDir, textureAtlas.imagePath);
-                    const textureAtlasImageOutputFile = path.join(
-                        path.dirname((output ? file.replace(input, output) : file)),
-                        textureAtlas.imagePath
-                    );
+                if (!fs.existsSync(outputDirURL)) {
+                    fs.mkdirsSync(outputDirURL);
+                }
 
-                    console.log(textureAtlasImageOutputFile);
-                    if (textureAtlasImageFile === textureAtlasImageOutputFile) {
-                        continue;
-                    }
+                if (outputDirURL !== dirURL) {
+                    for (const textureAtlas of result.textureAtlas) {
+                        const rawImageURL = path.join(dirURL, textureAtlas.imagePath);
+                        const outputImageURL = path.join(outputDirURL, textureAtlas.imagePath);
+                        console.log(outputImageURL);
 
-                    if (!fs.existsSync(path.dirname(textureAtlasImageOutputFile))) {
-                        fs.mkdirsSync(path.dirname(textureAtlasImageOutputFile));
-                    }
+                        if (!fs.existsSync(path.dirname(outputImageURL))) {
+                            fs.mkdirsSync(path.dirname(outputImageURL));
+                        }
 
-                    if (deleteRaw) {
-                        fs.moveSync(textureAtlasImageFile, textureAtlasImageOutputFile);
-                    }
-                    else {
-                        fs.copySync(textureAtlasImageFile, textureAtlasImageOutputFile);
+                        if (deleteRaw) {
+                            fs.moveSync(rawImageURL, outputImageURL);
+                        }
+                        else {
+                            fs.copySync(rawImageURL, outputImageURL);
+                        }
                     }
                 }
 
                 object.compress(result, dbft.compressConfig);
-
-                if (!fs.existsSync(path.dirname(outputFile))) {
-                    fs.mkdirsSync(path.dirname(outputFile));
-                }
-
                 fs.writeFileSync(
-                    outputFile,
+                    outputURL,
                     JSON.stringify(result)
                 );
 
-                if (deleteRaw && file !== outputFile) {
-                    fs.removeSync(file);
+                if (deleteRaw) {
+                    for (const file of deleteFiles) {
+                        fs.unlinkSync(file);
+                    }
                 }
             }
 

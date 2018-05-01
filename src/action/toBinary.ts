@@ -2,6 +2,12 @@ import * as object from "../common/object";
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
+const enum FrameValueType {
+    Step,
+    Int,
+    Float,
+}
+
 const intArray: Array<number> = [];
 const floatArray: Array<number> = [];
 const timelineArray: Array<number> = [];
@@ -61,6 +67,8 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
         const animationBinarys = new Array<dbft.AnimationBinary>();
         for (const animation of currentArmature.animation as dbft.Animation[]) {
             currentAnimationBinary = new dbft.AnimationBinary();
+            currentAnimationBinary.type = animation.type;
+            currentAnimationBinary.blendType = animation.blendType;
             currentAnimationBinary.duration = animation.duration;
             currentAnimationBinary.playTimes = animation.playTimes;
             currentAnimationBinary.scale = animation.scale;
@@ -71,109 +79,90 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
             currentAnimationBinary.offset[dbft.OffsetOrder.Frame] = frameArray.length;
             animationBinarys.push(currentAnimationBinary);
 
-            // if (animation.frame.length > 0) {
-            //     currentAnimationBinary.action = createTimeline(animation, animation.frame, false, false, 0, createActionFrame);
-            // }
+            if (animation.frame.length > 0) {
+                currentAnimationBinary.action = createTimeline(animation, animation.frame, FrameValueType.Step, 0, createActionFrame);
+            }
 
-            // if (animation.zOrder) {
-            //     currentAnimationBinary.zOrder = createTimeline(animation.zOrder, animation.zOrder.frame, false, false, 0, createZOrderFrame);
-            // }
+            if (animation.zOrder) {
+                currentAnimationBinary.zOrder = createTimeline(animation.zOrder, animation.zOrder.frame, FrameValueType.Step, 0, createZOrderFrame);
+            }
 
-            // for (const timeline of animation.bone) {
-            //     currentAnimationBinary.bone[timeline.name] = createBoneTimeline(timeline);
-            // }
+            for (const timeline of animation.bone) {
+                currentAnimationBinary.bone[timeline.name] = createBoneTimeline(timeline);
+            }
 
-            // for (const timeline of animation.surface) {
-            //     currentAnimationBinary.surface[timeline.name] = createSurfaceTimeline(timeline);
-            // }
+            for (const timeline of animation.slot) {
+                if (!(timeline.name in currentAnimationBinary.slot)) {
+                    currentAnimationBinary.slot[timeline.name] = [];
+                }
 
-            // for (const timeline of animation.slot) {
-            //     if (!(timeline.name in currentAnimationBinary.slot)) {
-            //         currentAnimationBinary.slot[timeline.name] = [];
-            //     }
+                const timelines = currentAnimationBinary.slot[timeline.name];
 
-            //     const timelines = currentAnimationBinary.slot[timeline.name];
-            //     if (timeline instanceof dbft.TypeTimeline) {
-            //         timelines.push(timeline.type);
-            //         timelines.push(createTypeTimeline(timeline));
-            //     }
-            //     else {
-            //         if (timeline.displayFrame.length > 0) {
-            //             timelines.push(dbft.TimelineType.SlotDisplay);
-            //             timelines.push(createTimeline(timeline, timeline.displayFrame, false, false, 0, (frame, frameStart) => {
-            //                 const offset = createFrame(frame, frameStart);
-            //                 frameArray.push(frame.value);
+                if (timeline.displayFrame.length > 0) {
+                    timelines.push(dbft.TimelineType.SlotDisplay);
+                    timelines.push(createTimeline(timeline, timeline.displayFrame, FrameValueType.Step, 0, (frame, frameStart) => {
+                        const offset = createFrame(frame, frameStart);
+                        frameArray.push(frame.value);
 
-            //                 return offset;
-            //             }));
-            //         }
+                        return offset;
+                    }));
+                }
 
-            //         if (timeline.colorFrame.length > 0) {
-            //             timelines.push(dbft.TimelineType.SlotColor);
-            //             timelines.push(createTimeline(timeline, timeline.colorFrame, true, false, 1, (frame, frameStart) => {
-            //                 const offset = createTweenFrame(frame, frameStart);
+                if (timeline.colorFrame.length > 0) {
+                    timelines.push(dbft.TimelineType.SlotColor);
+                    timelines.push(createTimeline(timeline, timeline.colorFrame, FrameValueType.Int, 1, (frame, frameStart) => {
+                        const offset = createTweenFrame(frame, frameStart);
 
-            //                 // Color.
-            //                 const colorString = frame.value.toString();
-            //                 if (!(colorString in colors)) {
-            //                     colors[colorString] = createColor(frame.value);
-            //                 }
+                        // Color.
+                        const colorString = frame.value.toString();
+                        if (!(colorString in colors)) {
+                            colors[colorString] = createColor(frame.value);
+                        }
 
-            //                 frameIntArray.push(colors[colorString]);
+                        frameIntArray.push(colors[colorString]);
 
-            //                 return offset;
-            //             }));
-            //         }
-            //     }
-            // }
+                        return offset;
+                    }));
+                }
+            }
 
-            // for (const timeline of animation.ffd) {
-            //     if (!(timeline.slot in currentAnimationBinary.slot)) {
-            //         currentAnimationBinary.slot[timeline.slot] = [];
-            //     }
+            for (const timeline of animation.ffd) {
+                if (!(timeline.slot in currentAnimationBinary.slot)) {
+                    currentAnimationBinary.slot[timeline.slot] = [];
+                }
 
-            //     const timelines = currentAnimationBinary.slot[timeline.slot];
-            //     for (const value of createMeshDeformTimeline(timeline)) {
-            //         timelines.push(value);
-            //     }
-            // }
+                const timelines = currentAnimationBinary.slot[timeline.slot];
+                timelines.push(createDeformTimeline(timeline));
+            }
 
-            // for (const timeline of animation.ik) {
-            //     if (!(timeline.name in currentAnimationBinary.constraint)) {
-            //         currentAnimationBinary.constraint[timeline.name] = [];
-            //     }
+            for (const timeline of animation.ik) {
+                if (!(timeline.name in currentAnimationBinary.constraint)) {
+                    currentAnimationBinary.constraint[timeline.name] = [];
+                }
 
-            //     const timelines = currentAnimationBinary.constraint[timeline.name];
-            //     if (timeline instanceof dbft.TypeTimeline) {
-            //         timelines.push(timeline.type);
-            //         timelines.push(createTypeTimeline(timeline));
-            //     }
-            //     else if (timeline.frame.length > 0) {
-            //         timelines.push(dbft.TimelineType.IKConstraint);
-            //         timelines.push(createTimeline(timeline, timeline.frame, true, false, 2, (frame, frameStart) => {
-            //             const offset = createTweenFrame(frame, frameStart);
-            //             frameIntArray.push(frame.bendPositive ? 1 : 0);
-            //             frameIntArray.push(Math.round(frame.weight * 100.0));
+                const timelines = currentAnimationBinary.constraint[timeline.name];
+                if (timeline.frame.length > 0) {
+                    timelines.push(dbft.TimelineType.IKConstraint);
+                    timelines.push(createTimeline(timeline, timeline.frame as dbft.IKConstraintFrame[], FrameValueType.Int, 2, (frame, frameStart) => {
+                        const offset = createTweenFrame(frame, frameStart);
+                        frameIntArray.push(frame.bendPositive ? 1 : 0); // TODO 100
+                        frameIntArray.push(Math.round(frame.weight * 100.0));
 
-            //             return offset;
-            //         }));
-            //     }
+                        return offset;
+                    }));
+                }
 
-            //     currentAnimationBinary.constraint[timeline.name] = timelines;
-            // }
+                currentAnimationBinary.constraint[timeline.name] = timelines;
+            }
 
-            // for (const timeline of animation.animation) {
-            //     if (!(timeline.name in currentAnimationBinary.animation)) {
-            //         currentAnimationBinary.animation[timeline.name] = [];
-            //     }
+            for (const timeline of animation.timeline) {
+                timeline.offset = createTypeTimeline(timeline);
 
-            //     const timelines = currentAnimationBinary.animation[timeline.name];
-            //     if (timeline.frame.length > 0) {
-            //         timeline.offset = createTypeTimeline(timeline);
-            //         timeline.clearToBinary();
-            //         timelines.push(timeline);
-            //     }
-            // }
+                if (timeline.offset >= 0) {
+                    currentAnimationBinary.timeline.push(timeline);
+                    timeline.clearToBinary();
+                }
+            }
         }
 
         currentArmature.animation.length = 0;
@@ -243,7 +232,7 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
     dataView.setUint8(byteOffset++, 0);
     dataView.setUint8(byteOffset++, 0);
     dataView.setUint8(byteOffset++, 0);
-    dataView.setUint8(byteOffset++, 2);
+    dataView.setUint8(byteOffset++, 3);
     // Write json length.
     dataView.setUint32(byteOffset, jsonArray.length, true); byteOffset += 4;
 
@@ -432,7 +421,7 @@ function createMesh(value: dbft.MeshDisplay): number {
 
 function createTimeline<T extends dbft.Frame>(
     value: dbft.Timeline | dbft.Animation, frames: T[],
-    addIntOffset: boolean, addFloatOffset: boolean, frameValueCount: number,
+    frameValueType: FrameValueType, frameValueCount: number,
     createFrame: (frame: T, frameStart: number) => number
 ): number {
     const offset = timelineArray.length;
@@ -449,18 +438,24 @@ function createTimeline<T extends dbft.Frame>(
     }
 
     timelineArray[offset + dbft.BinaryOffset.TimelineFrameValueCount] = frameValueCount;
-    if (addIntOffset) {
-        timelineArray[offset + dbft.BinaryOffset.TimelineFrameValueOffset] = frameIntArray.length - currentAnimationBinary.offset[dbft.OffsetOrder.FrameInt];
-    }
-    else if (addFloatOffset) {
-        timelineArray[offset + dbft.BinaryOffset.TimelineFrameValueOffset] = frameFloatArray.length - currentAnimationBinary.offset[dbft.OffsetOrder.FrameFloat];
-    }
-    else {
-        timelineArray[offset + dbft.BinaryOffset.TimelineFrameValueOffset] = 0;
+
+    switch (frameValueType) {
+        case FrameValueType.Step:
+            timelineArray[offset + dbft.BinaryOffset.TimelineFrameValueOffset] = 0;
+            break;
+
+        case FrameValueType.Int:
+            timelineArray[offset + dbft.BinaryOffset.TimelineFrameValueOffset] = frameIntArray.length - currentAnimationBinary.offset[dbft.OffsetOrder.FrameInt];
+            break;
+
+        case FrameValueType.Float:
+            timelineArray[offset + dbft.BinaryOffset.TimelineFrameValueOffset] = frameFloatArray.length - currentAnimationBinary.offset[dbft.OffsetOrder.FrameFloat];
+            break;
     }
 
     let frameStart = 0;
     let keyFrameCount = 0;
+
     for (let i = 0, l = frames.length; i < l; ++i) { // Frame offsets.
         const frame = frames[i];
         const frameOffset = createFrame(frame as any, frameStart);
@@ -480,8 +475,8 @@ function createTypeTimeline(timeline: dbft.TypeTimeline) {
     let valueScale = 1.0;
     switch (timeline.type) {
         case dbft.TimelineType.SlotDisplay:
-        case dbft.TimelineType.SlotZIndex:
-            return createTimeline(timeline, timeline.frame, false, false, 0, (frame: dbft.SingleValueFrame0, frameStart) => {
+        case dbft.TimelineType.SlotZIndex: // TODO
+            return createTimeline(timeline, timeline.frame, FrameValueType.Step, 0, (frame: dbft.SingleValueFrame0, frameStart) => {
                 const offset = createFrame(frame, frameStart);
                 frameArray.push(frame.value);
 
@@ -493,7 +488,7 @@ function createTypeTimeline(timeline: dbft.TypeTimeline) {
         case dbft.TimelineType.AnimationProgress:
         case dbft.TimelineType.AnimationWeight:
             valueScale = timeline.type === dbft.TimelineType.BoneAlpha || timeline.type === dbft.TimelineType.SlotAlpha ? 100.0 : 10000.0;
-            return createTimeline(timeline, timeline.frame, true, false, 1, (frame: dbft.SingleValueFrame0 | dbft.SingleValueFrame1, frameStart) => {
+            return createTimeline(timeline, timeline.frame, FrameValueType.Int, 1, (frame: dbft.SingleValueFrame0 | dbft.SingleValueFrame1, frameStart) => {
                 const offset = createTweenFrame(frame, frameStart);
                 frameIntArray.push(Math.round(frame.value * valueScale));
 
@@ -503,10 +498,11 @@ function createTypeTimeline(timeline: dbft.TypeTimeline) {
         case dbft.TimelineType.BoneTranslate:
         case dbft.TimelineType.BoneRotate:
         case dbft.TimelineType.BoneScale:
-            return createTimeline(timeline, timeline.frame, false, true, 2, (frame: dbft.DoubleValueFrame0 | dbft.DoubleValueFrame1, frameStart) => {
+            valueScale = timeline.type === dbft.TimelineType.BoneRotate ? geom.DEG_RAD : 1.0;
+            return createTimeline(timeline, timeline.frame, FrameValueType.Float, 2, (frame: dbft.DoubleValueFrame0 | dbft.DoubleValueFrame1, frameStart) => {
                 const offset = createTweenFrame(frame, frameStart);
-                frameFloatArray.push(frame.x);
-                frameFloatArray.push(frame.y);
+                frameFloatArray.push(frame.x * valueScale);
+                frameFloatArray.push(frame.y * valueScale);
 
                 return offset;
             });
@@ -514,7 +510,7 @@ function createTypeTimeline(timeline: dbft.TypeTimeline) {
         case dbft.TimelineType.IKConstraint:
         case dbft.TimelineType.AnimationParameter:
             valueScale = timeline.type === dbft.TimelineType.IKConstraint ? 100.0 : 10000.0;
-            return createTimeline(timeline, timeline.frame, true, false, 2, (frame: dbft.DoubleValueFrame0 | dbft.DoubleValueFrame1, frameStart) => {
+            return createTimeline(timeline, timeline.frame, FrameValueType.Int, 2, (frame: dbft.DoubleValueFrame0 | dbft.DoubleValueFrame1, frameStart) => {
                 const offset = createTweenFrame(frame, frameStart);
                 frameIntArray.push(Math.round(frame.x * valueScale));
                 frameIntArray.push(Math.round(frame.y * valueScale));
@@ -523,79 +519,17 @@ function createTypeTimeline(timeline: dbft.TypeTimeline) {
             });
 
         case dbft.TimelineType.ZOrder:
-            return createTimeline(timeline, timeline.frame, false, false, 0, (frame: dbft.MutilpleValueFrame, frameStart) => {
-                const frameOffset = createFrame(frame, frameStart);
-
-                if (frame.value.length > 0) {
-                    const slotCount = currentArmature.slot.length;
-                    const unchanged = new Array<number>(slotCount - frame.value.length / 2);
-                    const zOrders = new Array<number>(slotCount);
-
-                    for (let i = 0; i < unchanged.length; ++i) {
-                        unchanged[i] = 0;
-                    }
-
-                    for (let i = 0; i < slotCount; ++i) {
-                        zOrders[i] = -1;
-                    }
-
-                    let originalIndex = 0;
-                    let unchangedIndex = 0;
-
-                    for (let i = 0, l = frame.value.length; i < l; i += 2) {
-                        const slotIndex = frame.value[i];
-                        const zOrderOffset = frame.value[i + 1];
-
-                        while (originalIndex !== slotIndex) {
-                            unchanged[unchangedIndex++] = originalIndex++;
-                        }
-
-                        zOrders[originalIndex + zOrderOffset] = originalIndex++;
-                    }
-
-                    while (originalIndex < slotCount) {
-                        unchanged[unchangedIndex++] = originalIndex++;
-                    }
-
-                    frameArray.length += 1 + slotCount;
-                    frameArray[frameOffset + 1] = slotCount;
-
-                    let i = slotCount;
-                    while (i--) {
-                        if (zOrders[i] === -1) {
-                            frameArray[frameOffset + 2 + i] = unchanged[--unchangedIndex] || 0;
-                        }
-                        else {
-                            frameArray[frameOffset + 2 + i] = zOrders[i] || 0;
-                        }
-                    }
-                }
-                else {
-                    frameArray.length += 1;
-                    frameArray[frameOffset + 1] = 0;
-                }
-
-                return frameOffset;
-            });
-
-        case dbft.TimelineType.Surface:
+            // TODO
             break;
 
-        case dbft.TimelineType.SlotColor:
-            return createTimeline(timeline, timeline.frame, true, false, 1, (frame: dbft.SlotColorFrame, frameStart) => {
-                const offset = createTweenFrame(frame, frameStart);
-                const colorString = frame.value.toString();
-
-                if (!(colorString in colors)) {
-                    colors[colorString] = createColor(frame.value);
-                }
-
-                frameIntArray.push(colors[colorString]);
-
-                return offset;
-            });
+        case dbft.TimelineType.Surface:
+            return createSurfaceTimeline(timeline);
 
         case dbft.TimelineType.SlotDeform:
+            return createDeformTimeline(timeline);
+
+        case dbft.TimelineType.SlotColor:
+            // TODO
             break;
     }
 
@@ -736,387 +670,343 @@ function createZOrderFrame(frame: dbft.MutilpleValueFrame, frameStart: number): 
     return frameOffset;
 }
 
-function createBoneTimeline(value: (dbft.BoneTimeline | dbft.TypeTimeline)[]): number[] {
+function createBoneTimeline(timeline: dbft.BoneTimeline): number[] {
     const timelines = new Array<number>();
 
-    // for (const eachTimeline of value) {
-    //     if (eachTimeline.frame.length > 0) {
-    //         let clockwise = 0;
-    //         let prevRotate = 0.0;
+    if (timeline.translateFrame.length > 0) {
+        timelines.push(dbft.TimelineType.BoneTranslate);
+        timelines.push(createTimeline(timeline, timeline.translateFrame, FrameValueType.Float, 2, (frame, frameStart): number => {
+            const offset = createTweenFrame(frame, frameStart);
+            frameFloatArray.push(frame.x);
+            frameFloatArray.push(frame.y);
 
-    //         timelines.push(dbft.TimelineType.BoneAll);
-    //         timelines.push(createTimeline(eachTimeline, eachTimeline.frame, false, true, 6, (frame, frameStart): number => {
-    //             const offset = createTweenFrame(frame, frameStart);
-    //             let rotate = frame.transform.skY;
-    //             if (frameStart !== 0) {
-    //                 if (clockwise === 0) {
-    //                     rotate = prevRotate + geom.normalizeDegree(rotate - prevRotate);
-    //                 }
-    //                 else {
-    //                     if (clockwise > 0 ? rotate >= prevRotate : rotate <= prevRotate) {
-    //                         clockwise = clockwise > 0 ? clockwise - 1 : clockwise + 1;
-    //                     }
+            return offset;
+        }));
+    }
 
-    //                     rotate = prevRotate + rotate - prevRotate + geom.PI_D * clockwise * geom.RAD_DEG;
-    //                 }
-    //             }
+    if (timeline.rotateFrame.length > 0) {
+        let clockwise = 0;
+        let prevRotate = 0.0;
+        timelines.push(dbft.TimelineType.BoneRotate);
+        timelines.push(createTimeline(timeline, timeline.rotateFrame, FrameValueType.Float, 2, (frame, frameStart): number => {
+            const offset = createTweenFrame(frame, frameStart);
 
-    //             clockwise = frame.tweenRotate;
-    //             prevRotate = rotate;
+            let rotate = frame.rotate;
+            if (frameStart !== 0) {
+                if (clockwise === 0) {
+                    rotate = prevRotate + geom.normalizeDegree(rotate - prevRotate);
+                }
+                else {
+                    if (clockwise > 0 ? rotate >= prevRotate : rotate <= prevRotate) {
+                        clockwise = clockwise > 0 ? clockwise - 1 : clockwise + 1;
+                    }
 
-    //             frameFloatArray.push(frame.transform.x);
-    //             frameFloatArray.push(frame.transform.y);
-    //             frameFloatArray.push(rotate * geom.DEG_RAD);
-    //             frameFloatArray.push(geom.normalizeDegree(frame.transform.skX - frame.transform.skY) * geom.DEG_RAD); //
-    //             frameFloatArray.push(frame.transform.scX);
-    //             frameFloatArray.push(frame.transform.scY);
+                    rotate = prevRotate + rotate - prevRotate + geom.PI_D * clockwise * geom.RAD_DEG;
+                }
+            }
 
-    //             return offset;
-    //         }));
-    //     }
+            clockwise = frame.clockwise;
+            prevRotate = rotate;
 
-    //     if (eachTimeline.translateFrame.length > 0) {
-    //         timelines.push(dbft.TimelineType.BoneTranslate);
-    //         timelines.push(createTimeline(eachTimeline, eachTimeline.translateFrame, false, true, 2, (frame, frameStart): number => {
-    //             const offset = createTweenFrame(frame, frameStart);
-    //             frameFloatArray.push(frame.x);
-    //             frameFloatArray.push(frame.y);
+            frameFloatArray.push(rotate * geom.DEG_RAD);
+            frameFloatArray.push(geom.normalizeDegree(frame.skew) * geom.DEG_RAD);
 
-    //             return offset;
-    //         }));
-    //     }
+            return offset;
+        }));
+    }
 
-    //     if (eachTimeline.rotateFrame.length > 0) {
-    //         let clockwise = 0;
-    //         let prevRotate = 0.0;
-    //         timelines.push(dbft.TimelineType.BoneRotate);
-    //         timelines.push(createTimeline(eachTimeline, eachTimeline.rotateFrame, false, true, 2, (frame, frameStart): number => {
-    //             const offset = createTweenFrame(frame, frameStart);
+    if (timeline.scaleFrame.length > 0) {
+        timelines.push(dbft.TimelineType.BoneScale);
+        timelines.push(createTimeline(timeline, timeline.scaleFrame, FrameValueType.Float, 2, (frame, frameStart): number => {
+            const offset = createTweenFrame(frame, frameStart);
+            frameFloatArray.push(frame.x);
+            frameFloatArray.push(frame.y);
 
-    //             let rotate = frame.rotate;
-    //             if (frameStart !== 0) {
-    //                 if (clockwise === 0) {
-    //                     rotate = prevRotate + geom.normalizeDegree(rotate - prevRotate);
-    //                 }
-    //                 else {
-    //                     if (clockwise > 0 ? rotate >= prevRotate : rotate <= prevRotate) {
-    //                         clockwise = clockwise > 0 ? clockwise - 1 : clockwise + 1;
-    //                     }
-
-    //                     rotate = prevRotate + rotate - prevRotate + geom.PI_D * clockwise * geom.RAD_DEG;
-    //                 }
-    //             }
-
-    //             clockwise = frame.clockwise;
-    //             prevRotate = rotate;
-
-    //             frameFloatArray.push(rotate * geom.DEG_RAD);
-    //             frameFloatArray.push(geom.normalizeDegree(frame.skew) * geom.DEG_RAD);
-
-    //             return offset;
-    //         }));
-    //     }
-
-    //     if (eachTimeline.scaleFrame.length > 0) {
-    //         timelines.push(dbft.TimelineType.BoneScale);
-    //         timelines.push(createTimeline(eachTimeline, eachTimeline.scaleFrame, false, true, 2, (frame, frameStart): number => {
-    //             const offset = createTweenFrame(frame, frameStart);
-    //             frameFloatArray.push(frame.x);
-    //             frameFloatArray.push(frame.y);
-
-    //             return offset;
-    //         }));
-    //     }
-    // }
+            return offset;
+        }));
+    }
 
     return timelines;
 }
 
-function createSurfaceTimeline(value: dbft.TypeTimeline): number[] {
-    const timelines = new Array<number>();
-    // const surface = currentArmature.getBone(value.name) as dbft.Surface;
-    // const vertexCount = surface.vertices.length / 2;
+function createSurfaceTimeline(timeline: dbft.TypeTimeline): number {
+    const surface = currentArmature.getBone(timeline.name) as dbft.Surface;
+    const vertexCount = surface.vertices.length / 2;
+    const frames = timeline.frame as dbft.MutilpleValueFrame[];
 
-    // for (const frame of value.frame) {
-    //     let x = 0.0;
-    //     let y = 0.0;
+    for (const frame of frames) {
+        let x = 0.0;
+        let y = 0.0;
 
-    //     const vertices = new Array<number>();
-    //     for (
-    //         let i = 0;
-    //         i < vertexCount * 2;
-    //         i += 2
-    //     ) {
-    //         if (frame.vertices.length === 0) {
-    //             x = 0.0;
-    //             y = 0.0;
-    //         }
-    //         else {
-    //             if (i < frame.offset || i - frame.offset >= frame.vertices.length) {
-    //                 x = 0.0;
-    //             }
-    //             else {
-    //                 x = frame.vertices[i - frame.offset];
-    //             }
+        const vertices = new Array<number>();
+        for (
+            let i = 0;
+            i < vertexCount * 2;
+            i += 2
+        ) {
+            if (frame.value.length === 0) {
+                x = 0.0;
+                y = 0.0;
+            }
+            else {
+                if (i < frame.offset || i - frame.offset >= frame.value.length) {
+                    x = 0.0;
+                }
+                else {
+                    x = frame.value[i - frame.offset];
+                }
 
-    //             if (i + 1 < frame.offset || i + 1 - frame.offset >= frame.vertices.length) {
-    //                 y = 0.0;
-    //             }
-    //             else {
-    //                 y = frame.vertices[i + 1 - frame.offset];
-    //             }
-    //         }
+                if (i + 1 < frame.offset || i + 1 - frame.offset >= frame.value.length) {
+                    y = 0.0;
+                }
+                else {
+                    y = frame.value[i + 1 - frame.offset];
+                }
+            }
 
-    //         vertices.push(x, y);
-    //     }
+            vertices.push(x, y);
+        }
 
-    //     frame.vertices = vertices;
-    // }
+        frame.value.length = 0;
+        for (const value of vertices) {
+            frame.value.push(value);
+        }
+    }
 
-    // const firstValues = value.frame[0].vertices;
-    // const count = firstValues.length;
-    // let completedBegin = false;
-    // let completedEnd = false;
-    // let begin = 0;
-    // let end = count - 1;
+    const firstValues = frames[0].value;
+    const count = firstValues.length;
+    let completedBegin = false;
+    let completedEnd = false;
+    let begin = 0;
+    let end = count - 1;
 
-    // while (!completedBegin || !completedEnd) {
-    //     if (!completedBegin) {
-    //         for (const frame of value.frame) {
-    //             if (frame.vertices[begin] !== firstValues[begin]) {
-    //                 completedBegin = true;
-    //                 break;
-    //             }
-    //         }
+    while (!completedBegin || !completedEnd) {
+        if (!completedBegin) {
+            for (const frame of frames) {
+                if (frame.value[begin] !== firstValues[begin]) {
+                    completedBegin = true;
+                    break;
+                }
+            }
 
-    //         if (begin === count - 1) {
-    //             completedBegin = true;
-    //         }
-    //         else if (!completedBegin) {
-    //             begin++;
-    //         }
-    //     }
+            if (begin === count - 1) {
+                completedBegin = true;
+            }
+            else if (!completedBegin) {
+                begin++;
+            }
+        }
 
-    //     if (completedBegin && !completedEnd) {
-    //         for (const frame of value.frame) {
-    //             if (frame.vertices[end] !== firstValues[end]) {
-    //                 completedEnd = true;
-    //                 break;
-    //             }
-    //         }
+        if (completedBegin && !completedEnd) {
+            for (const frame of frames) {
+                if (frame.value[end] !== firstValues[end]) {
+                    completedEnd = true;
+                    break;
+                }
+            }
 
-    //         if (end === begin) {
-    //             completedEnd = true;
-    //         }
-    //         else if (!completedEnd) {
-    //             end--;
-    //         }
-    //     }
-    // }
+            if (end === begin) {
+                completedEnd = true;
+            }
+            else if (!completedEnd) {
+                end--;
+            }
+        }
+    }
 
-    // const frameIntOffset = frameIntArray.length;
-    // const valueCount = end - begin + 1;
+    const frameIntOffset = frameIntArray.length;
+    const valueCount = end - begin + 1;
 
-    // frameIntArray.length += 5;
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformMeshOffset] = surface.offset; // Surface offset.
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformCount] = count; // Deform count.
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueCount] = valueCount; // Value count.
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueOffset] = begin; // Value offset.
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformFloatOffset] = frameFloatArray.length - currentAnimationBinary.offset[dbft.OffsetOrder.FrameFloat]; // Float offset.
+    frameIntArray.length += 5;
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformMeshOffset] = surface.offset; // Surface offset.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformCount] = count; // Deform count.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueCount] = valueCount; // Value count.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueOffset] = begin; // Value offset.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformFloatOffset] = frameFloatArray.length - currentAnimationBinary.offset[dbft.OffsetOrder.FrameFloat]; // Float offset.
 
-    // for (let i = 0; i < begin; ++i) {
-    //     frameFloatArray.push(firstValues[i]);
-    // }
+    for (let i = 0; i < begin; ++i) {
+        frameFloatArray.push(firstValues[i]);
+    }
 
-    // for (let i = end + 1; i < count; i++) {
-    //     frameFloatArray.push(firstValues[i]);
-    // }
+    for (let i = end + 1; i < count; ++i) {
+        frameFloatArray.push(firstValues[i]);
+    }
 
-    // const timelineOffset = createTimeline(value, value.frame, false, true, valueCount, (frame, frameStart) => {
-    //     const offset = createTweenFrame(frame, frameStart);
-    //     for (let i = 0; i < valueCount; ++i) {
-    //         frameFloatArray.push(frame.vertices[begin + i]);
-    //     }
+    const timelineOffset = createTimeline(timeline, frames, FrameValueType.Float, valueCount, (frame, frameStart) => {
+        const offset = createTweenFrame(frame, frameStart);
+        for (let i = 0; i < valueCount; ++i) {
+            frameFloatArray.push(frame.value[begin + i]);
+        }
 
-    //     return offset;
-    // });
+        return offset;
+    });
 
-    // // Get more infomation form value count offset.
-    // timelineArray[timelineOffset + dbft.BinaryOffset.TimelineFrameValueCount] = frameIntOffset - currentAnimationBinary.offset[dbft.OffsetOrder.FrameInt];
+    // Get more infomation form value count offset.
+    timelineArray[timelineOffset + dbft.BinaryOffset.TimelineFrameValueCount] = frameIntOffset - currentAnimationBinary.offset[dbft.OffsetOrder.FrameInt];
 
-    // timelines.push(dbft.TimelineType.Surface);
-    // timelines.push(timelineOffset);
-
-    return timelines;
+    return timelineOffset;
 }
 
-function createSlotTimeline(value: dbft.SlotTimeline): number[] {
-    const timelines = new Array<number>();
+function createDeformTimeline(timeline: dbft.SlotDeformTimeline | dbft.TypeTimeline): number {
+    const mesh = (
+        timeline instanceof dbft.SlotDeformTimeline ?
+            currentArmature.getDisplay(timeline.skin, timeline.slot, timeline.name) :
+            currentArmature.getDisplay("", "", timeline.name)
+    ) as dbft.MeshDisplay | null; // TODO
 
-    // if (value.displayFrame.length > 0) {
-    //     timelines.push(dbft.TimelineType.SlotDisplay);
-    //     timelines.push(createTimeline(value, value.displayFrame, false, false, 0, (frame, frameStart) => {
-    //         const offset = createFrame(frame, frameStart);
-    //         frameArray.push(frame.value);
+    if (!mesh) {
+        return -1;
+    }
 
-    //         return offset;
-    //     }));
-    // }
+    const vertexCount = mesh.vertices.length / 2;
+    const frames = timeline.frame as dbft.MutilpleValueFrame[];
 
-    // if (value.colorFrame.length > 0) {
-    //     timelines.push(dbft.TimelineType.SlotColor);
-    //     timelines.push();
-    // }
+    for (const frame of frames) {
+        let x = 0.0;
+        let y = 0.0;
+        let iB = 0;
+        if (mesh.weights.length > 0) {
+            geom.helpMatrixA.copyFromArray(mesh.slotPose, 0);
+            // frameFloatArray.length += mesh._weightCount * 2; // TODO CK
+        }
+        else {
+            // frameFloatArray.length += vertexCount * 2;
+        }
 
-    return timelines;
-}
+        if (frame.vertices.length > 0) { // 
+            frame.value.length = 0;
+            for (const value of frame.vertices) {
+                frame.value.push(value);
+            }
 
-function createMeshDeformTimeline(value: dbft.SlotDeformTimeline): number[] {
-    const timelines = new Array<number>();
+            frame.vertices.length = 0;
+        }
 
-    // const mesh = currentArmature.getMesh(value.skin, value.slot, value.name);
-    // if (!mesh) {
-    //     return timelines;
-    // }
+        const vertices = new Array<number>();
+        for (
+            let i = 0;
+            i < vertexCount * 2;
+            i += 2
+        ) {
+            if (frame.value.length === 0) {
+                x = 0.0;
+                y = 0.0;
+            }
+            else {
+                if (i < frame.offset || i - frame.offset >= frame.value.length) {
+                    x = 0.0;
+                }
+                else {
+                    x = frame.value[i - frame.offset];
+                }
 
-    // const vertexCount = mesh.vertices.length / 2;
-    // for (const frame of value.frame) {
-    //     let x = 0.0;
-    //     let y = 0.0;
-    //     let iB = 0;
-    //     if (mesh.weights.length > 0) {
-    //         geom.helpMatrixA.copyFromArray(mesh.slotPose, 0);
-    //         // frameFloatArray.length += mesh._weightCount * 2; // TODO CK
-    //     }
-    //     else {
-    //         // frameFloatArray.length += vertexCount * 2;
-    //     }
+                if (i + 1 < frame.offset || i + 1 - frame.offset >= frame.value.length) {
+                    y = 0.0;
+                }
+                else {
+                    y = frame.value[i + 1 - frame.offset];
+                }
+            }
 
-    //     const vertices = new Array<number>();
-    //     for (
-    //         let i = 0;
-    //         i < vertexCount * 2;
-    //         i += 2
-    //     ) {
-    //         if (frame.vertices.length === 0) {
-    //             x = 0.0;
-    //             y = 0.0;
-    //         }
-    //         else {
-    //             if (i < frame.offset || i - frame.offset >= frame.vertices.length) {
-    //                 x = 0.0;
-    //             }
-    //             else {
-    //                 x = frame.vertices[i - frame.offset];
-    //             }
+            if (mesh.weights.length > 0) { // If mesh is skinned, transform point by bone bind pose.
+                const vertexBoneCount = mesh.weights[iB++];
 
-    //             if (i + 1 < frame.offset || i + 1 - frame.offset >= frame.vertices.length) {
-    //                 y = 0.0;
-    //             }
-    //             else {
-    //                 y = frame.vertices[i + 1 - frame.offset];
-    //             }
-    //         }
+                geom.helpMatrixA.transformPoint(x, y, geom.helpPointA, true);
+                x = geom.helpPointA.x;
+                y = geom.helpPointA.y;
 
-    //         if (mesh.weights.length > 0) { // If mesh is skinned, transform point by bone bind pose.
-    //             const vertexBoneCount = mesh.weights[iB++];
+                for (let j = 0; j < vertexBoneCount; ++j) {
+                    const rawBoneIndex = mesh.weights[iB];
+                    geom.helpMatrixB.copyFromArray(mesh.bonePose, mesh.getBonePoseOffset(rawBoneIndex) + 1);
+                    geom.helpMatrixB.invert();
+                    geom.helpMatrixB.transformPoint(x, y, geom.helpPointA, true);
 
-    //             geom.helpMatrixA.transformPoint(x, y, geom.helpPointA, true);
-    //             x = geom.helpPointA.x;
-    //             y = geom.helpPointA.y;
+                    vertices.push(geom.helpPointA.x, geom.helpPointA.y);
+                    iB += 2;
+                }
+            }
+            else {
+                vertices.push(x, y);
+            }
+        }
 
-    //             for (let j = 0; j < vertexBoneCount; ++j) {
-    //                 const rawBoneIndex = mesh.weights[iB];
-    //                 geom.helpMatrixB.copyFromArray(mesh.bonePose, mesh.getBonePoseOffset(rawBoneIndex) + 1);
-    //                 geom.helpMatrixB.invert();
-    //                 geom.helpMatrixB.transformPoint(x, y, geom.helpPointA, true);
+        frame.value.length = 0;
+        for (const value of vertices) {
+            frame.value.push(value);
+        }
+    }
 
-    //                 vertices.push(geom.helpPointA.x, geom.helpPointA.y);
-    //                 iB += 2;
-    //             }
-    //         }
-    //         else {
-    //             vertices.push(x, y);
-    //         }
-    //     }
+    const firstValues = frames[0].value;
+    const count = firstValues.length;
+    let completedBegin = false;
+    let completedEnd = false;
+    let begin = 0;
+    let end = count - 1;
 
-    //     frame.vertices = vertices;
-    // }
+    while (!completedBegin || !completedEnd) {
+        if (!completedBegin) {
+            for (const frame of frames) {
+                if (frame.value[begin] !== firstValues[begin]) {
+                    completedBegin = true;
+                    break;
+                }
+            }
 
-    // const firstValues = value.frame[0].vertices;
-    // const count = firstValues.length;
-    // let completedBegin = false;
-    // let completedEnd = false;
-    // let begin = 0;
-    // let end = count - 1;
+            if (begin === count - 1) {
+                completedBegin = true;
+            }
+            else if (!completedBegin) {
+                begin++;
+            }
+        }
 
-    // while (!completedBegin || !completedEnd) {
-    //     if (!completedBegin) {
-    //         for (const frame of value.frame) {
-    //             if (frame.vertices[begin] !== firstValues[begin]) {
-    //                 completedBegin = true;
-    //                 break;
-    //             }
-    //         }
+        if (completedBegin && !completedEnd) {
+            for (const frame of frames) {
+                if (frame.value[end] !== firstValues[end]) {
+                    completedEnd = true;
+                    break;
+                }
+            }
 
-    //         if (begin === count - 1) {
-    //             completedBegin = true;
-    //         }
-    //         else if (!completedBegin) {
-    //             begin++;
-    //         }
-    //     }
+            if (end === begin) {
+                completedEnd = true;
+            }
+            else if (!completedEnd) {
+                end--;
+            }
+        }
+    }
 
-    //     if (completedBegin && !completedEnd) {
-    //         for (const frame of value.frame) {
-    //             if (frame.vertices[end] !== firstValues[end]) {
-    //                 completedEnd = true;
-    //                 break;
-    //             }
-    //         }
+    const frameIntOffset = frameIntArray.length;
+    const valueCount = end - begin + 1;
+    frameIntArray.length += 5;
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformMeshOffset] = mesh.offset; // Mesh offset.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformCount] = count; // Deform count.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueCount] = valueCount; // Value count.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueOffset] = begin; // Value offset.
+    frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformFloatOffset] = frameFloatArray.length - currentAnimationBinary.offset[dbft.OffsetOrder.FrameFloat]; // Float offset.
 
-    //         if (end === begin) {
-    //             completedEnd = true;
-    //         }
-    //         else if (!completedEnd) {
-    //             end--;
-    //         }
-    //     }
-    // }
+    for (let i = 0; i < begin; ++i) {
+        frameFloatArray.push(firstValues[i]);
+    }
 
-    // const frameIntOffset = frameIntArray.length;
-    // const valueCount = end - begin + 1;
-    // frameIntArray.length += 5;
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformMeshOffset] = mesh.offset; // Mesh offset.
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformCount] = count; // Deform count.
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueCount] = valueCount; // Value count.
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformValueOffset] = begin; // Value offset.
-    // frameIntArray[frameIntOffset + dbft.BinaryOffset.DeformFloatOffset] = frameFloatArray.length - currentAnimationBinary.offset[dbft.OffsetOrder.FrameFloat]; // Float offset.
+    for (let i = end + 1; i < count; ++i) {
+        frameFloatArray.push(firstValues[i]);
+    }
 
-    // for (let i = 0; i < begin; ++i) {
-    //     frameFloatArray.push(firstValues[i]);
-    // }
+    const timelineOffset = createTimeline(timeline, frames, FrameValueType.Float, valueCount, (frame, frameStart) => {
+        const offset = createTweenFrame(frame, frameStart);
+        for (let i = 0; i < valueCount; ++i) {
+            frameFloatArray.push(frame.value[begin + i]);
+        }
 
-    // for (let i = end + 1; i < count; i++) {
-    //     frameFloatArray.push(firstValues[i]);
-    // }
+        return offset;
+    });
 
-    // const timelineOffset = createTimeline(value, value.frame, false, true, valueCount, (frame, frameStart) => {
-    //     const offset = createTweenFrame(frame, frameStart);
-    //     for (let i = 0; i < valueCount; ++i) {
-    //         frameFloatArray.push(frame.vertices[begin + i]);
-    //     }
+    // Get more infomation form value count offset.
+    timelineArray[timelineOffset + dbft.BinaryOffset.TimelineFrameValueCount] = frameIntOffset - currentAnimationBinary.offset[dbft.OffsetOrder.FrameInt];
 
-    //     return offset;
-    // });
-
-    // // Get more infomation form value count offset.
-    // timelineArray[timelineOffset + dbft.BinaryOffset.TimelineFrameValueCount] = frameIntOffset - currentAnimationBinary.offset[dbft.OffsetOrder.FrameInt];
-
-    // timelines.push(dbft.TimelineType.SlotDeform);
-    // timelines.push(timelineOffset);
-
-    return timelines;
+    return timelineOffset;
 }
 
 function modifyBytesPosition(bytes: number[], byte: number = 0): void {

@@ -1,8 +1,6 @@
 import * as geom from "../format/geom";
 import * as dbft from "../format/dragonBonesFormat";
 
-const normalColor = new geom.ColorTransform();
-
 export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.DragonBones {
     data.version = dbft.DATA_VERSION_5_5;
     data.compatibleVersion = dbft.DATA_VERSION_5_5;

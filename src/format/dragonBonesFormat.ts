@@ -853,6 +853,7 @@ export class Surface extends Bone implements VerticesData {
 export class Slot extends BaseData {
     blendMode: BlendMode | string = BlendMode[BlendMode.Normal].toLowerCase();
     displayIndex: number = 0;
+    zIndex: number = 0;
     alpha: number = 1.0;
     name: string = "";
     parent: string = "";
@@ -1146,7 +1147,7 @@ export class Animation extends BaseData {
 
     getAnimationTimeline(name: string, type: TimelineType) {
         for (const timeline of this.timeline) {
-            if (timeline.type === type && name === name) {
+            if (timeline.type === type && timeline.name === name) {
                 return timeline;
             }
         }
@@ -1164,7 +1165,13 @@ export class AnimationBinary extends BaseData {
     fadeInTime: number = 0.0;
     name: string = "";
 
+    action: number = -1; // Deprecated.
+    zOrder: number = -1; // Deprecated.
     readonly offset: number[] = [];
+    readonly bone: Map<number[]> = {};  // Deprecated.
+    readonly surface: Map<number[]> = {};  // Deprecated.
+    readonly slot: Map<number[]> = {};  // Deprecated.
+    readonly constraint: Map<number[]> = {};  // Deprecated.
     readonly timeline: TypeTimeline[] = [];
 }
 
@@ -1175,7 +1182,7 @@ export abstract class Timeline extends BaseData {
 }
 
 export class TypeTimeline extends Timeline {
-    type: TimelineType = 0;
+    type: TimelineType = TimelineType.Action;
     readonly frame: Frame[] = [];
 
     clearToBinary() {
@@ -1820,6 +1827,44 @@ export class Texture extends BaseData {
     name: string = "";
 }
 
+let timelineType = TimelineType.Action;
+
+function createTypeTimelineFrame() {
+    switch (timelineType) {
+        case TimelineType.Action:
+            return SingleValueFrame0;
+
+        case TimelineType.SlotDisplay:
+        case TimelineType.SlotZIndex:
+        case TimelineType.AnimationProgress:
+            return SingleValueFrame0;
+
+        case TimelineType.BoneAlpha:
+        case TimelineType.SlotAlpha:
+        case TimelineType.AnimationWeight:
+            return SingleValueFrame1;
+
+        case TimelineType.BoneTranslate:
+        case TimelineType.BoneRotate:
+        case TimelineType.AnimationParameter:
+            return DoubleValueFrame0;
+
+        case TimelineType.BoneScale:
+        case TimelineType.IKConstraint:
+            return DoubleValueFrame1;
+
+        case TimelineType.ZOrder:
+        case TimelineType.Surface:
+        case TimelineType.SlotDeform:
+            return MutilpleValueFrame;
+
+        case TimelineType.SlotColor:
+            return SlotColorFrame;
+    }
+
+    throw new Error();
+}
+
 export const copyConfig = [
     DragonBones, {
         armature: Armature,
@@ -1946,63 +1991,30 @@ export const copyConfig = [
         ik: IKConstraintTimeline,
         timeline: [
             function (timeline: any) {
-                if ("type" in timeline) {
-                    switch (timeline["type"]) {
-                        case TimelineType.AnimationParameter:
+                timelineType = "type" in timeline ? timeline["type"] : TimelineType.Action;
+
+                switch (timelineType) {
+                    case TimelineType.AnimationProgress:
+                        if ("x" in timeline || "y" in timeline) {
                             return AnimationTimeline;
+                        }
 
-                        default:
-                            return TypeTimeline;
-                    }
+                    default:
+                        return TypeTimeline;
                 }
-
-                throw new Error();
             },
             Function
         ],
     },
     TypeTimeline, {
         frame: [
-            function (parent: any, frame: any) {
-                // tslint:disable-next-line:no-unused-expression
-                frame;
-
-                if ("type" in parent) {
-                    switch (parent["type"]) {
-                        case TimelineType.Action:
-                            return SingleValueFrame0;
-
-                        case TimelineType.SlotDisplay:
-                        case TimelineType.SlotZIndex:
-                        case TimelineType.AnimationProgress:
-                            return SingleValueFrame0;
-
-                        case TimelineType.BoneAlpha:
-                        case TimelineType.SlotAlpha:
-                        case TimelineType.AnimationWeight:
-                            return SingleValueFrame1;
-
-                        case TimelineType.BoneTranslate:
-                        case TimelineType.BoneRotate:
-                        case TimelineType.AnimationParameter:
-                            return DoubleValueFrame0;
-
-                        case TimelineType.BoneScale:
-                        case TimelineType.IKConstraint:
-                            return DoubleValueFrame1;
-
-                        case TimelineType.ZOrder:
-                        case TimelineType.Surface:
-                        case TimelineType.SlotDeform:
-                            return MutilpleValueFrame;
-
-                        case TimelineType.SlotColor:
-                            return SlotColorFrame;
-                    }
-                }
-
-                throw new Error();
-            },
+            createTypeTimelineFrame,
+            Function,
+        ],
+    },
+    AnimationTimeline, {
+        frame: [
+            createTypeTimelineFrame,
             Function,
         ],
     },

@@ -11,7 +11,7 @@ import toFormat from "./action/toFormat";
 import toNew from "./action/toNew";
 import toBinary from "./action/toBinary";
 import toWeb from "./action/toWeb";
-// import toSpine from "./action/toSpine";
+import toSpine from "./action/toSpine";
 import format from "./action/formatFormat";
 
 function execute(): void {
@@ -24,8 +24,8 @@ function execute(): void {
         .option("-d, --delete", "Delete raw files after convert complete")
         .parse(process.argv);
 
-    const input = path.resolve(commands["input"] as string || process.cwd());
-    const output = commands["output"] ? path.resolve(commands["output"] as string || "") : null;
+    const input = path.resolve(path.normalize(commands["input"] as string || process.cwd()));
+    const output = "output" in commands ? path.resolve(path.normalize(commands["output"])) : input;
     const type = commands["type"] as string || "";
     const filter = commands["filter"] as string || "";
     const deleteRaw = commands["delete"] as boolean || false;
@@ -37,13 +37,9 @@ function execute(): void {
             break;
 
         case "new":
-            if (!output) {
-            }
             break;
 
         case "v45":
-            if (!output) {
-            }
             break;
 
         case "player":
@@ -68,6 +64,8 @@ function execute(): void {
             continue;
         }
 
+        const dirURL = path.dirname(file);
+        const fileName = path.basename(file, ".json");
         const fileString = fs.readFileSync(file, "utf-8");
         let textureAtlasFiles: string[] | null = null;
         let textureAtlasImages: string[] | null = null;
@@ -120,63 +118,56 @@ function execute(): void {
                 toNew(dragonBonesData, true);
                 format(dragonBonesData);
 
+                const outputDirURL = dirURL.replace(input, output);
+                const outputURL = path.join(outputDirURL, fileName + ".dbbin");
                 const result = toBinary(dragonBonesData);
-                const outputFile = (output ? file.replace(input, output) : file).replace(".json", ".dbbin");
 
-                if (!fs.existsSync(path.dirname(outputFile))) {
-                    fs.mkdirsSync(path.dirname(outputFile));
+                if (!fs.existsSync(outputDirURL)) {
+                    fs.mkdirsSync(outputDirURL);
                 }
-                fs.writeFileSync(outputFile, new Buffer(result));
-                console.log(outputFile);
 
-                if (deleteRaw && output) {
+                fs.writeFileSync(outputURL, new Buffer(result));
+                console.log(outputURL);
+
+                if (deleteRaw) {
                     fs.unlinkSync(file);
-
-                    if (textureAtlasFiles) {
-                        for (const textureAtlasFile of textureAtlasFiles) {
-                            if (megreTextureAtlasToData) {
-                                fs.removeSync(textureAtlasFile);
-                            }
-                            else {
-                                const outputFile = textureAtlasFile.replace(input, output);
-                                fs.moveSync(textureAtlasFile, outputFile);
-                                console.log(outputFile);
-                            }
-                        }
-                    }
-
-                    for (const textureAtlasImage of textureAtlasImages) {
-                        const outputFile = textureAtlasImage.replace(input, output);
-                        fs.moveSync(textureAtlasImage, outputFile);
-                        console.log(outputFile);
-                    }
                 }
-                else if (deleteRaw) {
-                    fs.unlinkSync(file);
 
-                    if (textureAtlasFiles) {
-                        for (const textureAtlasFile of textureAtlasFiles) {
-                            if (megreTextureAtlasToData) {
-                                fs.removeSync(textureAtlasFile);
-                            }
-                        }
-                    }
-                }
-                else if (output) {
+                if (outputDirURL !== dirURL) {
                     if (textureAtlasFiles && !megreTextureAtlasToData) {
                         for (const textureAtlasFile of textureAtlasFiles) {
-                            const outputFile = textureAtlasFile.replace(input, output);
-                            fs.copySync(textureAtlasFile, outputFile);
-                            console.log(outputFile);
+                            const outputURL = textureAtlasFile.replace(input, output);
+
+                            if (deleteRaw) {
+                                fs.moveSync(textureAtlasFile, outputURL);
+                            }
+                            else {
+                                fs.copySync(textureAtlasFile, outputURL);
+                            }
+
+                            console.log(outputURL);
                         }
                     }
 
                     for (const textureAtlasImage of textureAtlasImages) {
-                        const outputFile = textureAtlasImage.replace(input, output);
-                        fs.copySync(textureAtlasImage, outputFile);
-                        console.log(outputFile);
+                        const outputURL = textureAtlasImage.replace(input, output);
+
+                        if (deleteRaw) {
+                            fs.moveSync(textureAtlasImage, outputURL);
+                        }
+                        else {
+                            fs.copySync(textureAtlasImage, outputURL);
+                        }
+
+                        console.log(outputURL);
                     }
                 }
+                else if (textureAtlasFiles && megreTextureAtlasToData) {
+                    for (const textureAtlasFile of textureAtlasFiles) {
+                        fs.removeSync(textureAtlasFile);
+                    }
+                }
+
                 break;
             }
 
@@ -185,59 +176,53 @@ function execute(): void {
                 format(dragonBonesData);
                 object.compress(dragonBonesData, dbft.compressConfig);
 
+                const outputDirURL = dirURL.replace(input, output);
+                const outputURL = path.join(outputDirURL, fileName + ".json");
                 const result = JSON.stringify(dragonBonesData);
-                const outputFile = output ? file.replace(input, output) : file;
 
-                if (!fs.existsSync(path.dirname(outputFile))) {
-                    fs.mkdirsSync(path.dirname(outputFile));
+                if (!fs.existsSync(outputDirURL)) {
+                    fs.mkdirsSync(outputDirURL);
                 }
-                fs.writeFileSync(outputFile, result);
-                console.log(outputFile);
 
-                if (deleteRaw && output) {
-                    fs.unlinkSync(file);
+                fs.writeFileSync(outputURL, new Buffer(result));
+                console.log(outputURL);
 
-                    if (textureAtlasFiles) {
-                        for (const textureAtlasFile of textureAtlasFiles) {
-                            if (megreTextureAtlasToData) {
-                                fs.removeSync(textureAtlasFile);
-                            }
-                            else {
-                                const outputFile = textureAtlasFile.replace(input, output);
-                                fs.moveSync(textureAtlasFile, outputFile);
-                                console.log(outputFile);
-                            }
-                        }
+                if (outputDirURL !== dirURL) {
+                    if (deleteRaw) {
+                        fs.unlinkSync(file);
                     }
 
-                    for (const textureAtlasImage of textureAtlasImages) {
-                        const outputFile = textureAtlasImage.replace(input, output);
-                        fs.moveSync(textureAtlasImage, outputFile);
-                        console.log(outputFile);
-                    }
-                }
-                else if (deleteRaw) {
-                    if (textureAtlasFiles) {
-                        for (const textureAtlasFile of textureAtlasFiles) {
-                            if (megreTextureAtlasToData) {
-                                fs.removeSync(textureAtlasFile);
-                            }
-                        }
-                    }
-                }
-                else if (output) {
                     if (textureAtlasFiles && !megreTextureAtlasToData) {
                         for (const textureAtlasFile of textureAtlasFiles) {
-                            const outputFile = textureAtlasFile.replace(input, output);
-                            fs.copySync(textureAtlasFile, outputFile);
-                            console.log(outputFile);
+                            const outputURL = textureAtlasFile.replace(input, output);
+
+                            if (deleteRaw) {
+                                fs.moveSync(textureAtlasFile, outputURL);
+                            }
+                            else {
+                                fs.copySync(textureAtlasFile, outputURL);
+                            }
+
+                            console.log(outputURL);
                         }
                     }
 
                     for (const textureAtlasImage of textureAtlasImages) {
-                        const outputFile = textureAtlasImage.replace(input, output);
-                        fs.copySync(textureAtlasImage, outputFile);
-                        console.log(outputFile);
+                        const outputURL = textureAtlasImage.replace(input, output);
+
+                        if (deleteRaw) {
+                            fs.moveSync(textureAtlasImage, outputURL);
+                        }
+                        else {
+                            fs.copySync(textureAtlasImage, outputURL);
+                        }
+
+                        console.log(outputURL);
+                    }
+                }
+                else if (textureAtlasFiles && megreTextureAtlasToData) {
+                    for (const textureAtlasFile of textureAtlasFiles) {
+                        fs.removeSync(textureAtlasFile);
                     }
                 }
 
@@ -249,6 +234,8 @@ function execute(): void {
                 toNew(dragonBonesData, true);
                 format(dragonBonesData);
 
+                const outputDirURL = dirURL.replace(input, output);
+                const outputURL = path.join(outputDirURL, fileName + ".html");
                 const result = toWeb({
                     data: new Buffer(toBinary(dragonBonesData)),
                     textureAtlases: textureAtlasImages.map((v) => {
@@ -262,87 +249,88 @@ function execute(): void {
                         isLocal: true
                     }
                 }, type === "player");
-                const outputFile = (output ? file.replace(input, output) : file).replace(".json", ".html");
 
-                if (!fs.existsSync(path.dirname(outputFile))) {
-                    fs.mkdirsSync(path.dirname(outputFile));
+                if (!fs.existsSync(outputDirURL)) {
+                    fs.mkdirsSync(outputDirURL);
                 }
-                fs.writeFileSync(outputFile, new Buffer(result));
-                console.log(outputFile);
+
+                fs.writeFileSync(outputURL, new Buffer(result));
+                console.log(outputURL);
 
                 if (deleteRaw) {
                     fs.unlinkSync(file);
 
                     if (textureAtlasFiles) {
                         for (const textureAtlasFile of textureAtlasFiles) {
-                            fs.removeSync(textureAtlasFile);
+                            fs.unlinkSync(textureAtlasFile);
                         }
                     }
 
                     for (const textureAtlasImage of textureAtlasImages) {
-                        fs.removeSync(textureAtlasImage);
+                        fs.unlinkSync(textureAtlasImage);
                     }
                 }
+
                 break;
             }
 
             case "spine": {
-                // toNew(dragonBonesData, true);
-                // format(dragonBonesData);
+                toNew(dragonBonesData, true);
+                format(dragonBonesData);
 
-                // const result = toSpine(dragonBonesData, "3.6.0", !output);
-                // const base = (output ? file.replace(input, output) : file).replace("_ske.json", "");
-                // dragonBonesData.name = path.basename(base); // Modify name to file name.
-                // console.log(dragonBonesData.name);
+                const outputDirURL = dirURL.replace(input, output);
+                const result = toSpine(dragonBonesData, "3.6.0", !output);
+                const suffix = outputDirURL === dirURL ? "_spine" : "";
+                dragonBonesData.name = fileName.replace("_ske", "");
+                console.log(dragonBonesData.name);
 
-                // for (const spine of result.spines) {
-                //     object.compress(spine, spft.compressConfig);
-                //     const outputFile = (result.spines.length > 1 ? base + "_" + spine.skeleton.name : base) + (output ? ".json" : "_spine.json");
-                //     delete spine.skeleton.name; // delete keep name.
-                //     if (!fs.existsSync(path.dirname(outputFile))) {
-                //         fs.mkdirsSync(path.dirname(outputFile));
-                //     }
-                //     fs.writeFileSync(outputFile, JSON.stringify(spine));
-                //     console.log(outputFile);
-                // }
+                if (!fs.existsSync(outputDirURL)) {
+                    fs.mkdirsSync(outputDirURL);
+                }
 
-                // const outputFile = base + (output ? ".atlas" : "_spine.atlas");
+                for (const spine of result.spines) {
+                    object.compress(spine, spft.compressConfig);
+                    const outputURL = path.join(outputDirURL, (result.spines.length > 1 ? dragonBonesData.name + "_" + spine.skeleton.name : dragonBonesData.name) + suffix + ".json");
+                    delete spine.skeleton.name; // Delete keep name.
+                    fs.writeFileSync(outputURL, JSON.stringify(spine));
+                    console.log(outputURL);
+                }
 
-                // if (!fs.existsSync(path.dirname(outputFile))) {
-                //     fs.mkdirsSync(path.dirname(outputFile));
-                // }
-                // fs.writeFileSync(outputFile, result.textureAtlas);
-                // console.log(outputFile);
+                const outputURL = path.join(outputDirURL, dragonBonesData.name + suffix + ".atlas");
+                fs.writeFileSync(outputURL, result.textureAtlas);
+                console.log(outputURL);
 
-                // if (deleteRaw) {
-                //     fs.unlinkSync(file);
+                if (deleteRaw) {
+                    fs.unlinkSync(file);
 
-                //     if (textureAtlasFiles) {
-                //         for (const textureAtlasFile of textureAtlasFiles) {
-                //             fs.removeSync(textureAtlasFile);
-                //         }
-                //     }
-                // }
+                    if (textureAtlasFiles) {
+                        for (const textureAtlasFile of textureAtlasFiles) {
+                            fs.unlinkSync(textureAtlasFile);
+                        }
+                    }
+                }
 
-                // let index = 0;
-                // for (const textureAtlasImage of textureAtlasImages) {
-                //     if (fs.existsSync(textureAtlasImage)) {
-                //         const outputFile = path.join(
-                //             path.dirname(output ? textureAtlasImage.replace(input, output) : textureAtlasImage),
-                //             dragonBonesData.name + (output ? "" : "_spine") + (textureAtlasImages.length > 1 ? "_" + index : "") + ".png"
-                //         );
+                if (outputDirURL !== dirURL) {
+                    let index = 0;
+                    for (const textureAtlasImage of textureAtlasImages) {
+                        const outputURL = path.join(
+                            path.dirname(textureAtlasImage.replace(input, output)),
+                            dragonBonesData.name + suffix + (textureAtlasImages.length > 1 ? "_" + index : "") + ".png"
+                        );
 
-                //         if (deleteRaw) {
-                //             fs.moveSync(textureAtlasImage, outputFile);
-                //         }
-                //         else {
-                //             fs.copySync(textureAtlasImage, outputFile);
-                //         }
+                        if (fs.existsSync(textureAtlasImage)) {
+                            if (deleteRaw) {
+                                fs.moveSync(textureAtlasImage, outputURL);
+                            }
+                            else {
+                                fs.copySync(textureAtlasImage, outputURL);
+                            }
+                        }
 
-                //         console.log(outputFile);
-                //     }
-                //     index++;
-                // }
+                        console.log(outputURL);
+                        index++;
+                    }
+                }
                 break;
             }
 
