@@ -448,7 +448,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
                             cleanFrame(frames);
 
-                            // if (frames.length === 1) {
+                            // if (frames.length === 1) { // TODO
                             //     const frame = frames[0];
                             //     if (frame.value === 1.0) {
                             //         frames.length = 0;

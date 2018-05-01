@@ -895,7 +895,7 @@ function createAnimation<F, T extends { name: string }>(
                 count *= l2Timelines[j].frameCount;
             }
 
-            offset += value * count; // TODO check
+            offset += value * count;
         }
 
         action(l2Timeline, frames, target, offset, blendAnimation);
