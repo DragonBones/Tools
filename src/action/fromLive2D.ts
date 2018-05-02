@@ -608,28 +608,47 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
 
                     let duration = 0;
                     const values = motionConfig.motion.values[timelineName];
+                    let [min, max] = getMinAndMax(values);
                     const timeline = new dbft.TypeTimeline();
                     let prevFrame: dbft.SingleValueFrame0 | null = null;
                     timeline.type = dbft.TimelineType.AnimationProgress;
                     timeline.name = timelineName;
 
+                    min = (min - l2TimelineInfo.minimum) / (l2TimelineInfo.maximum - l2TimelineInfo.minimum);
+                    max = (max - l2TimelineInfo.minimum) / (l2TimelineInfo.maximum - l2TimelineInfo.minimum);
+
                     for (let i = 0, l = values.length; i < l; ++i) {
                         const value = values[i];
                         const frame = new dbft.SingleValueFrame0();
-
-                        if (i !== l - 1) {
-                            frame.tweenEasing = 0;
-                            duration += frame.duration;
-                        }
-
+                        frame.tweenEasing = 0.0;
                         frame.value = (value - l2TimelineInfo.minimum) / (l2TimelineInfo.maximum - l2TimelineInfo.minimum);
                         timeline.frame.push(frame);
+                        duration += frame.duration;
 
-                        if (prevFrame && Math.abs(prevFrame.value - frame.value) > 0.4) { //
+                        if (
+                            prevFrame &&
+                            (
+                                prevFrame.value === min || prevFrame.value === max ||
+                                frame.value === min || frame.value === max
+                            ) &&
+                            Math.abs(prevFrame.value - frame.value) > Math.abs(max - min) * 0.5
+                        ) {
                             prevFrame.tweenEasing = NaN;
                         }
 
                         prevFrame = frame;
+                    }
+
+                    const firstVaule = (timeline.frame[0] as dbft.SingleValueFrame0).value;
+                    if (
+                        prevFrame &&
+                        (
+                            prevFrame.value === min || prevFrame.value === max ||
+                            firstVaule === min || firstVaule === max
+                        ) &&
+                        Math.abs(prevFrame.value - firstVaule) > Math.abs(max - min) * 0.5
+                    ) {
+                        prevFrame.tweenEasing = NaN;
                     }
 
                     animation.duration = Math.max(duration, animation.duration);
@@ -968,4 +987,21 @@ function vertivesInterpolation(result: number[], a: number[], b: number[], t: nu
 
     vertivesCopyFrom(result, a);
     vertivesAdd(result, helper);
+}
+
+function getMinAndMax(values: number[]) {
+    let min = 999999.0;
+    let max = -999999.0;
+
+    for (const value of values) {
+        if (value < min) {
+            min = value;
+        }
+
+        if (value > max) {
+            max = value;
+        }
+    }
+
+    return [min, max];
 }
