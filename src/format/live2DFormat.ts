@@ -288,7 +288,8 @@ export class Model implements ISerializable {
         this.parts = reader.readObject();
         this.stageWidth = reader.readInt();
         this.stageHeight = reader.readInt();
-
+        
+        let index = 0;
         for (const part of this.parts) {
             for (const bone of part.bones) {
                 for (const timeline of bone.animation.timelines) {
@@ -311,7 +312,6 @@ export class Model implements ISerializable {
                 }
             }
 
-            let index = 0;
             for (const display of part.displays) {
                 display.zOrder = index++;
                 this.displays.push(display);

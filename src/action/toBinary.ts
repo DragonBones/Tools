@@ -529,8 +529,19 @@ function createTypeTimeline(timeline: dbft.TypeTimeline) {
             return createDeformTimeline(timeline);
 
         case dbft.TimelineType.SlotColor:
-            // TODO
-            break;
+            return createTimeline(timeline, timeline.frame, FrameValueType.Int, 1, (frame: dbft.SlotColorFrame, frameStart) => {
+                const offset = createTweenFrame(frame, frameStart);
+
+                // Color.
+                const colorString = frame.value.toString();
+                if (!(colorString in colors)) {
+                    colors[colorString] = createColor(frame.value);
+                }
+
+                frameIntArray.push(colors[colorString]);
+
+                return offset;
+            });
     }
 
     return -1;

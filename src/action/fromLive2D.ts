@@ -46,6 +46,15 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
     // Create armature.
     armature = new dbft.Armature();
     armature.name = data.name;
+    armature.aabb.x = -modelConfig.modelImpl.stageWidth * 0.5;
+    armature.aabb.y = -modelConfig.modelImpl.stageHeight;
+    armature.aabb.width = modelConfig.modelImpl.stageWidth;
+    armature.aabb.height = modelConfig.modelImpl.stageHeight;
+    armature.canvas = new dbft.Canvas();
+    armature.canvas.x = 0.0;
+    armature.canvas.y = -modelConfig.modelImpl.stageHeight * 0.5;
+    armature.canvas.width = modelConfig.modelImpl.stageWidth;
+    armature.canvas.height = modelConfig.modelImpl.stageHeight;
     result.armature.push(armature);
     // Create root bone.
     const rootBone = new dbft.Bone();
@@ -140,8 +149,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     }
                 }
                 else { // Rotate and offset.
-                    bone.transform.x = poseTransform.x - modelConfig.modelImpl.stageWidth * 0.5;
-                    bone.transform.y = poseTransform.y - modelConfig.modelImpl.stageHeight;
+                    bone.transform.x = poseTransform.x + armature.aabb.x;
+                    bone.transform.y = poseTransform.y + armature.aabb.y;
 
                     if (poseTransform.reflectX !== poseTransform.reflectY) {
                         bone.transform.skY = poseTransform.rotate + 90.0;
@@ -196,8 +205,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
 
                     }
                     else { // Offset.
-                        surface.vertices[i] = poseVertices[i] - modelConfig.modelImpl.stageWidth * 0.5;
-                        surface.vertices[i + 1] = poseVertices[i + 1] - modelConfig.modelImpl.stageHeight;
+                        surface.vertices[i] = poseVertices[i] + armature.aabb.x;
+                        surface.vertices[i + 1] = poseVertices[i + 1] + armature.aabb.y;
                     }
                 }
             }
@@ -219,7 +228,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
             // Create slot.
             const slot = new dbft.Slot();
             slot.name = l2Display.name;
-            slot.parent = l2Parent ? l2Parent.name : "";
+            slot.parent = l2Parent ? l2Parent.name : rootBone.name;
             slot.alpha = getPose(l2Timelines, l2Display.alphaFrames, (a, b, t) => {
                 if (b) {
                     return a + (b - a) * t;
@@ -230,7 +239,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
             slot.zIndex = getPose(l2Timelines, l2Display.zIndexFrames, (a, _b, _t) => {
                 return a;
             });
-            slot._zOrder = slot.zIndex * 100 + l2Display.zOrder;
+            slot._zOrder = slot.zIndex * 1000 + l2Display.zOrder;
             // slot.color;
             armature.slot.push(slot);
             // Create displays.
@@ -269,8 +278,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     display.vertices[i + 1] = geom.helpPointA.y;
                 }
                 else { // Offset.
-                    display.vertices[i] = poseVertices[i] - modelConfig.modelImpl.stageWidth * 0.5;
-                    display.vertices[i + 1] = poseVertices[i + 1] - modelConfig.modelImpl.stageHeight;
+                    display.vertices[i] = poseVertices[i] + armature.aabb.x;
+                    display.vertices[i + 1] = poseVertices[i + 1] + armature.aabb.y;
                 }
             }
             // const edges = dbft.getEdgeFormTriangles(display.triangles);
@@ -382,8 +391,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                                     }
                                 }
                                 else {
-                                    translateFrame.x = x - target.transform.x - modelConfig.modelImpl.stageWidth * 0.5;
-                                    translateFrame.y = y - target.transform.y - modelConfig.modelImpl.stageHeight;
+                                    translateFrame.x = x - target.transform.x + armature.aabb.x;
+                                    translateFrame.y = y - target.transform.y + armature.aabb.y;
 
                                     if (l2Frame.reflectX !== l2Frame.reflectY) {
                                         rotateFrame.x = l2Frame.rotate + 90.0 - target.transform.skY;
@@ -626,12 +635,12 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                         duration += frame.duration;
 
                         if (
-                            prevFrame &&
+                            i > 1 && prevFrame &&
                             (
-                                prevFrame.value === min || prevFrame.value === max ||
-                                frame.value === min || frame.value === max
+                                (Math.abs(prevFrame.value - min) < 0.1 || Math.abs(prevFrame.value - max) < 0.1) &&
+                                (Math.abs(frame.value - min) < 0.1 || Math.abs(frame.value - max) < 0.1)
                             ) &&
-                            Math.abs(prevFrame.value - frame.value) > Math.abs(max - min) * 0.5
+                            Math.abs(prevFrame.value - frame.value) > Math.abs(max - min) * 0.9
                         ) {
                             prevFrame.tweenEasing = NaN;
                         }
@@ -643,10 +652,10 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     if (
                         prevFrame &&
                         (
-                            prevFrame.value === min || prevFrame.value === max ||
-                            firstVaule === min || firstVaule === max
+                            (Math.abs(prevFrame.value - min) < 0.1 || Math.abs(prevFrame.value - max) < 0.1) &&
+                            (Math.abs(firstVaule - min) < 0.1 || Math.abs(firstVaule - max) < 0.1)
                         ) &&
-                        Math.abs(prevFrame.value - firstVaule) > Math.abs(max - min) * 0.5
+                        Math.abs(prevFrame.value - firstVaule) > Math.abs(max - min) * 0.9
                     ) {
                         prevFrame.tweenEasing = NaN;
                     }
@@ -679,7 +688,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                                     duration += frame.duration;
                                 }
 
-                                frame.value.aM = alpha;
+                                frame.value.aM = alpha * 100.0;
                                 timeline.frame.push(frame);
                             }
 
@@ -947,8 +956,8 @@ function createDeformFrame(
             deformFrame.value[j + 1] = geom.helpPointA.y - pose[j + 1];
         }
         else { // Offset.
-            deformFrame.value[j] = l2DeformFrame[j] - pose[j] - modelConfig.modelImpl.stageWidth * 0.5;
-            deformFrame.value[j + 1] = l2DeformFrame[j + 1] - pose[j + 1] - modelConfig.modelImpl.stageHeight;
+            deformFrame.value[j] = l2DeformFrame[j] - pose[j] + armature.aabb.x;
+            deformFrame.value[j + 1] = l2DeformFrame[j + 1] - pose[j + 1] + armature.aabb.y;
         }
     }
 }

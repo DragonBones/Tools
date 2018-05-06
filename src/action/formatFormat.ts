@@ -35,6 +35,8 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     bone.parent = "";
                 }
 
+                bone.alpha = Number(bone.alpha.toFixed(2));
+
                 if (bone instanceof dbft.Surface) {
                     const vertices = (bone as dbft.Surface).vertices;
                     for (let i = 0, l = vertices.length; i < l; ++i) {
@@ -61,6 +63,7 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                     slot.parent = armature.bone[0].name;
                 }
 
+                slot.alpha = Number(slot.alpha.toFixed(2));
                 slot.color.toFixed();
             }
 
