@@ -9,6 +9,7 @@ type Input = {
     textureAtlases: (Buffer | null)[];
     config?: {
         isLocal?: boolean;
+        isAlone?: boolean;
         showFPS?: boolean;
         frameRate?: number;
         backgroundColor?: number;
@@ -24,6 +25,7 @@ type ZipData = {
 
 export default function (data: Input, isPlayer: boolean): string {
     const isLocal = data.config ? data.config.isLocal : false;
+    const isAlone = data.config ? data.config.isAlone : false;
     const zipData = [{
         data: data.data instanceof Buffer ? data.data.toString("base64") : data.data,
         textureAtlases: data.textureAtlases.map((v) => {
@@ -34,7 +36,7 @@ export default function (data: Input, isPlayer: boolean): string {
     // let htmlString = fs.readFileSync(path.join(__dirname, isPlayer ? "../resource/player.html" : "../resource/viewer.html"), "utf-8");
     // htmlString = replaceHTMLCommentTag(htmlString, DATA_TAG, `<b id="data">${compressed}</b>`, false);
 
-    let htmlString = fs.readFileSync(path.join(__dirname, `../resource/${isPlayer ? "player" : "viewer"}/${isLocal ? "local" : "index"}.html`), "utf-8");
+    let htmlString = fs.readFileSync(path.join(__dirname, `../resource/${isPlayer ? "player" : "viewer"}/${isLocal ? "local" : (isAlone ? "alone" : "index")}.html`), "utf-8");
     htmlString = replaceHTMLCommentTag(htmlString, DATA_TAG, `<b id="data">${JSON.stringify(zipData)}</b>`, false);
 
     if (data.config) {

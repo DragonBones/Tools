@@ -246,7 +246,7 @@ function execute(): void {
                         return null;
                     }),
                     config: {
-                        isLocal: true
+                        isAlone: true
                     }
                 }, type === "player");
 
