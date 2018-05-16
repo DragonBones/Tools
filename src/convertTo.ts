@@ -16,7 +16,7 @@ import format from "./action/formatFormat";
 
 function execute(): void {
     const commands = commander
-        .version("0.0.51")
+        .version("0.1.0")
         .option("-i, --input [path]", "Input path")
         .option("-o, --output [path]", "Output path")
         .option("-t, --type [type]", "Convert to type [binary, new, v45, player, viewer, spine]", /^(binary|new|v45|player|viewer|spine|none)$/i, "none")

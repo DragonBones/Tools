@@ -15,7 +15,7 @@ import * as helper from "./helper/helperRemote";
 
 function execute(): void {
     const commands = commander
-        .version("0.0.51")
+        .version("0.1.0")
         .option("-i, --input [path]", "Input path")
         .option("-o, --output [path]", "Output path")
         .option("-t, --type [type]", "Convert from type [spine, live2d]", /^(spine|live2d)$/i, "none")

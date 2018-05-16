@@ -1,5 +1,5 @@
 # DragonBones tools
-
+[中文 README](./README-zh_CN.md)
 ## JSON format
 * [V 5.5](./doc/dragonbones_json_format_5.5.md)
 
@@ -18,6 +18,9 @@ $ `npm install dragonbones-tools --global`
 * Convert Spine json format files to DragonBones json format files in current path.
     
     $ `2db -t spine`
+* Convert Live2d json format files to DragonBones json format files in current path.
+    
+    $ `2db -t live2d`
 * Convert old DragonBones json format files to new DragonBones json format files in current path.
     
     $ `db2 -t new`
@@ -40,3 +43,4 @@ $ `npm install dragonbones-tools --global`
 * $ `npm install`
 * $ `npm install typescript --global`
 * $ `tsc`
+* $ `npm link`
