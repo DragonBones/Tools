@@ -113,7 +113,7 @@ export function parseMotion(rawData: string) {
 
         }
         else if (line.indexOf("$") >= 0) {
-            line.replace("$", "");
+            line = line.replace("$", "");
             const kv = line.split("=");
             if (kv.length < 2) {
                 continue;

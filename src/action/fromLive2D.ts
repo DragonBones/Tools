@@ -18,7 +18,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
     result = new dbft.DragonBones();
     result.frameRate = 30; //
     result.name = modelConfig.name;
-    result.version = dbft.DATA_VERSION_5_5;
+    result.version = dbft.DATA_VERSION_5_6;
     result.compatibleVersion = dbft.DATA_VERSION_5_5;
     // Create textureAtlas.
     let textureIndex = 0;
@@ -588,6 +588,8 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
         }
     }
 
+    const paramBackupAnimations = armature.animation.map(animation => animation.name);
+
     if (modelConfig.motions) { // Create motion animations.
         for (const motionName in modelConfig.motions) {
             let index = 0;
@@ -598,6 +600,7 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     continue;
                 }
 
+                const paramAnimations = paramBackupAnimations.concat();
                 const animationName = motionConfigs.length > 1 ? (motionName + "_" + index.toString().padStart(2, "0")) : motionName;
                 const animation = new dbft.Animation();
                 animation.playTimes = 0;
@@ -611,9 +614,11 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                         continue;
                     }
 
-                    if (!armature.getAnimation(timelineName)) {
+                    if (!paramAnimations.includes(timelineName)) {
                         continue;
                     }
+
+                    paramAnimations.splice(paramAnimations.indexOf(timelineName), 1);
 
                     let duration = 0;
                     const values = motionConfig.motion.values[timelineName];
@@ -661,6 +666,22 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     }
 
                     animation.duration = Math.max(duration, animation.duration);
+                    animation.timeline.push(timeline);
+                }
+
+                for (const timelineName of paramAnimations) {
+                    const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(timelineName);
+                    if (!l2TimelineInfo) {
+                        continue;
+                    }
+
+                    const timeline = new dbft.TypeTimeline();
+                    timeline.type = dbft.TimelineType.AnimationProgress;
+                    timeline.name = timelineName;
+                    //
+                    const frame = new dbft.SingleValueFrame0();
+                    frame.value = l2TimelineInfo.default;
+                    timeline.frame.push(frame);
                     animation.timeline.push(timeline);
                 }
 
