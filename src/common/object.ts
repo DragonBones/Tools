@@ -93,7 +93,7 @@ function _copyObjectFrom(parent: any, key: string | number, data: any, object: a
         else if (creater) {
             if (creater instanceof Array) {
                 if (creater[1] === Function) {
-                    const clazz =  creater[0](object);
+                    const clazz = creater[0](object);
                     parent[key] = data = new clazz();
                     copyObjectFrom(object, data, config);
                 }
