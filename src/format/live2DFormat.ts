@@ -101,8 +101,8 @@ export function parseMotion(rawData: string) {
     }
 
     rawData = rawData.replace(/\n/g, "");
-    rawData = rawData.replace(/\r\r/, "\r");
-    rawData = rawData.replace(/\r\r/, "\r");
+    rawData = rawData.replace(/\r\r/g, "\r");
+    rawData = rawData.replace(/\r\r/g, "\r");
 
     const motion = { frameRate: 30, fade_in: 0, fade_out: 0, values: {} as any, alphas: {} as any };
     const lines = rawData.split(`\r`);

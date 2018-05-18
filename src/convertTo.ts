@@ -22,6 +22,7 @@ function execute(): void {
         .option("-t, --type [type]", "Convert to type [binary, new, v45, player, viewer, spine]", /^(binary|new|v45|player|viewer|spine|none)$/i, "none")
         .option("-f, --filter [keyword]", "Filter")
         .option("-d, --delete", "Delete raw files after convert complete")
+        .option("-p, --parameter [parameter]", "Parameter")
         .parse(process.argv);
 
     const input = path.resolve(path.normalize(commands["input"] as string || process.cwd()));
@@ -29,6 +30,7 @@ function execute(): void {
     const type = commands["type"] as string || "";
     const filter = commands["filter"] as string || "";
     const deleteRaw = commands["delete"] as boolean || false;
+    const parameter = commands["parameter"] as string || "";
     let loadTextureAtlasToData = false;
     let megreTextureAtlasToData = false;
 
@@ -239,14 +241,16 @@ function execute(): void {
                 const result = toWeb({
                     data: new Buffer(toBinary(dragonBonesData)),
                     textureAtlases: textureAtlasImages.map((v) => {
-                        if (fs.existsSync(v)) {
-                            return fs.readFileSync(v);
+                        const imagePath = path.join(dirURL, v);
+                        if (fs.existsSync(imagePath)) {
+                            return fs.readFileSync(imagePath);
                         }
 
                         return null;
                     }),
                     config: {
-                        isAlone: true
+                        isLocal: parameter !== "alone",
+                        isAlone: parameter === "alone",
                     }
                 }, type === "player");
 
