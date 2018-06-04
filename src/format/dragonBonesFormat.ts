@@ -1629,6 +1629,41 @@ export class MutilpleValueFrame extends TweenFrame {
             return true;
         }
 
+        if (this.offset === value.offset) {
+            if (this.zOrder.length > 0) {
+                if (this.zOrder.length === value.zOrder.length) {
+                    for (let i = 0, l = this.value.length; i < l; ++i) {
+                        if (this.value[i] !== value.value[i]) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+            else if (this.vertices.length > 0) {
+
+                if (this.vertices.length === value.vertices.length) {
+                    for (let i = 0, l = this.value.length; i < l; ++i) {
+                        if (this.value[i] !== value.value[i]) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+            else if (this.value.length === value.value.length) {
+                for (let i = 0, l = this.value.length; i < l; ++i) {
+                    if (this.value[i] !== value.value[i]) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
         return false;
     }
 

@@ -669,21 +669,21 @@ export default function (data: l2ft.ModelConfig): dbft.DragonBones | null {
                     animation.timeline.push(timeline);
                 }
 
-                for (const timelineName of paramAnimations) {
-                    const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(timelineName);
-                    if (!l2TimelineInfo) {
-                        continue;
-                    }
+                // for (const timelineName of paramAnimations) {
+                //     const l2TimelineInfo = modelConfig.modelImpl.getTimelineInfo(timelineName);
+                //     if (!l2TimelineInfo) {
+                //         continue;
+                //     }
 
-                    const timeline = new dbft.TypeTimeline();
-                    timeline.type = dbft.TimelineType.AnimationProgress;
-                    timeline.name = timelineName;
-                    //
-                    const frame = new dbft.SingleValueFrame0();
-                    frame.value = l2TimelineInfo.default;
-                    timeline.frame.push(frame);
-                    animation.timeline.push(timeline);
-                }
+                //     const timeline = new dbft.TypeTimeline();
+                //     timeline.type = dbft.TimelineType.AnimationProgress;
+                //     timeline.name = timelineName;
+                //     //
+                //     const frame = new dbft.SingleValueFrame0();
+                //     frame.value = l2TimelineInfo.default;
+                //     timeline.frame.push(frame);
+                //     animation.timeline.push(timeline);
+                // }
 
                 for (const timelineName in motionConfig.motion.alphas) {
                     const part = modelConfig.modelImpl.getPart(timelineName);
@@ -845,6 +845,10 @@ function createAnimation<F, T extends { name: string }>(
     const l2Timeline = l2Timelines[level];
     let blendName = target.name;
     let animation = armature.getAnimation(l2Timeline.name) as dbft.Animation | null;
+
+    if (blendName === "B_LEG_L") { 
+        debugger;
+    }
 
     if (!animation) {
         animation = new dbft.Animation();
