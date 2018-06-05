@@ -1778,7 +1778,7 @@ export class SlotAllFrame extends TweenFrame {
     readonly actions: (OldAction | Action)[] = [];
 
     equal(value: this) {
-        return this.actions.length === 0 && this.displayIndex === value.displayIndex && this.color.equal(value.color);
+        return this.actions.length === 0 && value.actions.length === 0 && this.displayIndex === value.displayIndex && this.color.equal(value.color);
     }
 
     copy(value: this) {
@@ -1794,7 +1794,7 @@ export class SlotDisplayFrame extends Frame {
     readonly actions: (OldAction | Action)[] = [];
 
     equal(value: this) {
-        return this.actions.length === 0 && this.value === value.value;
+        return this.actions.length === 0 && value.actions.length === 0 && this.value === value.value;
     }
 
     copy(value: this) {
