@@ -846,6 +846,10 @@ function createAnimation<F, T extends { name: string }>(
     let blendName = target.name;
     let animation = armature.getAnimation(l2Timeline.name) as dbft.Animation | null;
 
+    if (blendName === "B_LEG_L") { 
+        debugger;
+    }
+
     if (!animation) {
         animation = new dbft.Animation();
         animation.playTimes = 0;

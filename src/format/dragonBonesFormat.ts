@@ -1629,6 +1629,41 @@ export class MutilpleValueFrame extends TweenFrame {
             return true;
         }
 
+        if (this.offset === value.offset) {
+            if (this.zOrder.length > 0) {
+                if (this.zOrder.length === value.zOrder.length) {
+                    for (let i = 0, l = this.value.length; i < l; ++i) {
+                        if (this.value[i] !== value.value[i]) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+            else if (this.vertices.length > 0) {
+
+                if (this.vertices.length === value.vertices.length) {
+                    for (let i = 0, l = this.value.length; i < l; ++i) {
+                        if (this.value[i] !== value.value[i]) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+            else if (this.value.length === value.value.length) {
+                for (let i = 0, l = this.value.length; i < l; ++i) {
+                    if (this.value[i] !== value.value[i]) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -1743,7 +1778,7 @@ export class SlotAllFrame extends TweenFrame {
     readonly actions: (OldAction | Action)[] = [];
 
     equal(value: this) {
-        return this.actions.length === 0 && this.displayIndex === value.displayIndex && this.color.equal(value.color);
+        return this.actions.length === 0 && value.actions.length === 0 && this.displayIndex === value.displayIndex && this.color.equal(value.color);
     }
 
     copy(value: this) {
@@ -1759,7 +1794,7 @@ export class SlotDisplayFrame extends Frame {
     readonly actions: (OldAction | Action)[] = [];
 
     equal(value: this) {
-        return this.actions.length === 0 && this.value === value.value;
+        return this.actions.length === 0 && value.actions.length === 0 && this.value === value.value;
     }
 
     copy(value: this) {

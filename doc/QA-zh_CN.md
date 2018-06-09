@@ -9,6 +9,12 @@
 * 问：为什么无法导出文件或无法预览？
 * 答：确保设备的浏览器是支持 html5 的浏览器。
 
+* 问：文件、骨架、骨骼、插槽、显示资源、动画的命名有什么规范吗？
+* 答：为了不给程序开发带来不必要的麻烦，尽量只使用英文，尽量不要使用奇怪的符号。
+
+* 问：库的文件结构有什么特殊要求吗？
+* 答：某些引擎可能不支持多级文件夹，而找不到贴图，这个时候将贴图资源都放到库的根目录可以解决这类问题。
+
 * 问：为什么浏览器支持 html5 仍然无法导出文件或无法预览？
 * 答：可能由于 DragonBones Pro 的缓存损坏造成的，建议删除缓存文件夹 `C:\Users\{你的用户名}\AppData\Roaming\DragonBonesPro\Local Store`。
 
@@ -20,3 +26,6 @@
 
 * 问：为什么我修改了图片名后，可能出现找不到图片的情况？
 * 答：因为 DragonBonesPro 的 library 功能开发的不够完善，为了保证工程地安全，建议不要使用此功能。
+
+* 问：Flash 动画怎么导入 DragonBones Pro？
+* 答：可部分参考[这篇文章](http://dragonbones.com/2015/getting_startedV20_cn.htmlhttp://dragonbones.com/2015/getting_startedV20_cn.html)，将插件导出的 JSON 导入到 DragonBones Pro 即可。

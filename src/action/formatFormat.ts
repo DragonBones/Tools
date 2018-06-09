@@ -199,6 +199,15 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                 }
 
                 if (animation.zOrder) {
+                    for (const frame of animation.zOrder.frame as dbft.MutilpleValueFrame[]) { // Fix zOrder bug.
+                        for (let i = 0, l = frame.zOrder.length; i < l; i += 2) {
+                            const index = frame.zOrder[i] + frame.zOrder[i + 1];
+                            if (index < 0) {
+                                frame.zOrder[i + 1] = armature.slot.length + index;
+                            }
+                        }
+                    }
+
                     cleanFrame(animation.zOrder.frame);
 
                     if (animation.zOrder.frame.length === 0) {
