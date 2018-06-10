@@ -444,12 +444,12 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
                             if (slot) {
                                 cleanFrame(timeline.frame);
 
-                                if (timeline.frame.length === 1) {
-                                    const frame = timeline.frame[0] as dbft.SingleValueFrame0;
-                                    if (frame.value === slot.zIndex) {
-                                        timeline.frame.length = 0;
-                                    }
-                                }
+                                // if (timeline.frame.length === 1) {
+                                //     const frame = timeline.frame[0] as dbft.SingleValueFrame0;
+                                //     if (frame.value === slot.zIndex) {
+                                //         timeline.frame.length = 0;
+                                //     }
+                                // }
                             }
                             else {
                                 timeline.frame.length = 0;
