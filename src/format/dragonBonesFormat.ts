@@ -129,9 +129,9 @@ export enum TimelineType {
     BoneTranslate = 11,
     BoneRotate = 12,
     BoneScale = 13,
-    BoneAlpha = 19,
 
     Surface = 50,
+    BoneAlpha = 60,
 
     SlotDisplay = 20,
     SlotColor = 21,
