@@ -475,11 +475,11 @@ function createTypeTimeline(timeline: dbft.TypeTimeline) {
     let valueScale = 1.0;
     switch (timeline.type) {
         case dbft.TimelineType.SlotDisplay:
-            // TODO
+        // TODO
         case dbft.TimelineType.SlotZIndex:
             return createTimeline(timeline, timeline.frame, FrameValueType.Int, 1, (frame: dbft.SingleValueFrame0, frameStart) => {
                 const offset = createTweenFrame(frame, frameStart);
-                frameArray.push(frame.value);
+                frameIntArray.push(frame.value);
 
                 return offset;
             });
