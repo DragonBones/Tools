@@ -29,3 +29,6 @@
 
 * 问：Flash 动画怎么导入 DragonBones Pro？
 * 答：可部分参考[这篇文章](http://dragonbones.com/2015/getting_startedV20_cn.htmlhttp://dragonbones.com/2015/getting_startedV20_cn.html)，将插件导出的 JSON 导入到 DragonBones Pro 即可。
+
+* 问：为什么导出的动画贴图在游戏引擎会有黑边？
+* 答：Cocos Creater 的[解决办法](http://forum.cocos.com/t/creater-blend-premultiply-alpha/43260/3)，Unity 同理。
