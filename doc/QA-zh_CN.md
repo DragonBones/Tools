@@ -32,3 +32,6 @@
 
 * 问：为什么导出的动画贴图在游戏引擎会有黑边？
 * 答：Cocos Creater 的[解决办法](http://forum.cocos.com/t/creater-blend-premultiply-alpha/43260/3)，Unity 同理。
+
+* 问：为什么给动画加上动画控制的事件帧后会有跳帧的情况？
+* 答：该事件帧不能在动画的最尾帧。
