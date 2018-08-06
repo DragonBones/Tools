@@ -77,7 +77,7 @@ function execute(): void {
 
                 let index = 0;
                 for (const textureAtlas of textureAtlases) {
-                    const pageName = `_tex${textureAtlases.length > 1 ? index++ : ""}`;
+                    const pageName = `_tex${textureAtlases.length > 1 ? "_" + index++ : ""}`;
                     const outputFile = (output ? file.replace(input, output) : file).replace(".json", pageName + ".json");
                     const textureAtlasImage = path.join(path.dirname(file), textureAtlas.imagePath);
 
