@@ -6,7 +6,10 @@
 * [V 5.5](./doc/dragonbones_json_format_5.5-zh_CN.md)
 
 ## 如何安装
-$ `npm install dragonbones-tools --global`
+* 安装 [Node.JS](https://nodejs.org/)。
+* 安装支持 html5 的浏览器，并且该浏览器是默认浏览器。
+* 命令行执行如下命令：
+    * $ `npm install dragonbones-tools --global`
 
 ## 帮助
 * 使用 `2db` 命令将其他动画格式文件转换为龙骨 JSON 格式文件，使用 `--help` 命令查看 api 帮助。
@@ -37,8 +40,6 @@ $ `npm install dragonbones-tools --global`
     $ `db2 -t binary -i d:/input -o d:/output -d`
 
 ## 注意事项
-* 请确认设备安装了 [nodeJS](https://nodejs.org/) 。
-* 请确认安装了支持 html5 的浏览器，并且该浏览器是默认浏览器。
 * 请确认在转换文件之前备份原始文件。
 
 ## 如何编译

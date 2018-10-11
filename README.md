@@ -4,7 +4,10 @@
 * [V 5.5](./doc/dragonbones_json_format_5.5.md)
 
 ## Installation
-$ `npm install dragonbones-tools --global`
+* Install [Node.JS](https://nodejs.org/).
+* Install a browser that supports html5.
+* Execute the following command from the command line:
+* $ `npm install dragonbones-tools --global`
 
 ## Help
 * use `2db` convert other format files to DragonBones json format files.
@@ -35,8 +38,6 @@ $ `npm install dragonbones-tools --global`
     $ `db2 -t binary -i d:/input -o d:/output -d`
 
 ## Notice
-* Make sure you have installed [nodeJS](https://nodejs.org/).
-* Make sure you have installed a browser that supports html5.
 * Make sure backup your raw resources before convert.
 
 ## How to build
