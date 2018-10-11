@@ -1619,16 +1619,6 @@ export class MutilpleValueFrame extends TweenFrame {
     readonly zOrder: number[] = []; // Deprecated.
 
     equal(value: this) {
-        if (this.offset === value.offset && this.value.length === value.value.length) {
-            for (let i = 0, l = this.value.length; i < l; ++i) {
-                if (this.value[i] !== value.value[i]) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         if (this.offset === value.offset) {
             if (this.zOrder.length > 0) {
                 if (this.zOrder.length === value.zOrder.length) {
@@ -1642,10 +1632,9 @@ export class MutilpleValueFrame extends TweenFrame {
                 }
             }
             else if (this.vertices.length > 0) {
-
                 if (this.vertices.length === value.vertices.length) {
-                    for (let i = 0, l = this.value.length; i < l; ++i) {
-                        if (this.value[i] !== value.value[i]) {
+                    for (let i = 0, l = this.vertices.length; i < l; ++i) {
+                        if (this.vertices[i] !== value.vertices[i]) {
                             return false;
                         }
                     }

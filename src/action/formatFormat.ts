@@ -347,10 +347,10 @@ export default function (data: dbft.DragonBones | null, textureAtlases: dbft.Tex
 
                     if (slot && display) {
                         const vertices = display.vertices;
-                        display.path = display.path || display.name;
-                        display.name = timeline.skin ? timeline.skin + "_" : "" + timeline.slot ? timeline.slot + "_" : "" + display.name;
-                        timeline.skin = "";
-                        timeline.slot = "";
+                        // display.path = display.path || display.name;
+                        // display.name = (timeline.skin ? timeline.skin + "_" : "") + (timeline.slot ? timeline.slot + "_" : "") + display.name;
+                        // timeline.skin = ""; TODO
+                        // timeline.slot = ""; TODO
 
                         for (const frame of timeline.frame as dbft.MutilpleValueFrame[]) {
                             let inSide = 0;
