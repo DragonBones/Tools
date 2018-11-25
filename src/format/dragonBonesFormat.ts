@@ -1505,7 +1505,7 @@ export class IKConstraintTimeline extends TypeTimeline {
  * @deprecated
  */
 export class SlotDeformTimeline extends TypeTimeline {
-    skin: string = ""; // Deprecated.
+    skin: string = "default"; // Deprecated.
     slot: string = ""; // Deprecated.
 }
 
