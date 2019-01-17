@@ -126,7 +126,7 @@ export default function (data: dbft.DragonBones, forRuntime: boolean): dbft.Drag
                     translateFrame.y = frame.transform.y;
                     rotateFrame.clockwise = frame.tweenRotate;
                     rotateFrame.rotate = geom.normalizeDegree(frame.transform.skY);
-                    rotateFrame.skew = geom.normalizeDegree(frame.transform.skX) - rotateFrame.rotate;
+                    rotateFrame.skew = geom.normalizeDegree(frame.transform.skX - frame.transform.skY);
                     scaleFrame.x = frame.transform.scX;
                     scaleFrame.y = frame.transform.scY;
 
