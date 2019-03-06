@@ -1620,10 +1620,10 @@ export class MutilpleValueFrame extends TweenFrame {
 
     equal(value: this) {
         if (this.offset === value.offset) {
-            if (this.zOrder.length > 0) {
+            if (this.zOrder.length > 0 || value.zOrder.length > 0) {
                 if (this.zOrder.length === value.zOrder.length) {
-                    for (let i = 0, l = this.value.length; i < l; ++i) {
-                        if (this.value[i] !== value.value[i]) {
+                    for (let i = 0, l = this.zOrder.length; i < l; ++i) {
+                        if (this.zOrder[i] !== value.zOrder[i]) {
                             return false;
                         }
                     }
@@ -1631,7 +1631,7 @@ export class MutilpleValueFrame extends TweenFrame {
                     return true;
                 }
             }
-            else if (this.vertices.length > 0) {
+            else if (this.vertices.length > 0 || value.vertices.length > 0) {
                 if (this.vertices.length === value.vertices.length) {
                     for (let i = 0, l = this.vertices.length; i < l; ++i) {
                         if (this.vertices[i] !== value.vertices[i]) {
