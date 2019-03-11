@@ -132,6 +132,7 @@ export default function (data: dbft.DragonBones): ArrayBuffer {
                 }
 
                 const timelines = currentAnimationBinary.slot[timeline.slot];
+                timelines.push(dbft.TimelineType.SlotDeform);
                 timelines.push(createDeformTimeline(timeline));
             }
 
