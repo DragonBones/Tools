@@ -248,9 +248,10 @@ function execute(): void {
 
     const portServer = http.createServer();
     portServer.listen(0, () => {
-        const port = portServer.address().port;
+        const port = (portServer.address() as any).port;
         portServer.close();
         gate.start("dragonbones", port, "/dragonbones");
+        
         console.log(`http://${nodeUtils.findIP()}:${port}/dragonbones`);
     });
 }
