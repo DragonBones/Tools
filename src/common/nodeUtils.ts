@@ -73,7 +73,7 @@ export function findIP(): string {
     const ipConfig = os.networkInterfaces();
     let ip = "localhost";
     for (const k in ipConfig) {
-        const arr = ipConfig[k];
+        const arr = ipConfig[k]!;
         for (let i = 0; i < arr.length; ++i) {
             const ipData = arr[i];
             if (!ipData.internal && ipData.family === "IPv4") {

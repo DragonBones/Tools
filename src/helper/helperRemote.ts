@@ -80,7 +80,7 @@ export function start(): void {
 
     const portServer = http.createServer();
     portServer.listen(0, () => {
-        const port = portServer.address().port;
+        const port = (portServer.address() as any).port;
         portServer.close();
         gate.start("dragonbones", port, "/dragonbones_helper");
         nodeUtils.open(`http://${nodeUtils.findIP()}:${port}/dragonbones_helper/resource/helper.html`);
